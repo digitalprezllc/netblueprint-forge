@@ -161,7 +161,7 @@ cd netblueprint-forge
 /plugin install netblueprint-forge@netblueprint
 ```
 
-**From a release zip.** Each release on the [Releases page](https://github.com/digitalprezllc/netblueprint-forge/releases) carries `netblueprint-forge-<version>.zip`: one folder, `netblueprint-forge/`, with SKILL.md, LICENSE, references, scripts and assets inside. Upload it as a custom skill in claude.ai or through the Claude API, or unzip it into the folder your tool reads. The release number is the skill version; [CHANGELOG.md](CHANGELOG.md) says what each one holds, and `node platforms/package.mjs` builds the same archive from a checkout.
+**From a release zip.** `netblueprint-forge-<version>.zip` is one folder, `netblueprint-forge/`, with SKILL.md, LICENSE, references, scripts and assets inside. Download it from [bifrost.digitalprez.com/download/netblueprint-forge/releases/](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/) (current: [netblueprint-forge-0.6.1.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.6.1.zip)), or from the repository's [Releases page](https://github.com/digitalprezllc/netblueprint-forge/releases). Upload it as a custom skill in claude.ai or through the Claude API, or unzip it into the folder your tool reads. The release number is the skill version; [CHANGELOG.md](CHANGELOG.md) says what each one holds, and `node platforms/package.mjs` builds the same archive from a checkout.
 
 ## Use it
 

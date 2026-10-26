@@ -8,7 +8,7 @@ Nothing yet.
 
 ## 0.6.1 (2026-10-25)
 
-First published release. Renderer 1.7.1.
+First published release. Renderer 1.7.1. Download: [netblueprint-forge-0.6.1.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.6.1.zip), sha256 `6e629c5e9b0fd43594cfd4bb316abfa40f69d092fbd002ec50c11252bcc4da2c`.
 
 - The interview, section by section, with its references: threats and controls, risk scoring (Likelihood × Impact, OWASP Risk Rating, CVSS), what-if scenarios, ingest from infrastructure code and OpenAPI, revise-and-archive, layout hints, render, icons, the generated model reference, and 36 cloud service cards for AWS, Azure and GCP.
 - The context model: JSON Schema (draft 2020-12), the validator with its cross-reference lint and `--fix`, Title Case labels, arrows that leave the initiator, data classification on every flow, remediation on every open threat, attack paths with permanent numbers, what-if tabs that may repeat their baseline's ids.

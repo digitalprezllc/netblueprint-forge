@@ -247,7 +247,7 @@ Many users know they are deploying "an App Service" or "an S3 bucket" without kn
 
 The skill must install into Claude Code, OpenAI Codex / ChatGPT, GitHub Copilot (VS Code, CLI, cloud agent, Visual Studio), Kiro, Cursor, Gemini CLI and Windsurf/Devin. See [PLATFORMS.md](PLATFORMS.md).
 
-Releases: every version is also published as `netblueprint-forge-<version>.zip` on the GitHub Releases page, one top-level folder with `SKILL.md` inside, the shape claude.ai and the Claude API accept as a skill upload and the offline install for every other tool. The release number is `metadata.version` in `SKILL.md`; `CHANGELOG.md` holds the notes per version; `platforms/package.mjs` builds the archive without dependencies and `.github/workflows/release.yml` publishes it when a merge to `master` raises the version.
+Releases: every version is also published as `netblueprint-forge-<version>.zip` on the GitHub Releases page, one top-level folder with `SKILL.md` inside, the shape claude.ai and the Claude API accept as a skill upload and the offline install for every other tool. The release number is `metadata.version` in `SKILL.md`; `CHANGELOG.md` holds the notes per version; `platforms/package.mjs` builds the archive without dependencies and `.github/workflows/release.yml` publishes it when a merge to `master` raises the version; the same archive is published at https://bifrost.digitalprez.com/download/netblueprint-forge/releases/ beside the live example pages, since a private repository's releases are visible to collaborators only.
 
 ## 7. Scope
 
