@@ -1,0 +1,305 @@
+{
+  "netblueprint": "1",
+  "meta": {
+    "title": "Two Tabs",
+    "author": "Test",
+    "date": "2026-10-24",
+    "version": "1.0.0"
+  },
+  "tabs": [
+    {
+      "name": "front",
+      "label": "Front Door",
+      "zones": [
+        {
+          "name": "corp",
+          "label": "Corporate Network"
+        }
+      ],
+      "nodes": [
+        {
+          "name": "user",
+          "label": "Remote User",
+          "type": "remote-user",
+          "zone": "internet"
+        },
+        {
+          "name": "web",
+          "label": "Web Server",
+          "type": "server",
+          "zone": "corp"
+        }
+      ],
+      "flows": [
+        {
+          "name": "f-user-web",
+          "from": "user",
+          "to": "web",
+          "auth": "mfa",
+          "data_classification": "confidential"
+        }
+      ],
+      "steps": [
+        {
+          "name": "s1",
+          "title": "The user opens the site",
+          "description": "One step.",
+          "flows": [
+            "f-user-web"
+          ],
+          "outcome": "Done."
+        }
+      ],
+      "threats": [
+        {
+          "id": "THR-0001",
+          "number": 1,
+          "title": "Credential Stuffing",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "spoofing"
+            ]
+          },
+          "targets": [
+            {
+              "kind": "flow",
+              "ref": "f-user-web"
+            }
+          ],
+          "adversary": {
+            "type": "automated-bot"
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "moderate",
+            "rating": "moderate",
+            "score": 5
+          },
+          "treatment": {
+            "suggested_mitigations": [
+              {
+                "text": "Rate-limit sign-in attempts per account and source; require a second factor after one failure."
+              }
+            ]
+          }
+        }
+      ],
+      "attack_paths": [
+        {
+          "id": "AP-0001",
+          "number": 1,
+          "title": "Stuffed Credentials to the Web Server",
+          "entry": "user",
+          "hops": [
+            {
+              "threat": "THR-0001",
+              "via": "f-user-web",
+              "gain": "foothold",
+              "note": "A reused password opens an account on the site."
+            }
+          ],
+          "impact": "An account takeover on the web server.",
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "moderate",
+            "rating": "moderate",
+            "score": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "admin",
+      "label": "Admin Path",
+      "zones": [
+        {
+          "name": "corp",
+          "label": "Corporate Network"
+        }
+      ],
+      "nodes": [
+        {
+          "name": "admin",
+          "label": "Administrator",
+          "type": "admin",
+          "zone": "corp"
+        },
+        {
+          "name": "web",
+          "label": "Web Server",
+          "type": "server",
+          "zone": "corp"
+        }
+      ],
+      "flows": [
+        {
+          "name": "f-admin-web",
+          "from": "admin",
+          "to": "web",
+          "auth": "kerberos",
+          "data_classification": "confidential"
+        }
+      ],
+      "threats": [
+        {
+          "id": "THR-0002",
+          "number": 2,
+          "title": "Standing Admin Rights",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "elevation-of-privilege"
+            ]
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "web"
+            }
+          ],
+          "adversary": {
+            "type": "insider-disgruntled"
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "low",
+            "impact": "high",
+            "rating": "low",
+            "score": 2
+          },
+          "treatment": {
+            "suggested_mitigations": [
+              {
+                "text": "Move administrators to just-in-time elevation with an approval."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "front-cache",
+      "label": "What-If: Cache",
+      "zones": [
+        {
+          "name": "corp",
+          "label": "Corporate Network"
+        }
+      ],
+      "nodes": [
+        {
+          "name": "user",
+          "label": "Remote User",
+          "type": "remote-user",
+          "zone": "internet"
+        },
+        {
+          "name": "web",
+          "label": "Web Server",
+          "type": "server",
+          "zone": "corp"
+        },
+        {
+          "name": "cache",
+          "label": "Cache",
+          "type": "database",
+          "zone": "corp"
+        }
+      ],
+      "flows": [
+        {
+          "name": "f-user-web",
+          "from": "user",
+          "to": "web",
+          "auth": "mfa",
+          "data_classification": "confidential"
+        },
+        {
+          "name": "f-web-cache",
+          "from": "web",
+          "to": "cache",
+          "auth": "api-key",
+          "data_classification": "confidential"
+        }
+      ],
+      "steps": [
+        {
+          "name": "s1",
+          "title": "The user opens the site",
+          "description": "One step.",
+          "flows": [
+            "f-user-web"
+          ],
+          "outcome": "Done."
+        }
+      ],
+      "threats": [
+        {
+          "id": "THR-0001",
+          "number": 1,
+          "title": "Credential Stuffing",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "spoofing"
+            ]
+          },
+          "targets": [
+            {
+              "kind": "flow",
+              "ref": "f-user-web"
+            }
+          ],
+          "adversary": {
+            "type": "automated-bot"
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "moderate",
+            "rating": "moderate",
+            "score": 5
+          },
+          "treatment": {
+            "suggested_mitigations": [
+              {
+                "text": "Rate-limit sign-in attempts per account and source; require a second factor after one failure."
+              }
+            ]
+          }
+        }
+      ],
+      "attack_paths": [
+        {
+          "id": "AP-0001",
+          "number": 1,
+          "title": "Stuffed Credentials to the Web Server",
+          "entry": "user",
+          "hops": [
+            {
+              "threat": "THR-0001",
+              "via": "f-user-web",
+              "gain": "foothold",
+              "note": "A reused password opens an account on the site."
+            }
+          ],
+          "impact": "An account takeover on the web server.",
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "moderate",
+            "rating": "moderate",
+            "score": 5
+          }
+        }
+      ],
+      "scenario": {
+        "baseline": "front",
+        "change": "Put a public cache in front of the web server."
+      }
+    }
+  ]
+}

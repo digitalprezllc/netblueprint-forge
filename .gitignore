@@ -1,0 +1,31 @@
+# Install links created by platforms/install.ps1 / install.sh (junctions/symlinks to skills/netblueprint-forge)
+.agents/
+.claude/skills/
+.kiro/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+
+# Python (tests/check_schema.py)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Scratch
+*.log
+*.tmp
+
+# Packaged copies of the skill
+*.zip
+
+# The commercial licence grant template is kept outside the repository (sent on request, reviewed by counsel privately)
+COMMERCIAL-LICENSE-GRANT.md
+
+# Release archives built by platforms/package.mjs
+dist/

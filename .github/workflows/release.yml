@@ -1,0 +1,59 @@
+# NetBlueprint Forge release: when a merge to master raises the skill version (metadata.version in SKILL.md), build
+# netblueprint-forge-<version>.zip with platforms/package.mjs and publish a GitHub Release tagged v<version> with that archive
+# and the version's CHANGELOG section as notes. A version that is already released is skipped with a notice, so a merge that
+# does not bump the version publishes nothing. Run by hand from the Actions tab to rebuild the archive as a workflow artifact.
+name: release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Package and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validator suite
+        run: node tests/check_validate.mjs
+      - name: Package the skill
+        id: pkg
+        run: |
+          node platforms/package.mjs
+          echo "version=$(node platforms/package.mjs --version)" >> "$GITHUB_OUTPUT"
+      - name: Check the archive with Python's zipfile
+        run: |
+          python3 -I -m zipfile -t "dist/netblueprint-forge-${{ steps.pkg.outputs.version }}.zip"
+          python3 -I -m zipfile -l "dist/netblueprint-forge-${{ steps.pkg.outputs.version }}.zip" | head -n 12
+      - name: Keep the archive as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: netblueprint-forge-${{ steps.pkg.outputs.version }}
+          path: dist/netblueprint-forge-${{ steps.pkg.outputs.version }}.zip
+          retention-days: 30
+      - name: Publish the release (master only; skipped when the tag exists)
+        if: github.ref == 'refs/heads/master'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.pkg.outputs.version }}"
+          tag="v${version}"
+          if git ls-remote --exit-code --tags origin "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "::notice::${tag} is already released; raise metadata.version in skills/netblueprint-forge/SKILL.md before the next merge to master"
+            exit 0
+          fi
+          node platforms/package.mjs --notes > notes.md
+          if [ ! -s notes.md ]; then echo "No CHANGELOG.md section for ${version}." > notes.md; fi
+          printf '\n**Archive:** `netblueprint-forge-%s.zip`, sha256 `%s`\n' "${version}" "$(sha256sum "dist/netblueprint-forge-${version}.zip" | cut -d' ' -f1)" >> notes.md
+          gh release create "${tag}" "dist/netblueprint-forge-${version}.zip" --target "${GITHUB_SHA}" --title "NetBlueprint Forge ${tag}" --notes-file notes.md

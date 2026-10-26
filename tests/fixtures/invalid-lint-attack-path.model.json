@@ -1,0 +1,19 @@
+{
+  "netblueprint": "1",
+  "meta": { "title": "Broken Attack Path", "author": "Test", "date": "2026-10-25", "version": "1.0.0" },
+  "zones": [{ "name": "corp", "label": "Corporate Network" }],
+  "nodes": [
+    { "name": "user", "label": "Remote User", "type": "remote-user", "zone": "internet" },
+    { "name": "web", "label": "Web Server", "type": "server", "zone": "corp" }
+  ],
+  "flows": [{ "name": "f-user-web", "from": "user", "to": "web", "auth": "mfa", "data_classification": "confidential" }],
+  "threats": [{ "id": "THR-0001", "number": 1, "title": "Credential Stuffing", "status": "open", "classification": { "stride": ["spoofing"] }, "targets": [{ "kind": "flow", "ref": "f-user-web" }], "adversary": { "type": "automated-bot" }, "risk": { "method": "likelihood-impact", "likelihood": "moderate", "impact": "moderate", "rating": "moderate", "score": 5 }, "treatment": { "suggested_mitigations": [{ "text": "Rate-limit sign-in attempts per account and source." }] }}],
+  "attack_paths": [
+    { "id": "AP-0001", "number": 1, "title": "Stuffed Credentials to the Web Server", "entry": "user", "hops": [
+      { "threat": "THR-0001", "via": "f-user-web", "gain": "foothold" },
+      { "threat": "THR-0009", "via": "f-web-db", "gain": "data-access" },
+      { "threat": "THR-0001", "gain": "impact" }
+    ], "breaks_at": ["CTL-0042"], "status": "mitigated" },
+    { "id": "AP-0001", "number": 1, "title": "Duplicate Id", "hops": [{ "threat": "THR-0001", "to": "web", "gain": "foothold" }] }
+  ]
+}

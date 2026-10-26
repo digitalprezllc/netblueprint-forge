@@ -1,0 +1,28 @@
+{
+  "entra-app-proxy": {
+    "main": {
+      "crossings": 6,
+      "maxBends": 2
+    }
+  },
+  "azure-hub-spoke": {
+    "main": {
+      "crossings": 33,
+      "maxBends": 7
+    },
+    "whatif-redis": {
+      "crossings": 51,
+      "maxBends": 7
+    }
+  },
+  "partner-portal-tabs": {
+    "partner-access": {
+      "crossings": 6,
+      "maxBends": 2
+    },
+    "admin-access": {
+      "crossings": 2,
+      "maxBends": 4
+    }
+  }
+}

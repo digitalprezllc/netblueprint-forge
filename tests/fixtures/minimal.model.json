@@ -1,0 +1,466 @@
+{
+  "netblueprint": "1",
+  "meta": {
+    "title": "Minimal fixture",
+    "author": "NetBlueprint tests",
+    "date": "2026-10-23",
+    "version": "0.1.0",
+    "description": "Smallest model that exercises every top-level section once.",
+    "assumptions": [
+      "The IdP is already hardened and out of scope."
+    ],
+    "out_of_scope": [
+      "Backup infrastructure"
+    ]
+  },
+  "settings": {
+    "network_label": "Fabrikam Network",
+    "layout": {
+      "min_width": 1280,
+      "min_height": 640
+    }
+  },
+  "layers": [
+    {
+      "name": "phase-2",
+      "label": "Phase 2 (proposed)",
+      "visible": false
+    }
+  ],
+  "zones": [
+    {
+      "name": "corp",
+      "label": "Fabrikam Network",
+      "kind": "network",
+      "appliances": [
+        {
+          "name": "perimeter-fw",
+          "label": "Perimeter Firewall",
+          "sub": "NGFW",
+          "type": "ngfw",
+          "info": "Edge firewall; no inbound allowed."
+        }
+      ]
+    },
+    {
+      "name": "dmz",
+      "label": "DMZ",
+      "kind": "dmz",
+      "parent": "corp",
+      "dashed": true,
+      "appliances": [
+        {
+          "name": "waf",
+          "label": "WAF",
+          "type": "waf"
+        }
+      ]
+    },
+    {
+      "name": "app-tier",
+      "label": "Application Tier",
+      "kind": "segment",
+      "parent": "corp",
+      "data_classification": "confidential"
+    }
+  ],
+  "nodes": [
+    {
+      "name": "customer",
+      "label": "Customer",
+      "type": "remote-user",
+      "zone": "internet",
+      "info": "Browser on an unmanaged device."
+    },
+    {
+      "name": "attacker",
+      "label": "Bad Actor",
+      "type": "bad-actor",
+      "zone": "internet"
+    },
+    {
+      "name": "web-01",
+      "label": "WEB-01",
+      "sub": "Public web front end",
+      "type": "server",
+      "zone": "dmz",
+      "components": [
+        {
+          "name": "nginx",
+          "label": "nginx",
+          "type": "web-server",
+          "ports": [
+            "443/tcp"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "app-01",
+      "label": "APP-01",
+      "sub": "Profile API host",
+      "type": "host",
+      "zone": "app-tier",
+      "data_tags": [
+        "pii"
+      ],
+      "components": [
+        {
+          "name": "profile-api",
+          "label": "Profile API",
+          "type": "api",
+          "ports": [
+            "8443/tcp"
+          ]
+        },
+        {
+          "name": "sql",
+          "label": "SQL Server",
+          "type": "sql-server",
+          "ports": [
+            "1433/tcp"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii"
+          ]
+        }
+      ],
+      "layout": {
+        "order": 1
+      }
+    },
+    {
+      "name": "crm-saas",
+      "label": "CRM (SaaS)",
+      "type": "saas",
+      "zone": "internet",
+      "layers": [
+        "phase-2"
+      ],
+      "cloud": {
+        "provider": "other",
+        "service": "Hosted CRM",
+        "exposure": "internet",
+        "endpoint": "public"
+      }
+    }
+  ],
+  "flows": [
+    {
+      "name": "f-customer-web",
+      "from": "customer",
+      "to": "web-01/nginx",
+      "kind": "data",
+      "auth": "password",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true
+    },
+    {
+      "name": "f-web-api",
+      "from": "web-01/nginx",
+      "to": "app-01/profile-api",
+      "kind": "data",
+      "auth": "mtls",
+      "protocol": "HTTPS",
+      "port": "8443/tcp",
+      "encrypted": true
+    },
+    {
+      "name": "f-api-sql",
+      "from": "app-01/profile-api",
+      "to": "app-01/sql",
+      "kind": "data",
+      "auth": "kerberos",
+      "protocol": "TDS",
+      "port": "1433/tcp"
+    },
+    {
+      "name": "f-attacker-web",
+      "from": "attacker",
+      "to": "web-01/nginx",
+      "kind": "blocked",
+      "auth": "anonymous",
+      "blocked_reason": "WAF rule: object id enumeration"
+    },
+    {
+      "name": "f-api-crm",
+      "from": "app-01/profile-api",
+      "to": "crm-saas",
+      "kind": "data",
+      "auth": "oauth2",
+      "layers": [
+        "phase-2"
+      ]
+    }
+  ],
+  "phases": [
+    {
+      "name": "connect",
+      "label": "Connect"
+    },
+    {
+      "name": "access",
+      "label": "Access"
+    }
+  ],
+  "steps": [
+    {
+      "name": "s1",
+      "phase": "connect",
+      "short": "Sign in",
+      "title": "Customer signs in",
+      "description": "The customer opens the site and authenticates with username and password.",
+      "flows": [
+        "f-customer-web"
+      ],
+      "highlight": [
+        "customer",
+        "web-01/nginx"
+      ],
+      "packets": [
+        {
+          "flow": "f-customer-web"
+        },
+        {
+          "flow": "f-customer-web",
+          "direction": "reverse",
+          "kind": "token",
+          "delay_ms": 800
+        }
+      ],
+      "details": [
+        "Password only: weak authentication",
+        "TLS 1.3 in transit"
+      ]
+    },
+    {
+      "name": "s2",
+      "phase": "access",
+      "short": "Profile",
+      "title": "The web tier reads the profile",
+      "description": "nginx calls the Profile API over mTLS; the API queries SQL Server.",
+      "flows": [
+        "f-web-api",
+        "f-api-sql"
+      ],
+      "highlight": [
+        "web-01/nginx",
+        "app-01/profile-api",
+        "app-01/sql"
+      ],
+      "packets": [
+        {
+          "flow": "f-web-api"
+        },
+        {
+          "flow": "f-api-sql",
+          "delay_ms": 400
+        }
+      ],
+      "tunnel": [
+        "f-web-api"
+      ],
+      "badge": "app-01/sql",
+      "outcome": "Profile returned to the customer.",
+      "threats": [
+        "THR-0001"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0001",
+      "name": "Object-level ownership check in the Profile API",
+      "type": "preventive",
+      "status": "implemented",
+      "effectiveness": "high",
+      "owner": "Identity Team",
+      "ticket": "SEC-1234",
+      "implemented_on": [
+        {
+          "kind": "component",
+          "ref": "app-01/profile-api"
+        }
+      ],
+      "nist_800_53": [
+        "AC-3",
+        "AC-6"
+      ]
+    }
+  ],
+  "threats": [
+    {
+      "id": "THR-0001",
+      "number": 1,
+      "title": "BOLA on the Profile API",
+      "status": "mitigated",
+      "description": "An authenticated customer requests other customers' profiles by changing the id.",
+      "classification": {
+        "stride": [
+          "information-disclosure",
+          "elevation-of-privilege"
+        ],
+        "attack_tactics": [
+          "TA0001",
+          "TA0009"
+        ]
+      },
+      "targets": [
+        {
+          "kind": "component",
+          "ref": "app-01/profile-api"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-web-api",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "dmz"
+      },
+      "assets_at_risk": [
+        "Customer PII"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "malicious-user",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "low",
+        "position": "external",
+        "required_privileges": "low",
+        "access_vector": "network",
+        "authentication_required": true,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Call GET /profile/{id} with sequential ids.",
+        "prerequisites": [
+          "Predictable ids"
+        ],
+        "mitre_attack": [
+          "T1190"
+        ],
+        "capec": [
+          "CAPEC-1"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "high",
+        "impact": "high",
+        "rating": "high",
+        "score": 8,
+        "cvss": {
+          "version": "4.0",
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:N/VA:N/SC:N/SI:N/SA:N",
+          "base_score": 7.1,
+          "severity": "high"
+        },
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rating": "low",
+          "score": 2
+        }
+      },
+      "standards": {
+        "cwe": [
+          "CWE-639"
+        ],
+        "owasp": [
+          "API1:2023",
+          "A01:2025"
+        ],
+        "nist_800_53": [
+          "AC-3"
+        ],
+        "cis_controls": [
+          "CIS-6.8"
+        ],
+        "iso_27001": [
+          "A.5.15"
+        ],
+        "compliance": [
+          "GDPR Art. 32"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0001"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-10-23",
+        "updated": "2026-10-23",
+        "references": [
+          "https://owasp.org/API-Security/"
+        ]
+      }
+    },
+    {
+      "id": "THR-0002",
+      "number": 2,
+      "title": "Credential stuffing against the sign-in form",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "spoofing"
+        ]
+      },
+      "targets": [
+        {
+          "kind": "flow",
+          "ref": "f-customer-web"
+        }
+      ],
+      "adversary": {
+        "type": "automated-bot",
+        "motivation": [
+          "personal-gain"
+        ]
+      },
+      "risk": {
+        "method": "owasp-rr",
+        "owasp_rr": {
+          "skill_level": 3,
+          "motive": 9,
+          "opportunity": 9,
+          "size": 9,
+          "ease_of_discovery": 9,
+          "ease_of_exploit": 9,
+          "awareness": 9,
+          "intrusion_detection": 8,
+          "loss_of_confidentiality": 6,
+          "loss_of_integrity": 3,
+          "loss_of_availability": 1,
+          "loss_of_accountability": 7,
+          "impact_basis": "technical",
+          "likelihood_avg": 8.13,
+          "impact_avg": 4.25,
+          "likelihood_level": "high",
+          "impact_level": "medium",
+          "severity": "high"
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "treatment": {
+        "decision": "undecided"
+      }
+    }
+  ]
+}

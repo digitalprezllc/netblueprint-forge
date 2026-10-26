@@ -1,0 +1,3559 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://digitalprez.com/netblueprint/schema/1/netblueprint.schema.json",
+  "title": "NetBlueprint Forge context model",
+  "description": "A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "netblueprint",
+    "meta"
+  ],
+  "properties": {
+    "tabs": {
+      "description": "Several diagrams in one document, shown as tabs under the canvas (left to right in this order). Each tab holds its own zones, nodes, flows, phases, steps, threats and controls; meta, settings, auth_types and layers are shared. With tabs[] the top-level collections stay empty (validate.mjs enforces this). Threat ids and numbers, control ids and attack path ids and numbers are unique across all tabs (a scenario tab may repeat those of its baseline tab); other names are unique within a tab.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/tab"
+      }
+    },
+    "$schema": {
+      "type": "string"
+    },
+    "netblueprint": {
+      "description": "Model format version. The build script refuses a major version it does not know.",
+      "type": "string",
+      "pattern": "^1(\\.[0-9]+)?$"
+    },
+    "meta": {
+      "$ref": "#/$defs/meta"
+    },
+    "settings": {
+      "$ref": "#/$defs/settings"
+    },
+    "auth_types": {
+      "description": "Authentication types a flow may use. Omit to get the built-in set (anonymous, password, basic, api-key, oauth2, saml, oidc, kerberos, mfa, mtls, certificate, fido2, managed-identity, ssh-key). Listing any replaces the built-in set entirely.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/authType"
+      }
+    },
+    "layers": {
+      "description": "Custom layers. Built-in layers (zones, appliances, nodes, components, internet, flows-weak, flows-moderate, flows-strong, flows-blocked, threats, controls, labels) exist without being declared and can be hidden by default through settings.layers_hidden.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/layer"
+      }
+    },
+    "zones": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/zone"
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/node"
+      }
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "phases": {
+      "description": "Ordered phases of the story. Omit to derive them from steps in order of first appearance.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/phase"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "threats": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/threat"
+      }
+    },
+    "controls": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/control"
+      }
+    },
+    "attack_paths": {
+      "description": "Attack paths (multi-hop chains) of this diagram.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attackPath"
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "description": "Stable identifier. Unique within its kind. Letters, digits, underscore, dot, hyphen; no spaces or slashes.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$"
+    },
+    "ref": {
+      "description": "Reference to a node (`WEB-01`) or to a component on a node (`WEB-01/iis`).",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(/[A-Za-z0-9][A-Za-z0-9_.-]{0,63})?$"
+    },
+    "nameList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/name"
+      }
+    },
+    "refList": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/ref"
+      }
+    },
+    "shortText": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "longText": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "maxLength": 2048
+    },
+    "color": {
+      "description": "A hex colour or one of the palette names the renderer maps to its theme.",
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^#([0-9A-Fa-f]{6}|[0-9A-Fa-f]{3})$"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "blue",
+            "teal",
+            "green",
+            "slate",
+            "red",
+            "grey",
+            "purple",
+            "gold",
+            "orange",
+            "navy"
+          ]
+        }
+      ]
+    },
+    "dataUriImage": {
+      "description": "Embedded image, so the output HTML stays self-contained.",
+      "type": "string",
+      "pattern": "^data:image/(png|jpeg|gif|webp|svg\\+xml);base64,[A-Za-z0-9+/=]+$",
+      "maxLength": 700000
+    },
+    "fiveLevel": {
+      "description": "NIST SP 800-30 qualitative scale, also the canonical severity bands.",
+      "type": "string",
+      "enum": [
+        "very-low",
+        "low",
+        "moderate",
+        "high",
+        "very-high"
+      ]
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "dataTags": {
+      "description": "Industry and regulatory labels. pii/sensitive-pii, phi (HIPAA), pci (cardholder data), npi (GLBA non-public personal information), mnpi (material non-public information), fci (Federal Contract Information), cui (Controlled Unclassified Information), export-controlled (ITAR/EAR), proprietary / trade-secret, credentials, intellectual-property, mission-critical, classified (noted only), other.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "pii",
+          "sensitive-pii",
+          "phi",
+          "pci",
+          "financial",
+          "npi",
+          "mnpi",
+          "fci",
+          "cui",
+          "export-controlled",
+          "proprietary",
+          "trade-secret",
+          "credentials",
+          "intellectual-property",
+          "mission-critical",
+          "classified",
+          "other"
+        ]
+      }
+    },
+    "credentialStorage": {
+      "description": "Where a key, certificate or password lives, strongest first: hsm, tpm, smart-card-token (very high); cloud-key-vault, secrets-manager-vault (high); os-certificate-store, container-secret, encrypted-file-passphrase (moderate); file-on-disk, environment-variable (low); config-file-plaintext, source-code (very low).",
+      "type": "string",
+      "enum": [
+        "hsm",
+        "tpm",
+        "smart-card-token",
+        "cloud-key-vault",
+        "secrets-manager-vault",
+        "os-certificate-store",
+        "container-secret",
+        "encrypted-file-passphrase",
+        "file-on-disk",
+        "environment-variable",
+        "config-file-plaintext",
+        "source-code",
+        "unknown"
+      ]
+    },
+    "profile": {
+      "description": "Service profile for a node, component or appliance: who owns it, what it runs on, where it is, how it authenticates itself, how administrators reach it, how it is patched and hardened, and how it was sourced. Every block is optional.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ownership": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "business_owner": {
+              "$ref": "#/$defs/shortText"
+            },
+            "technical_owner": {
+              "$ref": "#/$defs/shortText"
+            },
+            "team": {
+              "$ref": "#/$defs/shortText"
+            },
+            "contact": {
+              "$ref": "#/$defs/shortText"
+            },
+            "cost_center": {
+              "$ref": "#/$defs/shortText"
+            },
+            "support_tier": {
+              "type": "string",
+              "enum": [
+                "24x7",
+                "business-hours",
+                "best-effort",
+                "unsupported"
+              ]
+            }
+          }
+        },
+        "platform": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "category": {
+              "type": "string",
+              "enum": [
+                "physical-server",
+                "virtual-machine",
+                "container",
+                "kubernetes",
+                "serverless",
+                "paas",
+                "saas",
+                "network-appliance",
+                "mainframe",
+                "workstation",
+                "mobile",
+                "iot-ot",
+                "other"
+              ]
+            },
+            "os": {
+              "$ref": "#/$defs/shortText"
+            },
+            "runtime": {
+              "$ref": "#/$defs/shortText"
+            },
+            "version": {
+              "$ref": "#/$defs/shortText"
+            },
+            "support_status": {
+              "type": "string",
+              "enum": [
+                "supported",
+                "extended-support",
+                "end-of-life",
+                "unknown"
+              ]
+            },
+            "eol_date": {
+              "$ref": "#/$defs/date"
+            }
+          }
+        },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "hosting": {
+              "type": "string",
+              "enum": [
+                "on-premises-datacenter",
+                "colocation",
+                "public-cloud",
+                "private-cloud",
+                "edge-branch",
+                "home",
+                "third-party-hosted",
+                "mobile"
+              ]
+            },
+            "site": {
+              "$ref": "#/$defs/shortText"
+            },
+            "region": {
+              "$ref": "#/$defs/shortText"
+            },
+            "availability_zone": {
+              "$ref": "#/$defs/shortText"
+            },
+            "country": {
+              "$ref": "#/$defs/shortText"
+            },
+            "data_residency": {
+              "$ref": "#/$defs/shortText"
+            }
+          }
+        },
+        "device_authentication": {
+          "description": "How this service or device proves its own identity to others (NIST SP 800-63B authenticator types applied to machines).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "factors": {
+              "type": "string",
+              "enum": [
+                "single",
+                "multi"
+              ]
+            },
+            "methods": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "password",
+                  "shared-secret",
+                  "api-key",
+                  "x509-certificate-mtls",
+                  "hardware-bound-certificate",
+                  "workload-identity",
+                  "kerberos-machine-account",
+                  "ssh-key",
+                  "oauth2-client-credentials",
+                  "fido2-hardware-token",
+                  "802.1x-eap-tls",
+                  "device-compliance-posture",
+                  "none"
+                ]
+              }
+            },
+            "assurance": {
+              "type": "string",
+              "enum": [
+                "aal1",
+                "aal2",
+                "aal3",
+                "not-applicable"
+              ]
+            },
+            "credential_storage": {
+              "$ref": "#/$defs/credentialStorage"
+            },
+            "notes": {
+              "$ref": "#/$defs/longText"
+            }
+          }
+        },
+        "elevated_access": {
+          "description": "How administrators get privileged access (Microsoft enterprise access model planes; PAM practice).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "model": {
+              "type": "string",
+              "enum": [
+                "none",
+                "standing-admin",
+                "shared-admin-account",
+                "just-in-time",
+                "pam-vaulted",
+                "break-glass-only"
+              ]
+            },
+            "mfa_required": {
+              "type": "boolean"
+            },
+            "phishing_resistant_mfa": {
+              "type": "boolean"
+            },
+            "pathway": {
+              "type": "string",
+              "enum": [
+                "bastion",
+                "privileged-access-workstation",
+                "vpn",
+                "direct",
+                "console-or-ilo",
+                "cloud-portal",
+                "pipeline-only"
+              ]
+            },
+            "local_admin": {
+              "type": "string",
+              "enum": [
+                "disabled",
+                "laps-managed",
+                "managed",
+                "unmanaged",
+                "unknown"
+              ]
+            },
+            "session_recording": {
+              "type": "boolean"
+            },
+            "plane": {
+              "type": "string",
+              "enum": [
+                "control-plane",
+                "management-plane",
+                "workload-plane",
+                "user-access",
+                "not-applicable"
+              ]
+            }
+          }
+        },
+        "patching": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "responsibility": {
+              "type": "string",
+              "enum": [
+                "vendor-managed",
+                "platform-team",
+                "application-team",
+                "self",
+                "none"
+              ]
+            },
+            "cadence": {
+              "type": "string",
+              "enum": [
+                "continuous",
+                "weekly",
+                "monthly",
+                "quarterly",
+                "ad-hoc",
+                "none"
+              ]
+            },
+            "auto_update": {
+              "type": "boolean"
+            },
+            "sla_days": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "critical": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "high": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "medium": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "kev_sla_days": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "last_patched": {
+              "$ref": "#/$defs/date"
+            },
+            "unsupported_components": {
+              "type": "boolean"
+            }
+          }
+        },
+        "hardening": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "baseline": {
+              "type": "string",
+              "enum": [
+                "cis-level-1",
+                "cis-level-2",
+                "disa-stig",
+                "vendor-baseline",
+                "organization-baseline",
+                "none",
+                "unknown"
+              ]
+            },
+            "verified_by": {
+              "type": "string",
+              "enum": [
+                "scanner",
+                "configuration-management",
+                "manual-review",
+                "not-verified"
+              ]
+            },
+            "last_assessed": {
+              "$ref": "#/$defs/date"
+            },
+            "exceptions": {
+              "$ref": "#/$defs/longText"
+            }
+          }
+        },
+        "software": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sourcing": {
+              "description": "cots = commercial off-the-shelf, unmodified (FAR 2.101).",
+              "type": "string",
+              "enum": [
+                "cots",
+                "cots-customized",
+                "gots",
+                "open-source",
+                "custom-developed",
+                "saas",
+                "hybrid"
+              ]
+            },
+            "vendor": {
+              "$ref": "#/$defs/shortText"
+            },
+            "product": {
+              "$ref": "#/$defs/shortText"
+            },
+            "version": {
+              "$ref": "#/$defs/shortText"
+            },
+            "licensed_support": {
+              "type": "boolean"
+            },
+            "sbom_available": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "flowConnection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "request-response",
+            "streaming",
+            "batch-file-transfer",
+            "message-queue",
+            "replication",
+            "management",
+            "remote-session",
+            "tunnel",
+            "dns",
+            "email",
+            "other"
+          ]
+        },
+        "initiator": {
+          "description": "Who opens the connection: from (the source), to (the destination pulls / calls back), either.",
+          "type": "string",
+          "enum": [
+            "from",
+            "to",
+            "either"
+          ]
+        },
+        "session": {
+          "type": "string",
+          "enum": [
+            "persistent",
+            "ephemeral",
+            "scheduled"
+          ]
+        },
+        "frequency": {
+          "$ref": "#/$defs/shortText"
+        },
+        "volume": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "flowDataType": {
+      "type": "string",
+      "enum": [
+        "credentials",
+        "tokens",
+        "session-cookies",
+        "personal-data",
+        "payment-data",
+        "health-data",
+        "commands",
+        "configuration",
+        "queries",
+        "query-results",
+        "files",
+        "documents",
+        "telemetry",
+        "logs",
+        "keys-certificates",
+        "code-artifacts",
+        "email",
+        "media",
+        "none"
+      ]
+    },
+    "flowData": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "client_sends": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/flowDataType"
+          }
+        },
+        "server_sends": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/flowDataType"
+          }
+        },
+        "sensitivity": {
+          "description": "Highest classification level in transit.",
+          "$ref": "#/$defs/classification"
+        },
+        "categories": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "tlp": {
+          "description": "FIRST TLP 2.0 sharing label.",
+          "type": "string",
+          "enum": [
+            "clear",
+            "green",
+            "amber",
+            "amber-strict",
+            "red"
+          ]
+        }
+      }
+    },
+    "flowTransport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "protocol": {
+          "description": "Application protocol: HTTPS, TDS, SMB, LDAPS, RDP, SSH, SFTP, FTPS, SMTP, MQTT, gRPC …",
+          "$ref": "#/$defs/shortText"
+        },
+        "security_protocol": {
+          "description": "tls-1.1, tls-1.0 and ssl-3 are deprecated (RFC 8996); ipsec-ah and smb-signing give integrity only.",
+          "type": "string",
+          "enum": [
+            "tls-1.3",
+            "tls-1.2",
+            "tls-1.1",
+            "tls-1.0",
+            "ssl-3",
+            "ssh-2",
+            "ipsec-esp",
+            "ipsec-ah",
+            "wireguard",
+            "dtls",
+            "quic",
+            "smb3-encryption",
+            "smb-signing",
+            "kerberos-encryption",
+            "application-layer-encryption",
+            "none",
+            "unknown"
+          ]
+        },
+        "mode": {
+          "description": "implicit: encrypted from the first byte; explicit: STARTTLS-style upgrade (downgrade risk).",
+          "type": "string",
+          "enum": [
+            "implicit",
+            "explicit"
+          ]
+        },
+        "provides": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "confidentiality": {
+              "type": "boolean"
+            },
+            "integrity": {
+              "type": "boolean"
+            },
+            "server_authentication": {
+              "type": "boolean"
+            },
+            "mutual_authentication": {
+              "type": "boolean"
+            },
+            "forward_secrecy": {
+              "type": "boolean"
+            },
+            "replay_protection": {
+              "type": "boolean"
+            }
+          }
+        },
+        "certificate_validation": {
+          "type": "string",
+          "enum": [
+            "full-chain",
+            "pinned",
+            "self-signed-trusted",
+            "disabled",
+            "unknown"
+          ]
+        },
+        "cipher_notes": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "flowAuthentication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "client": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "none",
+                "basic-auth",
+                "password",
+                "api-key",
+                "bearer-token-oauth2",
+                "oidc-id-token",
+                "saml-assertion",
+                "x509-certificate-mtls",
+                "hardware-bound-certificate",
+                "ssh-key",
+                "kerberos-ticket",
+                "ntlm",
+                "request-signing-hmac",
+                "workload-identity",
+                "managed-identity",
+                "ip-allow-list",
+                "other"
+              ]
+            },
+            "factors": {
+              "type": "string",
+              "enum": [
+                "single",
+                "multi"
+              ]
+            },
+            "mfa_type": {
+              "type": "string",
+              "enum": [
+                "none",
+                "otp",
+                "push",
+                "push-number-matching",
+                "fido2-passkey",
+                "smart-card-piv",
+                "certificate"
+              ]
+            },
+            "credential_storage": {
+              "$ref": "#/$defs/credentialStorage"
+            },
+            "rotation": {
+              "type": "string",
+              "enum": [
+                "automatic-short-lived",
+                "scheduled",
+                "manual",
+                "never",
+                "unknown"
+              ]
+            },
+            "notes": {
+              "$ref": "#/$defs/longText"
+            }
+          }
+        },
+        "server": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": [
+                "x509-certificate",
+                "ssh-host-key",
+                "kerberos-spn",
+                "pre-shared-key",
+                "none",
+                "other"
+              ]
+            },
+            "certificate_issuer": {
+              "type": "string",
+              "enum": [
+                "public-ca",
+                "private-pki",
+                "cloud-managed-ca",
+                "self-signed",
+                "none"
+              ]
+            },
+            "key_storage": {
+              "$ref": "#/$defs/credentialStorage"
+            },
+            "pinning": {
+              "type": "boolean"
+            },
+            "notes": {
+              "$ref": "#/$defs/longText"
+            }
+          }
+        }
+      }
+    },
+    "pathControls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "logged": {
+          "type": "boolean"
+        },
+        "log_destination": {
+          "$ref": "#/$defs/shortText"
+        },
+        "rate_limited": {
+          "type": "boolean"
+        },
+        "input_validated": {
+          "type": "boolean"
+        },
+        "dlp_inspected": {
+          "type": "boolean"
+        },
+        "tls_inspected": {
+          "type": "boolean"
+        },
+        "waf_inspected": {
+          "type": "boolean"
+        }
+      }
+    },
+    "flowAvailability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "single_point_of_failure": {
+          "type": "boolean"
+        }
+      }
+    },
+    "vulnerability": {
+      "description": "The weakness the threat exploits, normalized to one category (CWE classes and OWASP Top 10:2025 wording), with an optional CWE id and a free-text specific.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "category"
+      ],
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "unauthorized-access",
+            "broken-authentication",
+            "credential-exposure",
+            "injection",
+            "improper-input-validation",
+            "security-misconfiguration",
+            "missing-or-weak-encryption",
+            "sensitive-data-exposure",
+            "insufficient-logging-monitoring",
+            "insecure-design",
+            "vulnerable-components",
+            "supply-chain",
+            "ssrf",
+            "privilege-escalation",
+            "excessive-trust-or-flat-network",
+            "resource-exhaustion",
+            "availability-failure",
+            "improper-error-handling",
+            "malware-execution",
+            "phishing-social-engineering",
+            "insider-misuse",
+            "physical-access",
+            "data-exfiltration",
+            "third-party-dependency",
+            "race-condition",
+            "memory-safety",
+            "other"
+          ]
+        },
+        "cwe": {
+          "type": "string",
+          "pattern": "^CWE-[0-9]+$"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "suggestedMitigation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "#/$defs/longText"
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "user",
+            "reviewer",
+            "cloud-catalogue",
+            "live-research",
+            "standard",
+            "other"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "suggested",
+            "accepted",
+            "rejected",
+            "converted"
+          ],
+          "default": "suggested"
+        },
+        "control_id": {
+          "description": "Set when the suggestion became a control.",
+          "$ref": "#/$defs/controlId"
+        },
+        "notes": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "suggested": {
+      "description": "True when the skill proposed this element (from a cloud service card or live research) and the user has not yet confirmed it.",
+      "type": "boolean"
+    },
+    "suggestedFrom": {
+      "description": "Catalogue card id or research source the suggestion came from.",
+      "type": "string",
+      "maxLength": 200
+    },
+    "layoutHints": {
+      "description": "Hints by name only. The renderer may ignore a hint it cannot honour without overlap.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "order": {
+          "description": "Sort key among siblings in the same zone (lower first).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "column": {
+          "description": "Preferred column within the zone, 0-based.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "row": {
+          "description": "Preferred row within the zone, 0-based.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "next_to": {
+          "description": "Keep adjacent to this sibling.",
+          "$ref": "#/$defs/name"
+        },
+        "align": {
+          "type": "string",
+          "enum": [
+            "start",
+            "center",
+            "end"
+          ]
+        }
+      }
+    },
+    "cloud": {
+      "description": "Set when the element is a cloud service. Drives the cloud-guidance questions and the placement rules.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": [
+            "aws",
+            "azure",
+            "gcp",
+            "oci",
+            "other"
+          ]
+        },
+        "service": {
+          "description": "Provider service name, e.g. 'App Service', 'S3', 'Cloud SQL'.",
+          "$ref": "#/$defs/shortText"
+        },
+        "card": {
+          "description": "Catalogue card id in references/cloud/<provider>.md.",
+          "type": "string",
+          "maxLength": 80
+        },
+        "region": {
+          "$ref": "#/$defs/shortText"
+        },
+        "exposure": {
+          "description": "internet: reachable from the public Internet; private: RFC 1918 / private network only; hybrid: both endpoints exist.",
+          "type": "string",
+          "enum": [
+            "internet",
+            "private",
+            "hybrid",
+            "unknown"
+          ]
+        },
+        "endpoint": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private",
+            "both",
+            "none",
+            "unknown"
+          ]
+        },
+        "network": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "vpc": {
+              "$ref": "#/$defs/shortText"
+            },
+            "subnet": {
+              "$ref": "#/$defs/shortText"
+            },
+            "cidr": {
+              "type": "string",
+              "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+            }
+          }
+        },
+        "disabled_protocols": {
+          "description": "Insecure or legacy protocols the user confirmed are off (ftp, ftps, telnet, smbv1, tls1.0, tls1.1, basic-auth, imdsv1, public-access, anonymous-access …).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "enabled_risky_protocols": {
+          "description": "Insecure or legacy protocols the user confirmed are still on. Each becomes a suggested threat.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 40
+          }
+        },
+        "notes": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "tab": {
+      "description": "One diagram of a multi-tab document. `name` is the stable id (used in the URL hash and in edits: 'in tab admin-access, add node …'); `label` is the tab text. The summary fields override meta's for this tab when present. `attack_paths` are the tab's chains; `scenario` marks a what-if tab derived from another tab.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label",
+        "zones",
+        "nodes"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "objective": {
+          "$ref": "#/$defs/longText"
+        },
+        "flow_summary": {
+          "$ref": "#/$defs/shortText"
+        },
+        "path_summary": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "access_summary": {
+          "$ref": "#/$defs/longText"
+        },
+        "zones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/zone"
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flow"
+          }
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/phase"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        },
+        "threats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/threat"
+          }
+        },
+        "controls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/control"
+          }
+        },
+        "attack_paths": {
+          "description": "Attack paths (multi-hop chains) of this diagram.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/attackPath"
+          }
+        },
+        "scenario": {
+          "$ref": "#/$defs/scenario"
+        }
+      }
+    },
+    "meta": {
+      "description": "Signature block and document metadata. Title, subtitle and organization are Title Case.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "author",
+        "date",
+        "version"
+      ],
+      "properties": {
+        "title": {
+          "$ref": "#/$defs/shortText"
+        },
+        "subtitle": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "author": {
+          "description": "Prepared by.",
+          "$ref": "#/$defs/shortText"
+        },
+        "reviewed_by": {
+          "$ref": "#/$defs/shortText"
+        },
+        "approved_by": {
+          "$ref": "#/$defs/shortText"
+        },
+        "organization": {
+          "$ref": "#/$defs/shortText"
+        },
+        "document_id": {
+          "description": "Document number shown in the signature block, e.g. 'SEC-TM-0042'.",
+          "$ref": "#/$defs/shortText"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "in-review",
+            "approved",
+            "final",
+            "superseded"
+          ]
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "version": {
+          "description": "Model version. archive.mjs bumps the patch on every change.",
+          "$ref": "#/$defs/semver"
+        },
+        "revision_note": {
+          "description": "What changed in this version, by element name.",
+          "$ref": "#/$defs/longText"
+        },
+        "logo": {
+          "$ref": "#/$defs/dataUriImage"
+        },
+        "document_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "objective": {
+          "$ref": "#/$defs/longText"
+        },
+        "flow_summary": {
+          "description": "One line, e.g. 'Customer to web app'.",
+          "$ref": "#/$defs/shortText"
+        },
+        "path_summary": {
+          "description": "Ordered hop labels for the path chips, e.g. ['Customer', 'WAF', 'App Service', 'SQL'].",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "access_summary": {
+          "$ref": "#/$defs/longText"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/longText"
+          }
+        },
+        "out_of_scope": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/longText"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "maxLength": 40
+          }
+        }
+      }
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "network_label": {
+          "description": "Label over the private side, e.g. 'Contoso corporate network'. Default 'Corporate Network'.",
+          "$ref": "#/$defs/shortText"
+        },
+        "internet_label": {
+          "description": "Default 'Internet'.",
+          "$ref": "#/$defs/shortText"
+        },
+        "labels": {
+          "description": "Display labels for enumerated values; ids never change.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "severity": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "very-low": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "low": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "moderate": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "high": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "very-high": {
+                  "$ref": "#/$defs/shortText"
+                }
+              }
+            },
+            "auth_strength": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "none": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "weak": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "moderate": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "strong": {
+                  "$ref": "#/$defs/shortText"
+                }
+              }
+            }
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min_width": {
+              "type": "integer",
+              "minimum": 800,
+              "maximum": 8000,
+              "default": 1280
+            },
+            "min_height": {
+              "type": "integer",
+              "minimum": 400,
+              "maximum": 6000,
+              "default": 640
+            },
+            "flow_direction": {
+              "description": "Which way the story mostly runs; sets the seam side.",
+              "type": "string",
+              "enum": [
+                "left-to-right",
+                "right-to-left"
+              ],
+              "default": "left-to-right"
+            }
+          }
+        },
+        "layers_hidden": {
+          "description": "Layer names (built-in or custom) that start hidden.",
+          "$ref": "#/$defs/nameList"
+        },
+        "show": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "threats": {
+              "type": "boolean",
+              "default": true
+            },
+            "threat_register": {
+              "type": "boolean",
+              "default": true
+            },
+            "layer_panel": {
+              "type": "boolean",
+              "default": true
+            },
+            "signature_block": {
+              "type": "boolean",
+              "default": true
+            },
+            "legend": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "severity_filter_default": {
+          "description": "Minimum band shown when the diagram opens.",
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "theme": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "brand_color": {
+              "$ref": "#/$defs/color"
+            },
+            "zone_colors": {
+              "description": "Default zone colour by zone kind.",
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/color"
+              }
+            }
+          }
+        }
+      }
+    },
+    "authType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "strength"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "strength": {
+          "description": "Drives line style and legend: none/weak = warning, moderate = neutral, strong = secure.",
+          "type": "string",
+          "enum": [
+            "none",
+            "weak",
+            "moderate",
+            "strong"
+          ]
+        },
+        "phishing_resistant": {
+          "type": "boolean"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "visible": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "appliance": {
+      "description": "A filtering device on a zone boundary. Drawn as a narrow bar on the zone edge; flows that cross the boundary route through it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "sub": {
+          "$ref": "#/$defs/shortText"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "firewall",
+            "ngfw",
+            "waf",
+            "gateway",
+            "api-gateway",
+            "proxy",
+            "reverse-proxy",
+            "load-balancer",
+            "nat",
+            "bastion",
+            "vpn",
+            "ids-ips",
+            "zero-trust-broker",
+            "sd-wan",
+            "router",
+            "switch",
+            "other"
+          ]
+        },
+        "edge": {
+          "description": "Which edge of the zone it sits on. auto puts it on the edge facing the Internet side.",
+          "type": "string",
+          "enum": [
+            "auto",
+            "left",
+            "right",
+            "top",
+            "bottom"
+          ],
+          "default": "auto"
+        },
+        "filters": {
+          "description": "Which crossings route through it automatically: inbound (flows entering the zone), outbound (flows leaving), or both. A flow's explicit via list overrides this.",
+          "type": "string",
+          "enum": [
+            "inbound",
+            "outbound",
+            "both"
+          ],
+          "default": "both"
+        },
+        "serves": {
+          "description": "Only flows whose far endpoint is inside one of these zones (or 'internet') route through this appliance automatically, e.g. a VPN gateway that serves ['onprem']. Omit for all crossings.",
+          "$ref": "#/$defs/nameList"
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "info": {
+          "$ref": "#/$defs/longText"
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "cloud": {
+          "$ref": "#/$defs/cloud"
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "out_of_scope": {
+          "description": "Still drawn and documented, but greyed out.",
+          "type": "boolean"
+        },
+        "scope_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "zone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "sub": {
+          "$ref": "#/$defs/shortText"
+        },
+        "parent": {
+          "description": "Name of the enclosing zone. Omit (or null) for a top-level zone on the private side. Use the reserved name 'internet' to nest a boundary on the Internet side (e.g. a provider cloud).",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/name"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "network",
+            "site",
+            "enclave",
+            "segment",
+            "dmz",
+            "vpc",
+            "subnet",
+            "cloud",
+            "tenant",
+            "provider",
+            "ot",
+            "other"
+          ],
+          "default": "network"
+        },
+        "trust_boundary": {
+          "description": "Draw as a trust boundary (dashed) regardless of kind.",
+          "type": "boolean"
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "dashed": {
+          "type": "boolean"
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "info": {
+          "$ref": "#/$defs/longText"
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "data_tags": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "appliances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/appliance"
+          }
+        },
+        "layout": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order": {
+              "description": "Sort key among sibling zones and nodes in the same row (lower first).",
+              "type": "integer",
+              "minimum": 0
+            },
+            "row": {
+              "description": "Row inside the parent, 0-based; lets a zone sit between rows of sibling nodes.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "columns": {
+              "description": "Preferred number of node columns inside the zone.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            "arrange": {
+              "description": "How this zone lays out its own nodes and child zones: grid (nodes wrap at `columns`, child zones on the next row), row (everything side by side), column (everything stacked).",
+              "type": "string",
+              "enum": [
+                "grid",
+                "row",
+                "column"
+              ]
+            }
+          }
+        },
+        "cloud": {
+          "$ref": "#/$defs/cloud"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "out_of_scope": {
+          "description": "Still drawn and documented, but greyed out.",
+          "type": "boolean"
+        },
+        "scope_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "icon": {
+      "type": "string",
+      "enum": [
+        "server",
+        "database",
+        "service",
+        "api",
+        "connector",
+        "cloud",
+        "shield",
+        "firewall",
+        "lock",
+        "key",
+        "user",
+        "remote-user",
+        "admin",
+        "bad-actor",
+        "laptop",
+        "workstation",
+        "mobile",
+        "iot",
+        "ot",
+        "storage",
+        "queue",
+        "cache",
+        "container",
+        "kubernetes",
+        "function",
+        "load-balancer",
+        "dns",
+        "mail",
+        "directory",
+        "monitor",
+        "globe",
+        "building",
+        "generic"
+      ]
+    },
+    "component": {
+      "description": "A service or process running on a host node.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label",
+        "type"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "web-server",
+            "app-server",
+            "api",
+            "database",
+            "sql-server",
+            "cache",
+            "queue",
+            "file-share",
+            "directory",
+            "dns",
+            "mail",
+            "container",
+            "function",
+            "agent",
+            "scheduler",
+            "process",
+            "storage",
+            "secrets",
+            "monitoring",
+            "identity",
+            "custom"
+          ]
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "ports": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "description": "'443', '443/tcp', '1433', '161/udp'.",
+            "type": "string",
+            "pattern": "^[0-9]{1,5}(-[0-9]{1,5})?(/(tcp|udp|sctp))?$"
+          }
+        },
+        "info": {
+          "$ref": "#/$defs/longText"
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "data_tags": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "cloud": {
+          "$ref": "#/$defs/cloud"
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "out_of_scope": {
+          "description": "Still drawn and documented, but greyed out.",
+          "type": "boolean"
+        },
+        "scope_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label",
+        "type",
+        "zone"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "sub": {
+          "$ref": "#/$defs/shortText"
+        },
+        "type": {
+          "description": "What the node is; sets the default icon and some lint rules (a bad-actor cannot be a flow destination for data, a database should not sit on the Internet side unmarked).",
+          "type": "string",
+          "enum": [
+            "server",
+            "host",
+            "service",
+            "database",
+            "storage",
+            "api",
+            "connector",
+            "saas",
+            "public-endpoint",
+            "user",
+            "remote-user",
+            "admin",
+            "bad-actor",
+            "laptop",
+            "workstation",
+            "mobile",
+            "iot",
+            "ot",
+            "identity-provider",
+            "generic"
+          ]
+        },
+        "icon": {
+          "description": "Override the icon implied by type.",
+          "$ref": "#/$defs/icon"
+        },
+        "zone": {
+          "description": "Zone name, or the reserved name 'internet' for SaaS, public endpoints, remote users and external actors.",
+          "$ref": "#/$defs/name"
+        },
+        "color": {
+          "$ref": "#/$defs/color"
+        },
+        "stack": {
+          "description": "Draw as a stack of this many instances.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9
+        },
+        "info": {
+          "$ref": "#/$defs/longText"
+        },
+        "components": {
+          "description": "Present when the node is a host that runs several services. Each is referenced as node/component.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "data_tags": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "cloud": {
+          "$ref": "#/$defs/cloud"
+        },
+        "profile": {
+          "$ref": "#/$defs/profile"
+        },
+        "layout": {
+          "$ref": "#/$defs/layoutHints"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "out_of_scope": {
+          "description": "Still drawn and documented, but greyed out.",
+          "type": "boolean"
+        },
+        "scope_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        },
+        "from": {
+          "$ref": "#/$defs/ref"
+        },
+        "to": {
+          "$ref": "#/$defs/ref"
+        },
+        "direction": {
+          "description": "one-way: from → to. two-way: request and response both drawn; packets may run either way.",
+          "type": "string",
+          "enum": [
+            "one-way",
+            "two-way"
+          ],
+          "default": "one-way"
+        },
+        "kind": {
+          "description": "data: application traffic. control: policy / control plane. auth: authentication exchange. token: credential or token issuance. trust: a standing trust relationship (dotted). blocked: denied by policy (red ✕). tunnel: an established encrypted tunnel.",
+          "type": "string",
+          "enum": [
+            "data",
+            "control",
+            "auth",
+            "token",
+            "trust",
+            "blocked",
+            "tunnel"
+          ],
+          "default": "data"
+        },
+        "auth": {
+          "description": "Id of an auth type. Sets the strength styling and legend entry.",
+          "$ref": "#/$defs/name"
+        },
+        "protocol": {
+          "description": "HTTPS, TLS 1.3, SSH, RDP, SMB, SQL/TDS …",
+          "$ref": "#/$defs/shortText"
+        },
+        "port": {
+          "type": "string",
+          "pattern": "^[0-9]{1,5}(-[0-9]{1,5})?(/(tcp|udp|sctp))?$"
+        },
+        "encrypted": {
+          "type": "boolean"
+        },
+        "via": {
+          "description": "Appliance names the flow must pass through, in order. Omit to route through each boundary's appliance automatically.",
+          "$ref": "#/$defs/nameList"
+        },
+        "blocked_reason": {
+          "$ref": "#/$defs/shortText"
+        },
+        "info": {
+          "$ref": "#/$defs/longText"
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "data_tags": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "connection": {
+          "$ref": "#/$defs/flowConnection"
+        },
+        "data": {
+          "$ref": "#/$defs/flowData"
+        },
+        "transport": {
+          "$ref": "#/$defs/flowTransport"
+        },
+        "authentication": {
+          "description": "Detail behind `auth`: how each end authenticates and where its credentials live.",
+          "$ref": "#/$defs/flowAuthentication"
+        },
+        "path_controls": {
+          "$ref": "#/$defs/pathControls"
+        },
+        "availability": {
+          "$ref": "#/$defs/flowAvailability"
+        },
+        "out_of_scope": {
+          "description": "Still drawn and documented, but greyed out.",
+          "type": "boolean"
+        },
+        "scope_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "phase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "label": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "packet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "flow"
+      ],
+      "properties": {
+        "flow": {
+          "$ref": "#/$defs/name"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "forward",
+            "reverse"
+          ],
+          "default": "forward"
+        },
+        "kind": {
+          "description": "Override the flow's kind for this packet (e.g. a token returning over a control flow).",
+          "type": "string",
+          "enum": [
+            "data",
+            "control",
+            "auth",
+            "token",
+            "blocked"
+          ]
+        },
+        "delay_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 20000
+        }
+      }
+    },
+    "step": {
+      "description": "One step of the guided story.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "title",
+        "description"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "phase": {
+          "$ref": "#/$defs/name"
+        },
+        "short": {
+          "description": "Chip label; defaults to title.",
+          "type": "string",
+          "maxLength": 24
+        },
+        "title": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "details": {
+          "type": "array",
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "flows": {
+          "description": "Flows this step is about. Used for the collapsed band (source → destination, direction, auth) and highlighted during the step.",
+          "$ref": "#/$defs/nameList"
+        },
+        "highlight": {
+          "description": "Nodes, components or appliances to mark active.",
+          "$ref": "#/$defs/refList"
+        },
+        "pulse": {
+          "$ref": "#/$defs/ref"
+        },
+        "packets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/packet"
+          }
+        },
+        "tunnel": {
+          "description": "Flows drawn as an established tunnel once the step finishes.",
+          "$ref": "#/$defs/nameList"
+        },
+        "badge": {
+          "description": "Node or component that gets a ✓ badge when the step finishes.",
+          "$ref": "#/$defs/ref"
+        },
+        "outcome": {
+          "description": "Shown as the step's outcome line when set.",
+          "$ref": "#/$defs/shortText"
+        },
+        "annotation": {
+          "$ref": "#/$defs/shortText"
+        },
+        "threats": {
+          "description": "Threat ids relevant to this step; their circles are emphasised while the step is active.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/threatId"
+          }
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        }
+      }
+    },
+    "threatId": {
+      "type": "string",
+      "pattern": "^THR-[0-9]{4}$"
+    },
+    "controlId": {
+      "type": "string",
+      "pattern": "^CTL-[0-9]{4}$"
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "ref"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "zone",
+            "node",
+            "component",
+            "flow",
+            "appliance",
+            "boundary"
+          ]
+        },
+        "ref": {
+          "description": "The element's name (node/component for a component; '<from-zone>-to-<to-zone>' for a boundary).",
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}(/[A-Za-z0-9][A-Za-z0-9_.-]{0,63})?(-to-[A-Za-z0-9][A-Za-z0-9_.-]{0,63})?$"
+        },
+        "marker": {
+          "description": "Draw the numbered circle at this target. Default true.",
+          "type": "boolean",
+          "default": true
+        },
+        "note": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "owaspFactor0to9": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "owaspRiskRating": {
+      "description": "OWASP Risk Rating Methodology inputs. Each factor takes one of the fixed option values listed in references/risk-scoring.md.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill_level",
+        "motive",
+        "opportunity",
+        "size",
+        "ease_of_discovery",
+        "ease_of_exploit",
+        "awareness",
+        "intrusion_detection"
+      ],
+      "properties": {
+        "skill_level": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            5,
+            6,
+            9
+          ]
+        },
+        "motive": {
+          "type": "integer",
+          "enum": [
+            1,
+            4,
+            9
+          ]
+        },
+        "opportunity": {
+          "type": "integer",
+          "enum": [
+            0,
+            4,
+            7,
+            9
+          ]
+        },
+        "size": {
+          "type": "integer",
+          "enum": [
+            2,
+            4,
+            5,
+            6,
+            9
+          ]
+        },
+        "ease_of_discovery": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            7,
+            9
+          ]
+        },
+        "ease_of_exploit": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            5,
+            9
+          ]
+        },
+        "awareness": {
+          "type": "integer",
+          "enum": [
+            1,
+            4,
+            6,
+            9
+          ]
+        },
+        "intrusion_detection": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            8,
+            9
+          ]
+        },
+        "loss_of_confidentiality": {
+          "type": "integer",
+          "enum": [
+            2,
+            6,
+            7,
+            9
+          ]
+        },
+        "loss_of_integrity": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            5,
+            7,
+            9
+          ]
+        },
+        "loss_of_availability": {
+          "type": "integer",
+          "enum": [
+            1,
+            5,
+            7,
+            9
+          ]
+        },
+        "loss_of_accountability": {
+          "type": "integer",
+          "enum": [
+            1,
+            7,
+            9
+          ]
+        },
+        "financial_damage": {
+          "type": "integer",
+          "enum": [
+            1,
+            3,
+            7,
+            9
+          ]
+        },
+        "reputation_damage": {
+          "type": "integer",
+          "enum": [
+            1,
+            4,
+            5,
+            9
+          ]
+        },
+        "non_compliance": {
+          "type": "integer",
+          "enum": [
+            2,
+            5,
+            7
+          ]
+        },
+        "privacy_violation": {
+          "type": "integer",
+          "enum": [
+            3,
+            5,
+            7,
+            9
+          ]
+        },
+        "impact_basis": {
+          "description": "Which impact average sets the band. OWASP: use business when the information is good, otherwise technical.",
+          "type": "string",
+          "enum": [
+            "technical",
+            "business"
+          ],
+          "default": "technical"
+        },
+        "likelihood_avg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "impact_avg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "likelihood_level": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "impact_level": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "note",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "loss_of_confidentiality",
+            "loss_of_integrity",
+            "loss_of_availability",
+            "loss_of_accountability"
+          ]
+        },
+        {
+          "required": [
+            "financial_damage",
+            "reputation_damage",
+            "non_compliance",
+            "privacy_violation"
+          ]
+        }
+      ]
+    },
+    "cvss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "vector"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": [
+            "3.1",
+            "4.0"
+          ]
+        },
+        "vector": {
+          "type": "string",
+          "pattern": "^CVSS:(3\\.1|4\\.0)/[A-Z]{1,3}:[A-Z](/[A-Z]{1,3}:[A-Z])+$"
+        },
+        "base_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "none",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      }
+    },
+    "riskAssessmentCore": {
+      "description": "One assessment: inherent (threat.risk) or after controls (threat.risk.residual). Left open here so threat.risk can add cvss and residual; the wrappers close it with unevaluatedProperties.",
+      "type": "object",
+      "required": [
+        "method"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "likelihood-impact",
+            "owasp-rr"
+          ]
+        },
+        "likelihood": {
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "impact": {
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "owasp_rr": {
+          "$ref": "#/$defs/owaspRiskRating"
+        },
+        "rating": {
+          "description": "Canonical band. Computed by validate.mjs from the inputs; written back so the file stands alone.",
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "score": {
+          "description": "Sort key: NIST semi-quantitative value of the band (0, 2, 5, 8, 10).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "rating_override": {
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "rating_override_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "rationale": {
+          "$ref": "#/$defs/longText"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "likelihood-impact"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "likelihood",
+              "impact"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "owasp-rr"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "owasp_rr"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "rating_override"
+            ]
+          },
+          "then": {
+            "required": [
+              "rating_override_reason"
+            ]
+          }
+        }
+      ]
+    },
+    "riskAssessment": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/riskAssessmentCore"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "adversary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "description": "STIX 2.1 threat-actor-type-ov plus NetBlueprint additions.",
+          "type": "string",
+          "enum": [
+            "activist",
+            "competitor",
+            "crime-syndicate",
+            "criminal",
+            "hacker",
+            "insider-accidental",
+            "insider-disgruntled",
+            "nation-state",
+            "sensationalist",
+            "spy",
+            "terrorist",
+            "unknown",
+            "malicious-user",
+            "compromised-credential-holder",
+            "third-party",
+            "automated-bot",
+            "non-adversarial"
+          ]
+        },
+        "source_class": {
+          "description": "NIST SP 800-30 Table D-2.",
+          "type": "string",
+          "enum": [
+            "individual-outsider",
+            "individual-insider",
+            "individual-trusted-insider",
+            "individual-privileged-insider",
+            "group-ad-hoc",
+            "group-established",
+            "organization-competitor",
+            "organization-supplier",
+            "organization-partner",
+            "organization-customer",
+            "nation-state",
+            "accidental-user",
+            "accidental-privileged-user",
+            "structural-it-equipment",
+            "structural-environmental-controls",
+            "structural-software",
+            "environmental-disaster",
+            "environmental-unusual-natural-event",
+            "environmental-infrastructure-outage"
+          ]
+        },
+        "motivation": {
+          "description": "STIX 2.1 attack-motivation-ov.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "accidental",
+              "coercion",
+              "dominance",
+              "ideology",
+              "notoriety",
+              "organizational-gain",
+              "personal-gain",
+              "personal-satisfaction",
+              "revenge",
+              "unpredictable"
+            ]
+          }
+        },
+        "capability": {
+          "description": "NIST Table D-3.",
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "intent": {
+          "description": "NIST Table D-4.",
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "targeting": {
+          "description": "NIST Table D-5.",
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "resources": {
+          "description": "STIX 2.1 attack-resource-level-ov.",
+          "type": "string",
+          "enum": [
+            "individual",
+            "club",
+            "contest",
+            "team",
+            "organization",
+            "government"
+          ]
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "external",
+            "internal",
+            "trusted-third-party"
+          ]
+        },
+        "required_privileges": {
+          "description": "CVSS v4 PR.",
+          "type": "string",
+          "enum": [
+            "none",
+            "low",
+            "high"
+          ]
+        },
+        "access_vector": {
+          "description": "CVSS v4 AV.",
+          "type": "string",
+          "enum": [
+            "network",
+            "adjacent",
+            "local",
+            "physical"
+          ]
+        },
+        "authentication_required": {
+          "type": "boolean"
+        },
+        "actor_node": {
+          "description": "Node name of the actor on the diagram (a bad-actor, user or device node), if drawn.",
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "threat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "title",
+        "status",
+        "classification",
+        "targets",
+        "adversary",
+        "risk"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/threatId"
+        },
+        "number": {
+          "description": "The digit in the circle. Permanent; never reused.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9999
+        },
+        "title": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "identified",
+            "investigating",
+            "open",
+            "mitigated",
+            "accepted",
+            "transferred",
+            "avoided",
+            "not-applicable",
+            "retired"
+          ],
+          "default": "identified"
+        },
+        "status_reason": {
+          "description": "Required for not-applicable and retired.",
+          "$ref": "#/$defs/longText"
+        },
+        "retired": {
+          "type": "boolean",
+          "default": false
+        },
+        "classification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stride"
+          ],
+          "properties": {
+            "stride": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "spoofing",
+                  "tampering",
+                  "repudiation",
+                  "information-disclosure",
+                  "denial-of-service",
+                  "elevation-of-privilege"
+                ]
+              }
+            },
+            "linddun": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "linking",
+                  "identifying",
+                  "non-repudiation",
+                  "detecting",
+                  "data-disclosure",
+                  "unawareness-unintervenability",
+                  "non-compliance"
+                ]
+              }
+            },
+            "attack_tactics": {
+              "description": "MITRE ATT&CK Enterprise tactic ids (v20). TA0005 is Stealth, formerly Defense Evasion.",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "TA0043",
+                  "TA0042",
+                  "TA0001",
+                  "TA0002",
+                  "TA0003",
+                  "TA0004",
+                  "TA0005",
+                  "TA0112",
+                  "TA0006",
+                  "TA0007",
+                  "TA0008",
+                  "TA0009",
+                  "TA0011",
+                  "TA0010",
+                  "TA0040"
+                ]
+              }
+            }
+          }
+        },
+        "vulnerability": {
+          "$ref": "#/$defs/vulnerability"
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "boundary_crossed": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "internet",
+                "corporate-network",
+                "machine",
+                "process",
+                "sandbox",
+                "user-kernel",
+                "cloud-tenant",
+                "vpc-vnet",
+                "third-party",
+                "ot-iot",
+                "other"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/name"
+            },
+            "to": {
+              "$ref": "#/$defs/name"
+            }
+          }
+        },
+        "assets_at_risk": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "data_classification": {
+          "$ref": "#/$defs/classification"
+        },
+        "data_tags": {
+          "$ref": "#/$defs/dataTags"
+        },
+        "adversary": {
+          "$ref": "#/$defs/adversary"
+        },
+        "attack": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "scenario": {
+              "$ref": "#/$defs/longText"
+            },
+            "prerequisites": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/shortText"
+              }
+            },
+            "mitre_attack": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+              }
+            },
+            "capec": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^CAPEC-[0-9]+$"
+              }
+            }
+          }
+        },
+        "risk": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/riskAssessmentCore"
+            }
+          ],
+          "properties": {
+            "consequence": {
+              "description": "Plain-language outcome if the threat is realised.",
+              "$ref": "#/$defs/longText"
+            },
+            "cvss": {
+              "$ref": "#/$defs/cvss"
+            },
+            "residual": {
+              "description": "Risk with the current controls in place.",
+              "$ref": "#/$defs/riskAssessment"
+            },
+            "projected": {
+              "description": "Risk once the planned controls are in place (future state).",
+              "$ref": "#/$defs/riskAssessment"
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        "standards": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cwe": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^CWE-[0-9]+$"
+              }
+            },
+            "owasp": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^(A(0[1-9]|10):(2025|2021)|API(10|[1-9]):2023|LLM(0[1-9]|10):2025|M(0[1-9]|10):2024)$"
+              }
+            },
+            "nist_800_53": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^(AC|AT|AU|CA|CM|CP|IA|IR|MA|MP|PE|PL|PM|PS|PT|RA|SA|SC|SI|SR)-[0-9]+(\\([0-9]+\\))?$"
+              }
+            },
+            "cis_controls": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^CIS-([1-9]|1[0-8])(\\.[0-9]{1,2})?$"
+              }
+            },
+            "iso_27001": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^A\\.[5-8]\\.[0-9]{1,2}$"
+              }
+            },
+            "compliance": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/shortText"
+              }
+            }
+          }
+        },
+        "treatment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "decision": {
+              "description": "ISO/IEC 27005: mitigate = modify, accept = retain, transfer = share.",
+              "type": "string",
+              "enum": [
+                "mitigate",
+                "accept",
+                "avoid",
+                "transfer",
+                "undecided"
+              ]
+            },
+            "acceptance": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "approved_by",
+                "date",
+                "rationale"
+              ],
+              "properties": {
+                "approved_by": {
+                  "$ref": "#/$defs/shortText"
+                },
+                "date": {
+                  "$ref": "#/$defs/date"
+                },
+                "rationale": {
+                  "$ref": "#/$defs/longText"
+                },
+                "review_by": {
+                  "$ref": "#/$defs/date"
+                }
+              }
+            },
+            "controls": {
+              "description": "All controls that treat this threat (current and planned). Kept in sync with the two lists below by validate --fix.",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/controlId"
+              }
+            },
+            "current_controls": {
+              "description": "As-is: controls in place now (status implemented or verified).",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/controlId"
+              }
+            },
+            "planned_controls": {
+              "description": "Future state: controls proposed, planned or in progress.",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/controlId"
+              }
+            },
+            "suggested_mitigations": {
+              "description": "Ideas that are not controls yet.",
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/suggestedMitigation"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "accept"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "required": [
+              "acceptance"
+            ]
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "discovered_by": {
+              "type": "string",
+              "enum": [
+                "workshop",
+                "interview",
+                "penetration-test",
+                "code-review",
+                "incident",
+                "automated-scan",
+                "cloud-catalogue",
+                "live-research",
+                "other"
+              ]
+            },
+            "created": {
+              "$ref": "#/$defs/date"
+            },
+            "updated": {
+              "$ref": "#/$defs/date"
+            },
+            "references": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/url"
+              }
+            },
+            "notes": {
+              "$ref": "#/$defs/longText"
+            }
+          }
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not-applicable",
+                  "retired"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "status_reason"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "retired"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "retired": {
+                "const": true
+              }
+            },
+            "required": [
+              "retired"
+            ]
+          }
+        }
+      ]
+    },
+    "control": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "type",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/controlId"
+        },
+        "name": {
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/longText"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "preventive",
+            "detective",
+            "corrective",
+            "deterrent",
+            "recovery",
+            "compensating",
+            "directive"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "proposed",
+            "planned",
+            "in-progress",
+            "implemented",
+            "verified",
+            "not-implemented",
+            "retired"
+          ]
+        },
+        "effectiveness": {
+          "$ref": "#/$defs/fiveLevel"
+        },
+        "verification": {
+          "type": "string",
+          "enum": [
+            "design-review",
+            "code-review",
+            "test",
+            "penetration-test",
+            "scanner",
+            "audit",
+            "continuous-monitoring",
+            "not-yet-verified"
+          ]
+        },
+        "verified_on": {
+          "$ref": "#/$defs/date"
+        },
+        "owner": {
+          "$ref": "#/$defs/shortText"
+        },
+        "due_date": {
+          "$ref": "#/$defs/date"
+        },
+        "ticket": {
+          "$ref": "#/$defs/shortText"
+        },
+        "implemented_on": {
+          "description": "Where the control lives on the diagram (an appliance, node, component or flow), if anywhere.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "nist_800_53": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(AC|AT|AU|CA|CM|CP|IA|IR|MA|MP|PE|PL|PM|PS|PT|RA|SA|SC|SI|SR)-[0-9]+(\\([0-9]+\\))?$"
+          }
+        },
+        "cis_controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^CIS-([1-9]|1[0-8])(\\.[0-9]{1,2})?$"
+          }
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "verified"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "verification"
+        ],
+        "properties": {
+          "verification": {
+            "not": {
+              "const": "not-yet-verified"
+            }
+          }
+        }
+      }
+    },
+    "attackPathId": {
+      "type": "string",
+      "pattern": "^AP-[0-9]{4}$"
+    },
+    "hopGain": {
+      "description": "What the adversary holds after the hop. foothold = code runs or a session exists on the target; credentials / token / session = secrets usable elsewhere; network-access = new reachability; code-execution; data-access = can read the asset in place; data-exfiltration = data leaves; privilege = higher rights on the same system; persistence; lateral-movement = a position on another system; denial-of-service; impact = the business effect itself.",
+      "type": "string",
+      "enum": [
+        "foothold",
+        "credentials",
+        "token",
+        "session",
+        "network-access",
+        "code-execution",
+        "data-access",
+        "data-exfiltration",
+        "privilege",
+        "persistence",
+        "lateral-movement",
+        "denial-of-service",
+        "impact"
+      ]
+    },
+    "attackHop": {
+      "description": "One move of an attack path: the threat exploited, where the adversary comes from and lands, the flow ridden, and what is gained. The next hop starts where this one lands.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threat",
+        "gain"
+      ],
+      "properties": {
+        "threat": {
+          "description": "The threat exploited in this hop (same diagram).",
+          "$ref": "#/$defs/threatId"
+        },
+        "from": {
+          "description": "Where the adversary acts from: a node, component or appliance. Defaults to the previous hop's `to` (or the path's `entry` for the first hop).",
+          "$ref": "#/$defs/ref"
+        },
+        "to": {
+          "description": "Where the hop lands. Defaults to the flow's destination when `via` is set.",
+          "$ref": "#/$defs/ref"
+        },
+        "via": {
+          "description": "The flow the hop rides, when it rides one (a local escalation has none).",
+          "$ref": "#/$defs/name"
+        },
+        "gain": {
+          "$ref": "#/$defs/hopGain"
+        },
+        "note": {
+          "description": "One sentence: how the hop works and why it succeeds (the control that is missing or bypassed).",
+          "$ref": "#/$defs/longText"
+        },
+        "bypasses": {
+          "description": "Controls this hop defeats or does not meet (ids).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/controlId"
+          }
+        }
+      }
+    },
+    "attackPath": {
+      "description": "A multi-hop attack path (cascade): how a failure at one place lets the adversary cross boundaries and reach an asset. Each hop names a threat of this diagram; the renderer walks the hops as a red phase of the story and the register lists the path. Ids and numbers are unique across the whole document (a scenario tab may repeat its baseline's).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "title",
+        "hops"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/attackPathId"
+        },
+        "number": {
+          "description": "The digit in the hop markers' legend; permanent, never reused.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9999
+        },
+        "title": {
+          "description": "Title Case: \"Exposed Jump Host to Database Exfiltration\".",
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "description": "The chain in one paragraph, as the adversary would tell it.",
+          "$ref": "#/$defs/longText"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "identified",
+            "open",
+            "mitigated",
+            "accepted",
+            "retired"
+          ],
+          "default": "identified"
+        },
+        "status_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "adversary": {
+          "$ref": "#/$defs/adversary"
+        },
+        "entry": {
+          "description": "Where the path starts: usually the adversary's node (a bad actor on the Internet side) or the element already compromised.",
+          "$ref": "#/$defs/ref"
+        },
+        "hops": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/attackHop"
+          }
+        },
+        "impact": {
+          "description": "What the adversary ends up with and what it means for the business.",
+          "$ref": "#/$defs/longText"
+        },
+        "assets_at_risk": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        },
+        "risk": {
+          "description": "The path's own rating: likelihood that the whole chain succeeds × impact of the end state. Residual = with the controls in place, projected = after the planned ones. Computed fields are written back by validate --fix like a threat's.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/riskAssessmentCore"
+            }
+          ],
+          "properties": {
+            "residual": {
+              "$ref": "#/$defs/riskAssessment"
+            },
+            "projected": {
+              "$ref": "#/$defs/riskAssessment"
+            }
+          },
+          "unevaluatedProperties": false
+        },
+        "breaks_at": {
+          "description": "Controls that cut the chain (current or planned), by id. A mitigated path needs one that is implemented or verified.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/controlId"
+          }
+        },
+        "mitre_attack": {
+          "description": "ATT&CK technique ids used along the chain.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+          }
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      }
+    },
+    "scenario": {
+      "description": "Marks a tab as a what-if scenario of another tab: the same diagram with one change applied. The scenario repeats its baseline's elements, threats, controls and attack paths (the same ids are allowed between the two) plus whatever the change adds or alters; scripts/scenario.mjs prints the delta.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "change"
+      ],
+      "properties": {
+        "baseline": {
+          "description": "The tab this scenario was derived from (its `name`).",
+          "$ref": "#/$defs/name"
+        },
+        "change": {
+          "description": "The change statement, as the user put it: \"Replace the direct SQL read with a public-facing Redis cache for read-through caching.\"",
+          "$ref": "#/$defs/longText"
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "author": {
+          "$ref": "#/$defs/shortText"
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/shortText"
+          }
+        }
+      }
+    }
+  }
+}

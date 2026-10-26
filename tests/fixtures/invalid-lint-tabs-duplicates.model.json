@@ -1,0 +1,23 @@
+{
+  "netblueprint": "1",
+  "meta": { "title": "Duplicate Across Tabs", "author": "Test", "date": "2026-10-24", "version": "1.0.0" },
+  "zones": [],
+  "tabs": [
+    {
+      "name": "one",
+      "label": "One",
+      "zones": [{ "name": "corp", "label": "Corporate Network" }],
+      "nodes": [{ "name": "web", "label": "Web Server", "type": "server", "zone": "corp" }],
+      "threats": [{ "id": "THR-0001", "number": 1, "title": "Same Id Twice", "status": "open", "classification": { "stride": ["tampering"] }, "targets": [{ "kind": "node", "ref": "web" }], "adversary": { "type": "hacker" }, "risk": { "method": "likelihood-impact", "likelihood": "low", "impact": "low", "rating": "low", "score": 2 } }],
+      "controls": [{ "id": "CTL-0001", "name": "Patch Monthly", "type": "preventive", "status": "implemented" }]
+    },
+    {
+      "name": "one",
+      "label": "One Again",
+      "zones": [{ "name": "corp", "label": "Corporate Network" }],
+      "nodes": [{ "name": "web", "label": "Web Server", "type": "server", "zone": "corp" }],
+      "threats": [{ "id": "THR-0001", "number": 7, "title": "Same Id Twice", "status": "open", "classification": { "stride": ["tampering"] }, "targets": [{ "kind": "node", "ref": "web" }], "adversary": { "type": "hacker" }, "risk": { "method": "likelihood-impact", "likelihood": "low", "impact": "low", "rating": "low", "score": 2 } }],
+      "controls": [{ "id": "CTL-0001", "name": "Patch Monthly", "type": "preventive", "status": "implemented" }]
+    }
+  ]
+}

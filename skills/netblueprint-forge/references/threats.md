@@ -1,0 +1,68 @@
+# Threats and controls
+
+A threat is its own object with a permanent number (the digit in its circle). One threat can apply to many places. Controls are shared objects; a threat lists which of them are in place now (as-is) and which are planned (future state).
+
+## Normalize what the user types
+
+For every enumerated field, the user may answer in their own words. Run `node scripts/normalize.mjs <field> "<text>"` (fields: `stride`, `band`, `vulnerability`, `adversary`, `threat_status`, `treatment`, `control_type`, `control_status`, `classification`, `data_tag`, `security_protocol`, `client_auth`, `server_auth`, `credential_storage`, `factors`, `platform_category`, `hosting`, `elevated_access_model`, `hardening_baseline`, `sourcing`, `connection_type`, `initiator`, `scope`). Use the value when `ask` is false; otherwise show the top candidates and confirm. `--describe <field>` prints the options with one-line descriptions to read to the user. Never store free text in an enumerated field; put nuance in the adjacent free-text field (`vulnerability.description`, `risk.rationale`, `notes`).
+
+## The questions, in order
+
+Items marked **must** are required by the schema; everything else can be skipped.
+
+1. **The threat, in one sentence** (`title` **must**, `description`). If the user hesitates, assemble it:
+   > **A** [adversary] **could** [action] **on** [target] **by exploiting** [weakness]**, causing** [consequence].
+   Action verbs by STRIDE: Spoofing impersonate / replay / forge · Tampering modify / inject / corrupt · Repudiation deny / erase evidence of · Information disclosure read / exfiltrate / infer · Denial of service exhaust / crash / flood · Elevation of privilege escalate / bypass authorization / execute as.
+2. **STRIDE, one or more** (`classification.stride` **must**). Describe them when the user does not know:
+   - Spoofing: pretending to be another user, device or service.
+   - Tampering: changing data or code without authorization.
+   - Repudiation: denying an action because it cannot be proven (no log, no attribution).
+   - Information disclosure: data reaching someone who should not see it.
+   - Denial of service: making something unavailable or degraded.
+   - Elevation of privilege: doing more than allowed.
+3. **What weakness is exploited** (`vulnerability.category`, `cwe`, `description`). Offer the list: unauthorized access · broken authentication · credential exposure · injection · improper input validation · security misconfiguration · missing or weak encryption · sensitive data exposure · insufficient logging and monitoring · insecure design · vulnerable or outdated components · supply chain · SSRF · privilege escalation · excessive trust / flat network · resource exhaustion · availability failure · improper error handling · malware execution · phishing / social engineering · insider misuse · physical access · data exfiltration · third-party dependency · race condition · memory safety · other. Each has a default STRIDE suggestion (`normalize.mjs --describe vulnerability`).
+4. **Where it applies** (`targets[]` **must**): zone, node, component (`node/component`), flow, appliance or boundary (`<from>-to-<to>`). Each target gets a circle unless `marker: false`; a component's circle sits on its host's top-right corner.
+5. **Who** (`adversary.type` **must**): external types (activist, competitor, crime-syndicate, criminal, hacker, nation-state, sensationalist, spy, terrorist), insiders (insider-accidental, insider-disgruntled, malicious-user), compromised-credential-holder, third-party, automated-bot, non-adversarial, unknown. Point `adversary.actor_node` at the diagram's bad-actor or user node.
+6. **Consequence** (`risk.consequence`): one plain sentence on what happens if it is realised.
+7. **Controls as they are today** (`treatment.current_controls[]`): what is already in place that bears on this threat. Reuse existing control ids; create new ones with status `implemented` or `verified`.
+8. **Risk, with those controls considered** (`risk.residual`, method per `risk-scoring.md`). This is the rating people mean when they say "how bad is it": prompt likelihood and impact as words (Low, Medium, High …) and normalize them. The circle and the register's **Current** column show this value.
+9. **Inherent risk** (`risk`, **must** have a method and inputs): the rating as if the current controls were absent. Ask it right after the current rating ("and without those controls?"); if the user does not want to assess it, use the current values and say so in `risk.rationale`.
+10. **Treatment and future state** (`treatment.decision`; `treatment.planned_controls[]`; `risk.projected`): mitigate / accept / avoid / transfer. For planned controls (status proposed, planned, in-progress) ask for owner and due date, then the projected rating once they are in place. Accepting a risk needs `treatment.acceptance` (approver, date, rationale, review date).
+11. **Suggested mitigations** (`treatment.suggested_mitigations[]`): ideas that are not controls yet, with source and status (suggested / accepted / rejected / converted → `control_id`).
+12. **Status** (`status`, default `identified`): identified → investigating → open → mitigated / accepted / transferred / avoided; `not-applicable` and `retired` need a `status_reason`. `mitigated` requires at least one current control.
+
+Optional: `classification.linddun[]`, `classification.attack_tactics[]` (ATT&CK v20 tactic ids; TA0005 is Stealth, TA0112 Defense Impairment), `attack.scenario` / `prerequisites` / `mitre_attack[]` / `capec[]`, `boundary_crossed`, `assets_at_risk[]`, `data_classification` / `data_tags`, `adversary` detail (motivation, capability, intent, targeting, resources, position, required_privileges, access_vector, authentication_required), `standards` (cwe, owasp A01:2025 / API1:2023 / LLM01:2025, nist_800_53, cis_controls, iso_27001, compliance), `risk.cvss`, `provenance`, `layers`.
+
+`validate.mjs --fix` computes every `rating` and `score`, keeps `treatment.controls` equal to current + planned, and refuses a current control that is not implemented/verified or a planned one that already is.
+
+## Controls
+
+Ask: name; type (preventive, detective, corrective, deterrent, recovery, compensating, directive); status (proposed, planned, in-progress, implemented, verified, not-implemented, retired); owner; due date and ticket for anything not yet implemented; how it was verified (`verification`: design-review, code-review, test, penetration-test, scanner, audit, continuous-monitoring, not-yet-verified; `verified` needs one) and when; effectiveness (very-low … very-high); where it lives on the diagram (`implemented_on[]`, same shape as targets; draws a green shield badge); NIST 800-53 and CIS references. One control usually treats several threats; reuse ids.
+
+## Ids, numbers, scope
+
+- `THR-0001`…, `number` equals the id's digits. Assign the next unused number; never reuse one. Removing a threat means `status: "retired"`, `retired: true`, `status_reason`.
+- Controls are `CTL-0001`…, same rule.
+- Any zone, appliance, node, component or flow can be `out_of_scope: true` with a `scope_reason`. It stays on the diagram, greyed out, with all its attributes; threats may still target it.
+
+## Where threats show up
+
+A numbered circle at each target coloured by the **current** band (residual if present, else inherent): very-low light green, low yellow, moderate orange, high red, very-high black with a red number. Click a circle for the full record in the Attributes card and to highlight every target; the **Threat Register** (toolbar, next to Layers) lists all threats with vulnerability, STRIDE, targets, inherent / current / projected bands, status and controls, sortable; the severity chips hide bands; the **Threat markers** layer hides them all. Steps can name their threats (`steps[].threats`); those circles are emphasised while the step plays.
+
+## Attack paths (chains)
+
+After the threats, ask how they chain: "If THR-0004 succeeds and the attacker has a session on the jump VM, what do they hold, and where can they go next?" One answer per hop. An attack path is an entry of `attack_paths[]` on the diagram (tab): `id` `AP-0001`…, `number` (permanent, like a threat's), Title Case `title`, `description` (the chain as the adversary would tell it), `adversary`, `entry` (the bad actor's node, or the element already compromised), `hops[]`, `impact`, `assets_at_risk`, `risk` (the chain as a whole: the likelihood that every hop succeeds × the impact of the end state; `residual` with the controls in place, `projected` after the planned ones; `validate --fix` writes the bands), `breaks_at` (the controls that cut the chain; a mitigated path needs one implemented or verified), `mitre_attack`.
+
+Each hop: `threat` (a threat of this diagram), `via` (the flow it rides) or `to` (where it lands; a local escalation has no flow), optionally `from`, `gain` (foothold, credentials, token, session, network-access, code-execution, data-access, data-exfiltration, privilege, persistence, lateral-movement, denial-of-service, impact; `normalize.mjs gain "<text>"`), `note` (one sentence: how it works and which control is missing or bypassed), `bypasses` (control ids it defeats). The next hop starts where the previous one landed. The validator warns when the chain breaks, when a hop's threat targets nothing on that hop, and when a hop's threat is mitigated but the path does not name the control that breaks it. Ids and numbers are unique across the document; a what-if tab repeats its baseline's.
+
+Questions, in order: entry point and adversary → the first threat exploited and what it gains → from there, the next flow or system and the threat that opens it → … until the asset → impact → which existing control breaks the chain today → which planned control would → the path's risk. Typical gains per hop: a foothold, then credentials or a token, then network access or lateral movement, then data access, then exfiltration or impact.
+
+On the diagram each path is a red phase at the end of the walkthrough: Next walks the hops, every hop carries a numbered red marker on its flow (or at the box it lands on), the chain's flows are drawn red and the hop's threat circle is emphasised; the band shows the gain and the note; the last hop ends with the impact. The register has an Attack Paths table under the threats; a threat's bubble and card name the paths it belongs to; the Attributes card of a path lists its hops with links.
+
+## Remediation that can be built
+
+Every open threat needs a way out: a current control, a planned control with an owner, or at least an entry in `treatment.suggested_mitigations[]`. Write controls as engineering actions a team can pick up ("Entra ID authentication for Redis; access keys disabled", "parameterized queries and a least-privilege SQL role for the API identity", "rate limit of 10 sign-ins per minute per account and source", "token binding on the refresh token", "mTLS between the gateway and the API"), not categories ("improve authentication"). The validator warns about an open threat with no remediation recorded.
+
+## Suggested threats from cloud cards
+
+Add them with `suggested: true`, `suggested_from: "<card id>"`, `provenance.discovered_by: "cloud-catalogue"`, and ask the user to confirm each one. Drop `suggested` once confirmed; retire what the user rejects.

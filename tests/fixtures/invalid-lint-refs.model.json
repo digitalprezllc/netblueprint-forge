@@ -1,0 +1,172 @@
+{
+  "netblueprint": "1",
+  "meta": {
+    "title": "Dangling references",
+    "author": "tests",
+    "date": "2026-10-24",
+    "version": "0.1.0"
+  },
+  "layers": [
+    {
+      "name": "phase-2",
+      "label": "Phase 2"
+    }
+  ],
+  "zones": [
+    {
+      "name": "corp",
+      "label": "Corp"
+    },
+    {
+      "name": "corp",
+      "label": "Corp again"
+    },
+    {
+      "name": "dmz",
+      "label": "DMZ",
+      "parent": "nowhere",
+      "appliances": [
+        {
+          "name": "fw",
+          "label": "FW",
+          "type": "firewall",
+          "serves": [
+            "mars"
+          ]
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "web",
+      "label": "Web",
+      "type": "server",
+      "zone": "ghost",
+      "layers": [
+        "phase-9"
+      ]
+    },
+    {
+      "name": "db",
+      "label": "DB",
+      "type": "database",
+      "zone": "corp",
+      "components": [
+        {
+          "name": "sql",
+          "label": "SQL",
+          "type": "sql-server"
+        },
+        {
+          "name": "sql",
+          "label": "SQL twice",
+          "type": "sql-server"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    {
+      "name": "f1",
+      "from": "web",
+      "to": "db/nosuch",
+      "auth": "telepathy",
+      "via": [
+        "nofw"
+      ]
+    },
+    {
+      "name": "f2",
+      "from": "web",
+      "to": "web"
+    }
+  ],
+  "phases": [
+    {
+      "name": "p1",
+      "label": "P1"
+    }
+  ],
+  "steps": [
+    {
+      "name": "s1",
+      "phase": "p9",
+      "title": "t",
+      "description": "d",
+      "flows": [
+        "f-missing"
+      ],
+      "highlight": [
+        "nobody"
+      ],
+      "badge": "ghost",
+      "threats": [
+        "THR-0099"
+      ],
+      "packets": [
+        {
+          "flow": "f-missing"
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0001",
+      "name": "c",
+      "type": "preventive",
+      "status": "planned",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "nobody"
+        }
+      ]
+    }
+  ],
+  "threats": [
+    {
+      "id": "THR-0001",
+      "number": 1,
+      "title": "t1",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "spoofing"
+        ]
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "nobody"
+        },
+        {
+          "kind": "boundary",
+          "ref": "internet-to-nowhere"
+        }
+      ],
+      "adversary": {
+        "type": "hacker",
+        "actor_node": "ghost"
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "high",
+        "impact": "high",
+        "rating": "very-low",
+        "score": 0
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0001",
+          "CTL-0404"
+        ],
+        "current_controls": [
+          "CTL-0001"
+        ]
+      }
+    }
+  ]
+}

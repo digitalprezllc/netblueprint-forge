@@ -1,0 +1,16 @@
+{
+  "netblueprint": "1",
+  "meta": { "title": "Invalid fixture", "author": "tests", "date": "2026-10-23", "version": "0.1.0" },
+  "zones": [{ "name": "corp", "label": "Corp" }],
+  "nodes": [{ "name": "bad name with spaces", "label": "x", "type": "mainframe", "zone": "corp" }],
+  "threats": [
+    {
+      "id": "THR-1", "number": 0, "title": "t", "status": "retired",
+      "classification": { "stride": [] },
+      "targets": [],
+      "adversary": { "type": "alien" },
+      "risk": { "method": "likelihood-impact", "likelihood": "high", "rating_override": "low" }
+    }
+  ],
+  "controls": [{ "id": "CTL-0001", "name": "c", "type": "preventive", "status": "verified", "verification": "not-yet-verified" }]
+}

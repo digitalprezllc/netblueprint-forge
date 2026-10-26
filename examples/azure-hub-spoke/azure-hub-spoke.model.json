@@ -1,0 +1,4592 @@
+{
+  "netblueprint": "1",
+  "meta": {
+    "title": "Contoso Web Workload on Azure: Hub-Spoke with Hybrid Admin Access",
+    "subtitle": "Reference Architecture",
+    "description": "Customers reach a public web app through an Application Gateway WAF in the hub; the app runs on App Service with private endpoints in a spoke and talks to Azure SQL and Key Vault with managed identities; administrators come in from the Contoso office over VPN through Azure Bastion. Adapted from Microsoft's hub-spoke network topology and App Service baseline reference architectures. The What-If tab shows the same workload with a public Redis cache added in front of SQL, as a proposal to evaluate.",
+    "author": "DigitalPrez, LLC",
+    "organization": "Contoso",
+    "date": "2026-10-25",
+    "version": "1.3.0",
+    "revision_note": "Two tabs: the baseline, with data classifications on every flow and attack path AP-0001 (exposed jump host to database exfiltration), and a what-if scenario adding a public Redis cache (two threats, three planned controls, AP-0002). Renderer 1.7.0.",
+    "document_classification": "internal",
+    "objective": "Expose one web application to the Internet behind a WAF while keeping data, secrets and administration on private, identity-verified paths.",
+    "flow_summary": "Customer to web app; administrator to jump VM",
+    "path_summary": [
+      "Customer",
+      "WAF",
+      "App Service",
+      "SQL"
+    ],
+    "access_summary": "Customers: Entra ID + MFA (OIDC). Administrators: FIDO2 + Bastion. Services: managed identities. No public endpoints on data or VMs.",
+    "assumptions": [
+      "The Azure landing zone, peering and user-defined routes to the Azure Firewall already exist.",
+      "Contoso devices used by administrators are managed and compliant.",
+      "Entra ID is operated by the identity team; its internal design is out of scope."
+    ],
+    "out_of_scope": [
+      "Disaster recovery to a second region.",
+      "The CI/CD pipeline that deploys the application."
+    ],
+    "tags": [
+      "azure",
+      "hub-spoke",
+      "app-service",
+      "private-endpoint",
+      "bastion",
+      "zero-trust"
+    ],
+    "document_id": "NBF-EX-0002",
+    "status": "draft"
+  },
+  "settings": {
+    "network_label": "Contoso: Azure Landing Zone and On-Premises Network",
+    "internet_label": "Internet",
+    "layout": {
+      "min_width": 1280,
+      "min_height": 640,
+      "flow_direction": "left-to-right"
+    },
+    "show": {
+      "threats": true,
+      "threat_register": true,
+      "layer_panel": true,
+      "signature_block": true,
+      "legend": true
+    }
+  },
+  "auth_types": [
+    {
+      "id": "entra-mfa",
+      "label": "Entra ID + MFA",
+      "strength": "strong",
+      "description": "Interactive sign-in with Conditional Access requiring MFA."
+    },
+    {
+      "id": "entra-fido2",
+      "label": "Entra ID + FIDO2",
+      "strength": "strong",
+      "phishing_resistant": true,
+      "description": "Phishing-resistant sign-in with a security key or passkey."
+    },
+    {
+      "id": "oidc-token",
+      "label": "OIDC Bearer Token",
+      "strength": "moderate",
+      "description": "Access token issued by Entra ID, validated by the API."
+    },
+    {
+      "id": "managed-identity",
+      "label": "Managed Identity",
+      "strength": "strong",
+      "description": "Azure-managed service identity; no stored secret."
+    },
+    {
+      "id": "mtls",
+      "label": "Mutual TLS",
+      "strength": "strong"
+    },
+    {
+      "id": "kerberos",
+      "label": "Kerberos (Domain)",
+      "strength": "strong"
+    },
+    {
+      "id": "certificate",
+      "label": "Certificate Trust",
+      "strength": "strong"
+    },
+    {
+      "id": "password",
+      "label": "Username / Password",
+      "strength": "weak"
+    },
+    {
+      "id": "anonymous",
+      "label": "Anonymous",
+      "strength": "none"
+    },
+    {
+      "id": "redis-key",
+      "label": "Redis Access Key",
+      "strength": "weak",
+      "description": "Shared access key held in the cache client's configuration; no identity, no MFA."
+    }
+  ],
+  "layers": [
+    {
+      "name": "observability",
+      "label": "Observability (Logs)",
+      "description": "Diagnostic and security log flows to Log Analytics.",
+      "visible": true
+    },
+    {
+      "name": "illustrative-threats",
+      "label": "Illustrative Threats",
+      "description": "Example threats and controls added to show the threat data. Hide to see the plain design.",
+      "visible": true
+    }
+  ],
+  "tabs": [
+    {
+      "name": "main",
+      "label": "Baseline",
+      "description": "The architecture as deployed: customers through the WAF, administrators through Bastion, data on private endpoints.",
+      "zones": [
+        {
+          "name": "azure",
+          "label": "Azure Subscription: Landing Zone",
+          "sub": "hub-spoke · private endpoints · policy-governed",
+          "kind": "cloud",
+          "color": "teal",
+          "cloud": {
+            "provider": "azure",
+            "region": "East US 2"
+          },
+          "layout": {
+            "order": 0,
+            "arrange": "column"
+          },
+          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall."
+        },
+        {
+          "name": "hub-vnet",
+          "label": "Hub VNet",
+          "sub": "10.0.0.0/16 · shared services",
+          "parent": "azure",
+          "kind": "vpc",
+          "color": "blue",
+          "layout": {
+            "row": 0,
+            "order": 0,
+            "arrange": "row"
+          },
+          "appliances": [
+            {
+              "name": "vpn-gw",
+              "label": "VPN / ExpressRoute Gateway",
+              "sub": "GatewaySubnet",
+              "type": "vpn",
+              "edge": "right",
+              "filters": "inbound",
+              "serves": [
+                "onprem"
+              ],
+              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way."
+            }
+          ],
+          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises."
+        },
+        {
+          "name": "spoke-web",
+          "label": "Spoke VNet: Web Workload",
+          "sub": "10.1.0.0/16 · peered to hub",
+          "parent": "azure",
+          "kind": "vpc",
+          "color": "blue",
+          "layout": {
+            "row": 1,
+            "arrange": "row"
+          },
+          "appliances": [
+            {
+              "name": "azure-firewall",
+              "label": "Azure Firewall",
+              "sub": "hub · UDR forces spoke traffic through it",
+              "type": "firewall",
+              "edge": "top",
+              "filters": "both",
+              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled."
+            }
+          ],
+          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints."
+        },
+        {
+          "name": "snet-app",
+          "label": "App Subnet",
+          "sub": "10.1.1.0/24 · VNet integration",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "layout": {
+            "order": 0,
+            "arrange": "column"
+          },
+          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound."
+        },
+        {
+          "name": "snet-data",
+          "label": "Data Subnet",
+          "sub": "10.1.2.0/24 · private endpoints",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii"
+          ],
+          "layout": {
+            "order": 1,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "nsg-data",
+              "label": "NSG",
+              "sub": "data subnet · allow 1433/443 from app and mgmt only",
+              "type": "firewall",
+              "edge": "left",
+              "filters": "inbound"
+            }
+          ],
+          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service."
+        },
+        {
+          "name": "snet-mgmt",
+          "label": "Management Subnet",
+          "sub": "10.1.9.0/24",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "layout": {
+            "order": 2,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "nsg-mgmt",
+              "label": "NSG",
+              "sub": "mgmt subnet · RDP from Bastion only",
+              "type": "firewall",
+              "edge": "top",
+              "filters": "inbound"
+            }
+          ],
+          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion."
+        },
+        {
+          "name": "onprem",
+          "label": "Contoso On-Premises",
+          "sub": "head office · AD DS",
+          "kind": "network",
+          "color": "slate",
+          "layout": {
+            "order": 1,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "onprem-fw",
+              "label": "Edge Firewall",
+              "sub": "NGFW · IPsec to Azure",
+              "type": "ngfw",
+              "edge": "left",
+              "filters": "both",
+              "info": "Contoso's perimeter firewall. Terminates the IPsec tunnel to the Azure VPN gateway; no inbound rules from the Internet."
+            }
+          ],
+          "info": "The Contoso head office: administrators' workstations and the on-premises Active Directory that syncs identities to Entra ID."
+        }
+      ],
+      "nodes": [
+        {
+          "name": "entra-id",
+          "label": "Microsoft Entra ID",
+          "sub": "tenant · Conditional Access · ID Protection",
+          "type": "identity-provider",
+          "zone": "internet",
+          "color": "purple",
+          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies."
+        },
+        {
+          "name": "customer",
+          "label": "Customer",
+          "sub": "browser · any device",
+          "type": "remote-user",
+          "zone": "internet",
+          "info": "A Contoso customer on the public Internet using the web application."
+        },
+        {
+          "name": "attacker",
+          "label": "Internet Attacker",
+          "sub": "scanning · credential stuffing · injection",
+          "type": "bad-actor",
+          "zone": "internet",
+          "info": "An opportunistic external attacker: automated scanners, credential-stuffing bots and injection attempts against the public endpoint."
+        },
+        {
+          "name": "app-gateway",
+          "label": "Application Gateway",
+          "sub": "WAF v2 · public IP · TLS termination",
+          "type": "service",
+          "icon": "load-balancer",
+          "zone": "hub-vnet",
+          "cloud": {
+            "provider": "azure",
+            "service": "Application Gateway",
+            "exposure": "internet",
+            "endpoint": "public",
+            "disabled_protocols": [
+              "tls1.0",
+              "tls1.1",
+              "http"
+            ]
+          },
+          "info": "The only Internet-facing endpoint. WAF v2 with the OWASP Core Rule Set in prevention mode; end-to-end TLS to the App Service private endpoint.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "bastion",
+          "label": "Azure Bastion",
+          "sub": "AzureBastionSubnet · browser / native client",
+          "type": "service",
+          "icon": "lock",
+          "zone": "hub-vnet",
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure Bastion",
+            "exposure": "internet",
+            "endpoint": "public",
+            "disabled_protocols": [
+              "public-rdp",
+              "public-ssh"
+            ]
+          },
+          "info": "Brokers RDP/SSH to VMs over TLS 443 without exposing them. Session access requires an Entra ID sign-in and Azure RBAC on the target VM.",
+          "layout": {
+            "order": 1
+          }
+        },
+        {
+          "name": "app-service",
+          "label": "App Service",
+          "sub": "Premium v3 · private endpoint · VNet integration",
+          "type": "host",
+          "icon": "cloud",
+          "zone": "snet-app",
+          "cloud": {
+            "provider": "azure",
+            "service": "App Service",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "ftp",
+              "ftps",
+              "basic-auth",
+              "tls1.0",
+              "tls1.1",
+              "public-access",
+              "scm-public-access"
+            ]
+          },
+          "info": "The web application and its API on one App Service plan. Inbound only through the private endpoint (from the Application Gateway); outbound through VNet integration and the Azure Firewall. FTP and basic-auth deployment credentials are disabled.",
+          "components": [
+            {
+              "name": "web",
+              "label": "Web Front End",
+              "type": "web-server",
+              "ports": [
+                "443/tcp"
+              ],
+              "info": "Server-rendered front end; signs customers in with Entra ID (OIDC) and calls the API with the access token."
+            },
+            {
+              "name": "api",
+              "label": "Orders API",
+              "type": "api",
+              "ports": [
+                "443/tcp"
+              ],
+              "data_tags": [
+                "pii"
+              ],
+              "info": "Validates the bearer token, reads and writes orders in Azure SQL, fetches configuration secrets from Key Vault."
+            }
+          ]
+        },
+        {
+          "name": "sql",
+          "label": "Azure SQL Database",
+          "sub": "private endpoint · TDE · Entra-only auth",
+          "type": "database",
+          "zone": "snet-data",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure SQL Database",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "public-access",
+              "sql-password-auth",
+              "tls1.0",
+              "tls1.1"
+            ]
+          },
+          "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "key-vault",
+          "label": "Key Vault",
+          "sub": "private endpoint · RBAC · soft delete",
+          "type": "service",
+          "icon": "key",
+          "zone": "snet-data",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Key Vault",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "public-access",
+              "access-policies"
+            ]
+          },
+          "info": "Application secrets and certificates. Reached only by managed identities with least-privilege RBAC roles.",
+          "layout": {
+            "order": 1
+          }
+        },
+        {
+          "name": "jump-vm",
+          "label": "Jump VM",
+          "sub": "Windows Server · no public IP",
+          "type": "server",
+          "icon": "workstation",
+          "zone": "snet-mgmt",
+          "cloud": {
+            "provider": "azure",
+            "service": "Virtual Machines",
+            "exposure": "private",
+            "endpoint": "none",
+            "disabled_protocols": [
+              "public-ip",
+              "rdp-from-internet",
+              "smbv1"
+            ]
+          },
+          "info": "Domain-joined administration host with SQL tooling. Reachable only through Azure Bastion; Defender for Servers and just-in-time access enabled."
+        },
+        {
+          "name": "log-analytics",
+          "label": "Log Analytics Workspace",
+          "sub": "diagnostics · Defender for Cloud · Sentinel",
+          "type": "service",
+          "icon": "monitor",
+          "zone": "azure",
+          "layers": [
+            "observability"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure Monitor",
+            "exposure": "private",
+            "endpoint": "private"
+          },
+          "info": "Central workspace for diagnostic settings, WAF and firewall logs, SQL auditing and Defender for Cloud alerts.",
+          "layout": {
+            "row": 0,
+            "order": 1
+          }
+        },
+        {
+          "name": "admin",
+          "label": "IT Administrator",
+          "sub": "managed workstation · FIDO2 key",
+          "type": "admin",
+          "zone": "onprem",
+          "info": "A Contoso platform or database administrator working from the head office on a managed, compliant device.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "ad-ds",
+          "label": "AD DS Domain Controller",
+          "sub": "on-prem identity · Entra Connect",
+          "type": "server",
+          "icon": "directory",
+          "zone": "onprem",
+          "data_tags": [
+            "credentials"
+          ],
+          "info": "On-premises Active Directory. Entra Connect synchronises identities to the Entra ID tenant (password hash sync).",
+          "layout": {
+            "order": 1
+          }
+        }
+      ],
+      "flows": [
+        {
+          "name": "f-customer-appgw",
+          "label": "Browse / Order",
+          "from": "customer",
+          "to": "app-gateway",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Customer sessions terminate TLS at the Application Gateway. The browser carries the OIDC session issued by Entra ID.",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-customer-entra",
+          "label": "Sign In",
+          "from": "customer",
+          "to": "entra-id",
+          "kind": "auth",
+          "auth": "entra-mfa",
+          "protocol": "HTTPS (OIDC)",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Interactive sign-in; Conditional Access requires MFA for all customers.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-entra-app-trust",
+          "label": "OIDC App Registration",
+          "from": "entra-id",
+          "to": "app-service/web",
+          "direction": "one-way",
+          "kind": "trust",
+          "auth": "certificate",
+          "info": "Standing trust: the app validates tokens against the tenant's signing keys. No live traffic drawn."
+        },
+        {
+          "name": "f-appgw-web",
+          "label": "Forward Request",
+          "from": "app-gateway",
+          "to": "app-service/web",
+          "direction": "one-way",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "After WAF inspection the request is forwarded over end-to-end TLS to the App Service private endpoint.",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-web-api",
+          "label": "Call API",
+          "from": "app-service/web",
+          "to": "app-service/api",
+          "direction": "one-way",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "The front end calls the Orders API with the customer's access token (on-behalf-of).",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-api-sql",
+          "label": "Orders",
+          "from": "app-service/api",
+          "to": "sql",
+          "kind": "data",
+          "auth": "managed-identity",
+          "protocol": "TDS",
+          "port": "1433/tcp",
+          "encrypted": true,
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii"
+          ],
+          "info": "The API's managed identity is a least-privilege database user. Traffic stays on the private endpoint."
+        },
+        {
+          "name": "f-api-kv",
+          "label": "Secrets",
+          "from": "app-service/api",
+          "to": "key-vault",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Configuration secrets fetched at start-up with the managed identity (Key Vault Secrets User role).",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-admin-entra",
+          "label": "Admin Sign-In",
+          "from": "admin",
+          "to": "entra-id",
+          "kind": "auth",
+          "auth": "entra-fido2",
+          "protocol": "HTTPS (OIDC)",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Administrators must use phishing-resistant MFA (FIDO2) and a compliant device.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-admin-bastion",
+          "label": "Bastion Session",
+          "from": "admin",
+          "to": "bastion",
+          "kind": "data",
+          "auth": "entra-mfa",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "From the office over the IPsec tunnel into the hub. Bastion requires an Entra sign-in and Reader on the target VM.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-bastion-jump",
+          "label": "Brokered RDP",
+          "from": "bastion",
+          "to": "jump-vm",
+          "kind": "data",
+          "auth": "kerberos",
+          "protocol": "RDP",
+          "port": "3389/tcp",
+          "encrypted": true,
+          "info": "Bastion opens RDP to the jump VM inside the VNet; the NSG allows 3389 only from the AzureBastionSubnet.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-jump-sql",
+          "label": "DBA Maintenance",
+          "from": "jump-vm",
+          "to": "sql",
+          "kind": "data",
+          "auth": "entra-mfa",
+          "protocol": "TDS",
+          "port": "1433/tcp",
+          "encrypted": true,
+          "info": "Database administration with Entra ID authentication from the jump VM over the private endpoint.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ]
+        },
+        {
+          "name": "f-adds-entra",
+          "label": "Entra Connect Sync",
+          "from": "ad-ds",
+          "to": "entra-id",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "mtls",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Entra Connect synchronises on-premises identities to the tenant (outbound only).",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-attacker-appgw",
+          "label": "Attack Traffic",
+          "from": "attacker",
+          "to": "app-gateway",
+          "kind": "blocked",
+          "auth": "anonymous",
+          "blocked_reason": "WAF (OWASP CRS 3.2, prevention mode) and bot protection drop injection and credential-stuffing traffic"
+        },
+        {
+          "name": "f-attacker-sql",
+          "label": "Direct DB Access",
+          "from": "attacker",
+          "to": "sql",
+          "kind": "blocked",
+          "auth": "anonymous",
+          "blocked_reason": "Public network access disabled; the server answers only on its private endpoint"
+        },
+        {
+          "name": "f-attacker-jump",
+          "label": "Direct RDP",
+          "from": "attacker",
+          "to": "jump-vm",
+          "kind": "blocked",
+          "auth": "password",
+          "blocked_reason": "No public IP; NSG denies inbound 3389 except from the AzureBastionSubnet"
+        },
+        {
+          "name": "f-app-logs",
+          "label": "Diagnostics",
+          "from": "app-service",
+          "to": "log-analytics",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "layers": [
+            "observability"
+          ],
+          "info": "App Service diagnostic settings and Defender for App Service telemetry.",
+          "data_classification": "internal"
+        },
+        {
+          "name": "f-sql-logs",
+          "label": "Auditing",
+          "from": "sql",
+          "to": "log-analytics",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "layers": [
+            "observability"
+          ],
+          "info": "SQL auditing and Defender for SQL alerts.",
+          "data_classification": "internal"
+        }
+      ],
+      "phases": [
+        {
+          "name": "connect",
+          "label": "Connect"
+        },
+        {
+          "name": "identity",
+          "label": "Identity"
+        },
+        {
+          "name": "access",
+          "label": "Access"
+        },
+        {
+          "name": "operate",
+          "label": "Operate"
+        }
+      ],
+      "steps": [
+        {
+          "name": "request",
+          "phase": "connect",
+          "short": "Request",
+          "title": "A customer reaches the only public entry point",
+          "description": "The customer's browser resolves the application's public name to the Application Gateway's public IP and opens an HTTPS session. Nothing else in the design has a public address: App Service, SQL, Key Vault and the jump VM are reachable only on private endpoints or through Bastion.",
+          "details": [
+            "TLS terminates at the Application Gateway (WAF v2)",
+            "One public IP for the whole workload",
+            "PaaS services sit behind private endpoints"
+          ],
+          "flows": [
+            "f-customer-appgw"
+          ],
+          "highlight": [
+            "customer",
+            "app-gateway"
+          ],
+          "packets": [
+            {
+              "flow": "f-customer-appgw",
+              "kind": "data"
+            }
+          ]
+        },
+        {
+          "name": "waf",
+          "phase": "connect",
+          "short": "WAF",
+          "title": "The WAF inspects every request and drops hostile traffic",
+          "description": "The same endpoint is hit constantly by scanners, credential-stuffing bots and injection attempts. The WAF's OWASP Core Rule Set runs in prevention mode with bot protection, so hostile requests are dropped at the edge and never reach the application.",
+          "details": [
+            "OWASP CRS 3.2 in prevention mode",
+            "Bot protection and rate limiting",
+            "Blocked requests logged to Log Analytics"
+          ],
+          "flows": [
+            "f-attacker-appgw"
+          ],
+          "highlight": [
+            "attacker",
+            "app-gateway"
+          ],
+          "packets": [
+            {
+              "flow": "f-attacker-appgw",
+              "kind": "blocked"
+            }
+          ],
+          "threats": [
+            "THR-0002"
+          ]
+        },
+        {
+          "name": "signin",
+          "phase": "identity",
+          "short": "Sign in",
+          "title": "The customer signs in with Entra ID",
+          "description": "The web front end redirects the customer to Entra ID. Conditional Access requires multifactor authentication; ID Protection evaluates sign-in risk. Entra ID returns an ID token and an access token for the Orders API, which the application validates against the tenant's signing keys.",
+          "details": [
+            "OIDC authorization code flow with PKCE",
+            "Conditional Access: MFA for all customers",
+            "Risk-based blocking from ID Protection"
+          ],
+          "flows": [
+            "f-customer-entra",
+            "f-entra-app-trust"
+          ],
+          "highlight": [
+            "customer",
+            "entra-id",
+            "app-service/web"
+          ],
+          "packets": [
+            {
+              "flow": "f-customer-entra",
+              "kind": "auth"
+            },
+            {
+              "flow": "f-customer-entra",
+              "direction": "reverse",
+              "kind": "token",
+              "delay_ms": 900
+            }
+          ],
+          "threats": [
+            "THR-0001"
+          ]
+        },
+        {
+          "name": "frontend",
+          "phase": "access",
+          "short": "Front end",
+          "title": "The front end calls the Orders API with the bearer token",
+          "description": "The Application Gateway forwards the request over end-to-end TLS to the App Service private endpoint. The front end calls the Orders API with the customer's access token; the API validates the token's signature, audience and scopes before doing anything.",
+          "details": [
+            "End-to-end TLS from WAF to private endpoint",
+            "Token validation on every API call",
+            "FTP and basic-auth deployment disabled on App Service"
+          ],
+          "flows": [
+            "f-appgw-web",
+            "f-web-api"
+          ],
+          "highlight": [
+            "app-gateway",
+            "app-service/web",
+            "app-service/api"
+          ],
+          "packets": [
+            {
+              "flow": "f-appgw-web",
+              "kind": "data"
+            },
+            {
+              "flow": "f-web-api",
+              "kind": "data",
+              "delay_ms": 700
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "phase": "access",
+          "short": "Data",
+          "title": "The API reaches SQL and Key Vault with its managed identity",
+          "description": "The Orders API uses its system-assigned managed identity: a least-privilege database user in Azure SQL and the Key Vault Secrets User role. There are no connection-string passwords anywhere; both services answer only on private endpoints inside the data subnet, behind an NSG.",
+          "details": [
+            "Managed identity: no stored secrets",
+            "Private endpoints; public network access disabled",
+            "NSG allows 1433 and 443 from the app subnet only"
+          ],
+          "flows": [
+            "f-api-kv",
+            "f-api-sql"
+          ],
+          "highlight": [
+            "app-service/api",
+            "key-vault",
+            "sql",
+            "nsg-data"
+          ],
+          "packets": [
+            {
+              "flow": "f-api-kv",
+              "kind": "control"
+            },
+            {
+              "flow": "f-api-sql",
+              "kind": "data",
+              "delay_ms": 500
+            },
+            {
+              "flow": "f-api-sql",
+              "direction": "reverse",
+              "kind": "data",
+              "delay_ms": 1400
+            }
+          ],
+          "threats": [
+            "THR-0003"
+          ]
+        },
+        {
+          "name": "admin",
+          "phase": "identity",
+          "short": "Admin",
+          "title": "An administrator connects from the office over the VPN",
+          "description": "Administration never comes from the Internet. The administrator signs in to Entra ID with a FIDO2 key, then opens an Azure Bastion session. The traffic leaves the Contoso office through the edge firewall, crosses the IPsec tunnel into the hub VNet's gateway and reaches Bastion on 443.",
+          "details": [
+            "Phishing-resistant MFA for administrators",
+            "Bastion session requires Entra sign-in + RBAC on the VM",
+            "Site-to-site VPN; no public RDP/SSH anywhere"
+          ],
+          "flows": [
+            "f-admin-entra",
+            "f-admin-bastion"
+          ],
+          "highlight": [
+            "admin",
+            "entra-id",
+            "onprem-fw",
+            "vpn-gw",
+            "bastion"
+          ],
+          "packets": [
+            {
+              "flow": "f-admin-entra",
+              "kind": "auth"
+            },
+            {
+              "flow": "f-admin-entra",
+              "direction": "reverse",
+              "kind": "token",
+              "delay_ms": 800
+            },
+            {
+              "flow": "f-admin-bastion",
+              "kind": "data",
+              "delay_ms": 1500
+            }
+          ]
+        },
+        {
+          "name": "bastion",
+          "phase": "access",
+          "short": "Bastion",
+          "title": "Bastion brokers RDP to the jump VM; direct RDP is denied",
+          "description": "Bastion opens the RDP session to the jump VM from inside the VNet. The jump VM has no public IP, and its NSG allows 3389 only from the AzureBastionSubnet, so an attacker scanning for exposed RDP finds nothing to connect to.",
+          "details": [
+            "RDP only from the AzureBastionSubnet",
+            "Azure Policy denies public IPs on VMs",
+            "Just-in-time access and Defender for Servers on the VM"
+          ],
+          "flows": [
+            "f-bastion-jump",
+            "f-attacker-jump"
+          ],
+          "highlight": [
+            "bastion",
+            "azure-firewall",
+            "nsg-mgmt",
+            "jump-vm",
+            "attacker"
+          ],
+          "packets": [
+            {
+              "flow": "f-bastion-jump",
+              "kind": "data"
+            },
+            {
+              "flow": "f-attacker-jump",
+              "kind": "blocked",
+              "delay_ms": 600
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion"
+          ],
+          "threats": [
+            "THR-0004"
+          ]
+        },
+        {
+          "name": "dba",
+          "phase": "access",
+          "short": "DBA",
+          "title": "Database maintenance from the jump VM; the public SQL endpoint stays closed",
+          "description": "From the jump VM the administrator connects to Azure SQL with Entra ID authentication over the private endpoint. The server's public network access is disabled, so the same connection attempted from the Internet is refused before any authentication happens.",
+          "details": [
+            "Entra-only authentication on SQL",
+            "Private endpoint in the data subnet",
+            "SQL auditing records every session"
+          ],
+          "flows": [
+            "f-jump-sql",
+            "f-attacker-sql"
+          ],
+          "highlight": [
+            "jump-vm",
+            "nsg-data",
+            "sql",
+            "attacker"
+          ],
+          "packets": [
+            {
+              "flow": "f-jump-sql",
+              "kind": "data"
+            },
+            {
+              "flow": "f-attacker-sql",
+              "kind": "blocked",
+              "delay_ms": 500
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion",
+            "f-bastion-jump"
+          ]
+        },
+        {
+          "name": "operate",
+          "phase": "operate",
+          "short": "Operate",
+          "title": "Everything logs to one workspace",
+          "description": "WAF decisions, firewall and NSG flow logs, App Service diagnostics, SQL auditing and Defender for Cloud alerts all land in the Log Analytics workspace, where Microsoft Sentinel analytics rules watch for credential stuffing, injection and anomalous data access.",
+          "details": [
+            "Diagnostic settings on every resource",
+            "Defender for App Service, SQL and Servers",
+            "Sentinel analytics on sign-in and data-access anomalies"
+          ],
+          "flows": [
+            "f-app-logs",
+            "f-sql-logs"
+          ],
+          "highlight": [
+            "app-service",
+            "sql",
+            "log-analytics"
+          ],
+          "packets": [
+            {
+              "flow": "f-app-logs",
+              "kind": "control"
+            },
+            {
+              "flow": "f-sql-logs",
+              "kind": "control",
+              "delay_ms": 400
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion",
+            "f-bastion-jump"
+          ],
+          "badge": "sql",
+          "outcome": "Public traffic stops at the WAF, identities are verified by Entra ID, data and secrets stay on private endpoints, and administration is brokered and logged."
+        }
+      ],
+      "threats": [
+        {
+          "id": "THR-0001",
+          "number": 1,
+          "title": "Credential Stuffing and MFA Fatigue Against Customer Sign-In",
+          "description": "Bots replay leaked username/password pairs at the Entra sign-in page; where a password matches, repeated push prompts try to wear the customer down into approving one.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "spoofing"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0001"
+            ]
+          },
+          "vulnerability": {
+            "category": "broken-authentication",
+            "cwe": "CWE-307"
+          },
+          "targets": [
+            {
+              "kind": "flow",
+              "ref": "f-customer-entra"
+            },
+            {
+              "kind": "node",
+              "ref": "entra-id",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "azure"
+          },
+          "assets_at_risk": [
+            "Customer accounts",
+            "Order history (PII)"
+          ],
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii",
+            "credentials"
+          ],
+          "adversary": {
+            "type": "automated-bot",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "low",
+            "resources": "club",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "Leaked credential lists are replayed through rotating proxies; successful pairs are escalated to push-bombing.",
+            "prerequisites": [
+              "Password reuse by customers",
+              "Push MFA without number matching"
+            ],
+            "mitre_attack": [
+              "T1110.004",
+              "T1621"
+            ],
+            "capec": [
+              "CAPEC-600"
+            ]
+          },
+          "risk": {
+            "method": "owasp-rr",
+            "owasp_rr": {
+              "skill_level": 3,
+              "motive": 9,
+              "opportunity": 9,
+              "size": 9,
+              "ease_of_discovery": 9,
+              "ease_of_exploit": 9,
+              "awareness": 9,
+              "intrusion_detection": 3,
+              "loss_of_confidentiality": 6,
+              "loss_of_integrity": 3,
+              "loss_of_availability": 1,
+              "loss_of_accountability": 7,
+              "impact_basis": "technical",
+              "likelihood_avg": 7.5,
+              "impact_avg": 4.25,
+              "likelihood_level": "high",
+              "impact_level": "medium",
+              "severity": "high"
+            },
+            "rating": "high",
+            "score": 8,
+            "rationale": "Anyone can attempt it and automated tooling is public; MFA keeps most attempts from succeeding but push fatigue works against a share of users.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Number matching and passkeys (CTL-0002) remove the approve-to-dismiss failure mode; ID Protection blocks risky sign-ins."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-307",
+              "CWE-308"
+            ],
+            "owasp": [
+              "A07:2025"
+            ],
+            "nist_800_53": [
+              "IA-2(1)",
+              "IA-5(1)",
+              "AC-7"
+            ],
+            "cis_controls": [
+              "CIS-6.3"
+            ],
+            "compliance": [
+              "GDPR Art. 32"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0001",
+              "CTL-0002",
+              "CTL-0005"
+            ],
+            "current_controls": [
+              "CTL-0001",
+              "CTL-0005"
+            ],
+            "planned_controls": [
+              "CTL-0002"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0002",
+          "number": 2,
+          "title": "SQL Injection Through the Orders API",
+          "description": "A crafted order query slips past input handling in the API and is executed by Azure SQL with the API's database permissions, exposing or altering other customers' orders.",
+          "status": "mitigated",
+          "classification": {
+            "stride": [
+              "tampering",
+              "information-disclosure"
+            ],
+            "attack_tactics": [
+              "TA0001",
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "injection",
+            "cwe": "CWE-89"
+          },
+          "targets": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-sql",
+              "marker": false
+            },
+            {
+              "kind": "node",
+              "ref": "app-gateway",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "hub-vnet"
+          },
+          "assets_at_risk": [
+            "Order and customer records"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain",
+              "notoriety"
+            ],
+            "capability": "moderate",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "An authenticated customer tampers with a search parameter; without parameterization the fragment reaches the database.",
+            "prerequisites": [
+              "String-built SQL in the API",
+              "Database identity with broad rights"
+            ],
+            "mitre_attack": [
+              "T1190"
+            ],
+            "capec": [
+              "CAPEC-66"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "high",
+            "impact": "high",
+            "rating": "high",
+            "score": 8,
+            "rationale": "Injection remains among the most attempted web attacks; the data is restricted.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "WAF rules (CTL-0003) plus parameterized queries and a least-privilege database user (CTL-0004), verified by penetration test."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-89"
+            ],
+            "owasp": [
+              "A05:2025"
+            ],
+            "nist_800_53": [
+              "SI-10",
+              "AC-6"
+            ],
+            "cis_controls": [
+              "CIS-16.1",
+              "CIS-13.10"
+            ],
+            "compliance": [
+              "PCI DSS 4.0.1 6.2.4"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0003",
+              "CTL-0004"
+            ],
+            "current_controls": [
+              "CTL-0003",
+              "CTL-0004"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0003",
+          "number": 3,
+          "title": "SSRF from the API Reaches the Instance Metadata Service and Steals a Managed-Identity Token",
+          "description": "If the API can be made to fetch an attacker-chosen URL, it can be pointed at the Azure Instance Metadata Service and asked for an access token for its own managed identity; that token then works against Key Vault and SQL from anywhere.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "elevation-of-privilege",
+              "information-disclosure"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0004"
+            ]
+          },
+          "vulnerability": {
+            "category": "ssrf",
+            "cwe": "CWE-918"
+          },
+          "targets": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-kv"
+            }
+          ],
+          "boundary_crossed": {
+            "type": "cloud-tenant",
+            "from": "snet-app",
+            "to": "snet-data"
+          },
+          "assets_at_risk": [
+            "Managed-identity access token",
+            "Key Vault secrets",
+            "Order data"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials",
+            "pii"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "high",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "A webhook or import feature in the API accepts a URL; the attacker supplies the IMDS token endpoint and reads the response.",
+            "prerequisites": [
+              "A server-side fetch of user-supplied URLs",
+              "No allow-list on outbound destinations"
+            ],
+            "mitre_attack": [
+              "T1552.005",
+              "T1528"
+            ],
+            "capec": [
+              "CAPEC-664"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "very-high",
+            "rating": "high",
+            "score": 8,
+            "rationale": "SSRF is a design flaw that appears regularly; a stolen managed-identity token bypasses the network controls entirely.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Least-privilege RBAC (CTL-0006) limits what a stolen token can do; Defender alerts (CTL-0007) catch anomalous Key Vault access. An outbound URL allow-list in the API is still open."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-918"
+            ],
+            "owasp": [
+              "A01:2025",
+              "API7:2023"
+            ],
+            "nist_800_53": [
+              "AC-6",
+              "SC-7",
+              "SI-4"
+            ],
+            "cis_controls": [
+              "CIS-3.3",
+              "CIS-16.1"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0006",
+              "CTL-0007"
+            ],
+            "current_controls": [
+              "CTL-0006",
+              "CTL-0007"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0004",
+          "number": 4,
+          "title": "NSG Drift Exposes RDP on the Jump VM to the Internet",
+          "description": "A troubleshooting rule that allows 3389 from Any, or a public IP attached during an incident, would put a domain-joined administration host directly on the Internet.",
+          "status": "mitigated",
+          "classification": {
+            "stride": [
+              "elevation-of-privilege"
+            ],
+            "attack_tactics": [
+              "TA0001",
+              "TA0008"
+            ]
+          },
+          "vulnerability": {
+            "category": "security-misconfiguration",
+            "cwe": "CWE-284"
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-attacker-jump",
+              "marker": false
+            },
+            {
+              "kind": "appliance",
+              "ref": "nsg-mgmt",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "snet-mgmt"
+          },
+          "assets_at_risk": [
+            "Jump VM",
+            "Domain credentials cached on it",
+            "Azure SQL via the DBA path"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ],
+          "adversary": {
+            "type": "automated-bot",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "low",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "Internet-wide RDP scanners find the port within minutes; password spraying follows.",
+            "prerequisites": [
+              "An NSG rule or public IP added outside the pipeline"
+            ],
+            "mitre_attack": [
+              "T1133",
+              "T1021.001",
+              "T1110.003"
+            ],
+            "capec": [
+              "CAPEC-555"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "low",
+            "impact": "very-high",
+            "rating": "moderate",
+            "score": 5,
+            "rationale": "Drift happens, but policy and monitoring make it short-lived; the host is a direct path to data.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Azure Policy denies public IPs (CTL-0009) and the Bastion-only NSG baseline is continuously monitored (CTL-0008)."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-284"
+            ],
+            "owasp": [
+              "A02:2025"
+            ],
+            "nist_800_53": [
+              "SC-7",
+              "AC-17",
+              "CM-6"
+            ],
+            "cis_controls": [
+              "CIS-12.2",
+              "CIS-4.4"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0008",
+              "CTL-0009"
+            ],
+            "current_controls": [
+              "CTL-0008",
+              "CTL-0009"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0005",
+          "number": 5,
+          "title": "Saved Database Connections on the Jump VM Turn a Foothold into Data Access",
+          "description": "Administrators keep SQL Server Management Studio connections with cached Entra tokens on the jump VM. Anyone who lands an interactive session on the VM can open the Orders database as the last administrator without a fresh prompt.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "information-disclosure",
+              "elevation-of-privilege"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0008",
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "credential-exposure",
+            "cwe": "CWE-522",
+            "description": "Saved connections and cached tokens on a shared administration host."
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-jump-sql",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "vpc-vnet",
+            "from": "snet-mgmt",
+            "to": "snet-data"
+          },
+          "assets_at_risk": [
+            "Orders database",
+            "Customer PII"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "credentials"
+          ],
+          "adversary": {
+            "type": "criminal",
+            "source_class": "group-established",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "With a session on the jump VM the attacker opens SSMS, picks the saved production connection and queries the Orders tables; the private endpoint and the NSG see an ordinary administrator session.",
+            "prerequisites": [
+              "An interactive session on the jump VM (see THR-0004)"
+            ],
+            "mitre_attack": [
+              "T1552.001",
+              "T1078.004",
+              "T1005"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "very-high",
+            "rationale": "Saved connections are the norm on administration hosts; the data behind them is the asset everything else protects.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "very-high",
+              "rationale": "Bastion-only access and just-in-time make the prerequisite session rare, but nothing on the VM itself stops the reuse.",
+              "rating": "moderate",
+              "score": 5
+            },
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rationale": "With no saved connections and MFA on every SQL sign-in the foothold yields nothing.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "high",
+            "score": 8
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0008",
+              "CTL-0010"
+            ],
+            "current_controls": [
+              "CTL-0008"
+            ],
+            "planned_controls": [
+              "CTL-0010"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-25"
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ],
+      "controls": [
+        {
+          "id": "CTL-0001",
+          "name": "Conditional Access Requires MFA for All Customer Sign-Ins",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Identity team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)"
+          ],
+          "cis_controls": [
+            "CIS-6.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0002",
+          "name": "Number Matching and Passkeys for Customers",
+          "type": "preventive",
+          "status": "planned",
+          "due_date": "2027-02-28",
+          "effectiveness": "very-high",
+          "owner": "Identity team",
+          "ticket": "SEC-3101",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)",
+            "IA-5(1)"
+          ],
+          "cis_controls": [
+            "CIS-6.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0003",
+          "name": "WAF V2 with OWASP CRS 3.2 in Prevention Mode and Bot Protection",
+          "type": "preventive",
+          "status": "verified",
+          "verification": "penetration-test",
+          "verified_on": "2026-09-12",
+          "effectiveness": "high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "app-gateway"
+            }
+          ],
+          "nist_800_53": [
+            "SI-10",
+            "SC-7"
+          ],
+          "cis_controls": [
+            "CIS-13.10"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0004",
+          "name": "Parameterized Queries and a Least-Privilege SQL Role for the API Identity",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "very-high",
+          "owner": "Orders team",
+          "implemented_on": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            }
+          ],
+          "nist_800_53": [
+            "SI-10",
+            "AC-6"
+          ],
+          "cis_controls": [
+            "CIS-16.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0005",
+          "name": "Entra ID Protection Sign-In Risk Policies",
+          "type": "detective",
+          "status": "implemented",
+          "effectiveness": "moderate",
+          "owner": "Identity team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "AC-7",
+            "SI-4"
+          ],
+          "cis_controls": [
+            "CIS-8.11"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0006",
+          "name": "Least-Privilege Key Vault RBAC; No Secrets in App Settings",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "key-vault"
+            }
+          ],
+          "nist_800_53": [
+            "AC-6",
+            "SC-12"
+          ],
+          "cis_controls": [
+            "CIS-3.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0007",
+          "name": "Defender for App Service and Defender for SQL Alerts into Sentinel",
+          "type": "detective",
+          "status": "implemented",
+          "effectiveness": "moderate",
+          "owner": "Security operations",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "log-analytics"
+            }
+          ],
+          "nist_800_53": [
+            "SI-4",
+            "AU-6"
+          ],
+          "cis_controls": [
+            "CIS-8.11",
+            "CIS-13.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0008",
+          "name": "Bastion-Only Administration; NSG Denies Inbound 3389/22 from Anywhere Else",
+          "type": "preventive",
+          "status": "verified",
+          "verification": "continuous-monitoring",
+          "verified_on": "2026-10-01",
+          "effectiveness": "very-high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "appliance",
+              "ref": "nsg-mgmt"
+            },
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            }
+          ],
+          "nist_800_53": [
+            "SC-7",
+            "AC-17"
+          ],
+          "cis_controls": [
+            "CIS-12.2",
+            "CIS-4.4"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0009",
+          "name": "Azure Policy Denies Public IPs on VMs and Public Network Access on PaaS",
+          "type": "directive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Cloud governance",
+          "implemented_on": [
+            {
+              "kind": "zone",
+              "ref": "azure"
+            }
+          ],
+          "nist_800_53": [
+            "CM-6",
+            "CM-7"
+          ],
+          "cis_controls": [
+            "CIS-4.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0010",
+          "name": "No Saved Database Connections on the Jump VM; MFA on Every SQL Sign-In",
+          "description": "Remove saved SSMS connections and cached tokens by policy (connection history disabled, no roaming profiles), require a fresh Entra MFA prompt for every SQL administrator sign-in, and alert on SQL sessions from the jump VM outside a change window.",
+          "type": "preventive",
+          "status": "planned",
+          "owner": "Platform team",
+          "due_date": "2026-12-15",
+          "ticket": "SEC-2210",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-jump-sql"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)",
+            "IA-5"
+          ],
+          "cis_controls": [
+            "CIS-6.5",
+            "CIS-5.6"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ],
+      "attack_paths": [
+        {
+          "id": "AP-0001",
+          "number": 1,
+          "title": "Exposed Jump Host to Database Exfiltration",
+          "description": "A drifted NSG rule exposes RDP on the jump VM; a password spray lands a session; the saved SSMS connection opens the Orders database; the data leaves through the RDP session.",
+          "status": "open",
+          "adversary": {
+            "type": "criminal",
+            "source_class": "group-established",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "entry": "attacker",
+          "hops": [
+            {
+              "threat": "THR-0004",
+              "via": "f-attacker-jump",
+              "to": "jump-vm",
+              "gain": "foothold",
+              "note": "Internet-wide scanners find the exposed 3389 within minutes; a password spray against the local administrator account lands an interactive session.",
+              "bypasses": [
+                "CTL-0008"
+              ]
+            },
+            {
+              "threat": "THR-0005",
+              "via": "f-jump-sql",
+              "to": "sql",
+              "gain": "data-access",
+              "note": "The saved SSMS connection authenticates as the last DBA; the private endpoint and the NSG see an ordinary administration session."
+            },
+            {
+              "threat": "THR-0005",
+              "from": "sql",
+              "to": "jump-vm",
+              "gain": "data-exfiltration",
+              "note": "Query results are copied out through the RDP session (clipboard, mapped drive); nothing on the path inspects outbound RDP content."
+            }
+          ],
+          "impact": "Customer orders and PII copied out of Azure SQL through an administration host: regulatory notification and card-brand exposure.",
+          "assets_at_risk": [
+            "Orders database",
+            "Customer PII",
+            "Payment references"
+          ],
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "low",
+            "impact": "very-high",
+            "rationale": "The chain needs the NSG to drift and the spray to succeed before the saved connection matters.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rationale": "Bastion-only administration and the deny rule make hop 1 unlikely; hop 2 is open.",
+              "rating": "low",
+              "score": 2
+            },
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "high",
+              "rationale": "With no saved connections the foothold yields no data; what is left is the VM itself.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "moderate",
+            "score": 5
+          },
+          "breaks_at": [
+            "CTL-0008",
+            "CTL-0010"
+          ],
+          "mitre_attack": [
+            "T1133",
+            "T1110.003",
+            "T1552.001",
+            "T1005",
+            "T1041"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "whatif-redis",
+      "label": "What-If: Public Redis Cache",
+      "description": "The same workload with an Azure Cache for Redis in front of SQL for read-through caching, deployed as proposed: public endpoint enabled, access-key authentication.",
+      "zones": [
+        {
+          "name": "azure",
+          "label": "Azure Subscription: Landing Zone",
+          "sub": "hub-spoke · private endpoints · policy-governed",
+          "kind": "cloud",
+          "color": "teal",
+          "cloud": {
+            "provider": "azure",
+            "region": "East US 2"
+          },
+          "layout": {
+            "order": 0,
+            "arrange": "column"
+          },
+          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall."
+        },
+        {
+          "name": "hub-vnet",
+          "label": "Hub VNet",
+          "sub": "10.0.0.0/16 · shared services",
+          "parent": "azure",
+          "kind": "vpc",
+          "color": "blue",
+          "layout": {
+            "row": 0,
+            "order": 0,
+            "arrange": "row"
+          },
+          "appliances": [
+            {
+              "name": "vpn-gw",
+              "label": "VPN / ExpressRoute Gateway",
+              "sub": "GatewaySubnet",
+              "type": "vpn",
+              "edge": "right",
+              "filters": "inbound",
+              "serves": [
+                "onprem"
+              ],
+              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way."
+            }
+          ],
+          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises."
+        },
+        {
+          "name": "spoke-web",
+          "label": "Spoke VNet: Web Workload",
+          "sub": "10.1.0.0/16 · peered to hub",
+          "parent": "azure",
+          "kind": "vpc",
+          "color": "blue",
+          "layout": {
+            "row": 1,
+            "arrange": "row"
+          },
+          "appliances": [
+            {
+              "name": "azure-firewall",
+              "label": "Azure Firewall",
+              "sub": "hub · UDR forces spoke traffic through it",
+              "type": "firewall",
+              "edge": "top",
+              "filters": "both",
+              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled."
+            }
+          ],
+          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints."
+        },
+        {
+          "name": "snet-app",
+          "label": "App Subnet",
+          "sub": "10.1.1.0/24 · VNet integration",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "layout": {
+            "order": 0,
+            "arrange": "column"
+          },
+          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound."
+        },
+        {
+          "name": "snet-data",
+          "label": "Data Subnet",
+          "sub": "10.1.2.0/24 · private endpoints",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii"
+          ],
+          "layout": {
+            "order": 1,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "nsg-data",
+              "label": "NSG",
+              "sub": "data subnet · allow 1433/443 from app and mgmt only",
+              "type": "firewall",
+              "edge": "left",
+              "filters": "inbound"
+            }
+          ],
+          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service."
+        },
+        {
+          "name": "snet-mgmt",
+          "label": "Management Subnet",
+          "sub": "10.1.9.0/24",
+          "parent": "spoke-web",
+          "kind": "subnet",
+          "layout": {
+            "order": 2,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "nsg-mgmt",
+              "label": "NSG",
+              "sub": "mgmt subnet · RDP from Bastion only",
+              "type": "firewall",
+              "edge": "top",
+              "filters": "inbound"
+            }
+          ],
+          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion."
+        },
+        {
+          "name": "onprem",
+          "label": "Contoso On-Premises",
+          "sub": "head office · AD DS",
+          "kind": "network",
+          "color": "slate",
+          "layout": {
+            "order": 1,
+            "arrange": "column"
+          },
+          "appliances": [
+            {
+              "name": "onprem-fw",
+              "label": "Edge Firewall",
+              "sub": "NGFW · IPsec to Azure",
+              "type": "ngfw",
+              "edge": "left",
+              "filters": "both",
+              "info": "Contoso's perimeter firewall. Terminates the IPsec tunnel to the Azure VPN gateway; no inbound rules from the Internet."
+            }
+          ],
+          "info": "The Contoso head office: administrators' workstations and the on-premises Active Directory that syncs identities to Entra ID."
+        }
+      ],
+      "nodes": [
+        {
+          "name": "entra-id",
+          "label": "Microsoft Entra ID",
+          "sub": "tenant · Conditional Access · ID Protection",
+          "type": "identity-provider",
+          "zone": "internet",
+          "color": "purple",
+          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies."
+        },
+        {
+          "name": "customer",
+          "label": "Customer",
+          "sub": "browser · any device",
+          "type": "remote-user",
+          "zone": "internet",
+          "info": "A Contoso customer on the public Internet using the web application."
+        },
+        {
+          "name": "attacker",
+          "label": "Internet Attacker",
+          "sub": "scanning · credential stuffing · injection",
+          "type": "bad-actor",
+          "zone": "internet",
+          "info": "An opportunistic external attacker: automated scanners, credential-stuffing bots and injection attempts against the public endpoint."
+        },
+        {
+          "name": "app-gateway",
+          "label": "Application Gateway",
+          "sub": "WAF v2 · public IP · TLS termination",
+          "type": "service",
+          "icon": "load-balancer",
+          "zone": "hub-vnet",
+          "cloud": {
+            "provider": "azure",
+            "service": "Application Gateway",
+            "exposure": "internet",
+            "endpoint": "public",
+            "disabled_protocols": [
+              "tls1.0",
+              "tls1.1",
+              "http"
+            ]
+          },
+          "info": "The only Internet-facing endpoint. WAF v2 with the OWASP Core Rule Set in prevention mode; end-to-end TLS to the App Service private endpoint.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "bastion",
+          "label": "Azure Bastion",
+          "sub": "AzureBastionSubnet · browser / native client",
+          "type": "service",
+          "icon": "lock",
+          "zone": "hub-vnet",
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure Bastion",
+            "exposure": "internet",
+            "endpoint": "public",
+            "disabled_protocols": [
+              "public-rdp",
+              "public-ssh"
+            ]
+          },
+          "info": "Brokers RDP/SSH to VMs over TLS 443 without exposing them. Session access requires an Entra ID sign-in and Azure RBAC on the target VM.",
+          "layout": {
+            "order": 1
+          }
+        },
+        {
+          "name": "app-service",
+          "label": "App Service",
+          "sub": "Premium v3 · private endpoint · VNet integration",
+          "type": "host",
+          "icon": "cloud",
+          "zone": "snet-app",
+          "cloud": {
+            "provider": "azure",
+            "service": "App Service",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "ftp",
+              "ftps",
+              "basic-auth",
+              "tls1.0",
+              "tls1.1",
+              "public-access",
+              "scm-public-access"
+            ]
+          },
+          "info": "The web application and its API on one App Service plan. Inbound only through the private endpoint (from the Application Gateway); outbound through VNet integration and the Azure Firewall. FTP and basic-auth deployment credentials are disabled.",
+          "components": [
+            {
+              "name": "web",
+              "label": "Web Front End",
+              "type": "web-server",
+              "ports": [
+                "443/tcp"
+              ],
+              "info": "Server-rendered front end; signs customers in with Entra ID (OIDC) and calls the API with the access token."
+            },
+            {
+              "name": "api",
+              "label": "Orders API",
+              "type": "api",
+              "ports": [
+                "443/tcp"
+              ],
+              "data_tags": [
+                "pii"
+              ],
+              "info": "Validates the bearer token, reads and writes orders in Azure SQL, fetches configuration secrets from Key Vault."
+            }
+          ]
+        },
+        {
+          "name": "sql",
+          "label": "Azure SQL Database",
+          "sub": "private endpoint · TDE · Entra-only auth",
+          "type": "database",
+          "zone": "snet-data",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure SQL Database",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "public-access",
+              "sql-password-auth",
+              "tls1.0",
+              "tls1.1"
+            ]
+          },
+          "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "key-vault",
+          "label": "Key Vault",
+          "sub": "private endpoint · RBAC · soft delete",
+          "type": "service",
+          "icon": "key",
+          "zone": "snet-data",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Key Vault",
+            "exposure": "private",
+            "endpoint": "private",
+            "disabled_protocols": [
+              "public-access",
+              "access-policies"
+            ]
+          },
+          "info": "Application secrets and certificates. Reached only by managed identities with least-privilege RBAC roles.",
+          "layout": {
+            "order": 1
+          }
+        },
+        {
+          "name": "jump-vm",
+          "label": "Jump VM",
+          "sub": "Windows Server · no public IP",
+          "type": "server",
+          "icon": "workstation",
+          "zone": "snet-mgmt",
+          "cloud": {
+            "provider": "azure",
+            "service": "Virtual Machines",
+            "exposure": "private",
+            "endpoint": "none",
+            "disabled_protocols": [
+              "public-ip",
+              "rdp-from-internet",
+              "smbv1"
+            ]
+          },
+          "info": "Domain-joined administration host with SQL tooling. Reachable only through Azure Bastion; Defender for Servers and just-in-time access enabled."
+        },
+        {
+          "name": "log-analytics",
+          "label": "Log Analytics Workspace",
+          "sub": "diagnostics · Defender for Cloud · Sentinel",
+          "type": "service",
+          "icon": "monitor",
+          "zone": "azure",
+          "layers": [
+            "observability"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure Monitor",
+            "exposure": "private",
+            "endpoint": "private"
+          },
+          "info": "Central workspace for diagnostic settings, WAF and firewall logs, SQL auditing and Defender for Cloud alerts.",
+          "layout": {
+            "row": 0,
+            "order": 1
+          }
+        },
+        {
+          "name": "admin",
+          "label": "IT Administrator",
+          "sub": "managed workstation · FIDO2 key",
+          "type": "admin",
+          "zone": "onprem",
+          "info": "A Contoso platform or database administrator working from the head office on a managed, compliant device.",
+          "layout": {
+            "order": 0
+          }
+        },
+        {
+          "name": "ad-ds",
+          "label": "AD DS Domain Controller",
+          "sub": "on-prem identity · Entra Connect",
+          "type": "server",
+          "icon": "directory",
+          "zone": "onprem",
+          "data_tags": [
+            "credentials"
+          ],
+          "info": "On-premises Active Directory. Entra Connect synchronises identities to the Entra ID tenant (password hash sync).",
+          "layout": {
+            "order": 1
+          }
+        },
+        {
+          "name": "redis",
+          "label": "Azure Cache for Redis",
+          "sub": "public endpoint · access key · TLS",
+          "type": "database",
+          "zone": "snet-data",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ],
+          "cloud": {
+            "provider": "azure",
+            "service": "Azure Cache for Redis",
+            "exposure": "internet",
+            "endpoint": "public"
+          },
+          "info": "Read-through cache of order and customer records, 15-minute TTL. Deployed with the public endpoint on and access-key authentication, as proposed; the NSG does not apply to the public endpoint.",
+          "layout": {
+            "order": 2
+          }
+        }
+      ],
+      "flows": [
+        {
+          "name": "f-customer-appgw",
+          "label": "Browse / Order",
+          "from": "customer",
+          "to": "app-gateway",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Customer sessions terminate TLS at the Application Gateway. The browser carries the OIDC session issued by Entra ID.",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-customer-entra",
+          "label": "Sign In",
+          "from": "customer",
+          "to": "entra-id",
+          "kind": "auth",
+          "auth": "entra-mfa",
+          "protocol": "HTTPS (OIDC)",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Interactive sign-in; Conditional Access requires MFA for all customers.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-entra-app-trust",
+          "label": "OIDC App Registration",
+          "from": "entra-id",
+          "to": "app-service/web",
+          "direction": "one-way",
+          "kind": "trust",
+          "auth": "certificate",
+          "info": "Standing trust: the app validates tokens against the tenant's signing keys. No live traffic drawn."
+        },
+        {
+          "name": "f-appgw-web",
+          "label": "Forward Request",
+          "from": "app-gateway",
+          "to": "app-service/web",
+          "direction": "one-way",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "After WAF inspection the request is forwarded over end-to-end TLS to the App Service private endpoint.",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-web-api",
+          "label": "Call API",
+          "from": "app-service/web",
+          "to": "app-service/api",
+          "direction": "one-way",
+          "kind": "data",
+          "auth": "oidc-token",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "The front end calls the Orders API with the customer's access token (on-behalf-of).",
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ]
+        },
+        {
+          "name": "f-api-sql",
+          "label": "Orders (Cache Miss)",
+          "from": "app-service/api",
+          "to": "sql",
+          "kind": "data",
+          "auth": "managed-identity",
+          "protocol": "TDS",
+          "port": "1433/tcp",
+          "encrypted": true,
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii"
+          ],
+          "info": "On a cache miss the API reads Azure SQL with its managed identity and fills the cache. Traffic stays on the private endpoint."
+        },
+        {
+          "name": "f-api-kv",
+          "label": "Secrets",
+          "from": "app-service/api",
+          "to": "key-vault",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Configuration secrets fetched at start-up with the managed identity (Key Vault Secrets User role).",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-admin-entra",
+          "label": "Admin Sign-In",
+          "from": "admin",
+          "to": "entra-id",
+          "kind": "auth",
+          "auth": "entra-fido2",
+          "protocol": "HTTPS (OIDC)",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Administrators must use phishing-resistant MFA (FIDO2) and a compliant device.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-admin-bastion",
+          "label": "Bastion Session",
+          "from": "admin",
+          "to": "bastion",
+          "kind": "data",
+          "auth": "entra-mfa",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "From the office over the IPsec tunnel into the hub. Bastion requires an Entra sign-in and Reader on the target VM.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-bastion-jump",
+          "label": "Brokered RDP",
+          "from": "bastion",
+          "to": "jump-vm",
+          "kind": "data",
+          "auth": "kerberos",
+          "protocol": "RDP",
+          "port": "3389/tcp",
+          "encrypted": true,
+          "info": "Bastion opens RDP to the jump VM inside the VNet; the NSG allows 3389 only from the AzureBastionSubnet.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-jump-sql",
+          "label": "DBA Maintenance",
+          "from": "jump-vm",
+          "to": "sql",
+          "kind": "data",
+          "auth": "entra-mfa",
+          "protocol": "TDS",
+          "port": "1433/tcp",
+          "encrypted": true,
+          "info": "Database administration with Entra ID authentication from the jump VM over the private endpoint.",
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ]
+        },
+        {
+          "name": "f-adds-entra",
+          "label": "Entra Connect Sync",
+          "from": "ad-ds",
+          "to": "entra-id",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "mtls",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "info": "Entra Connect synchronises on-premises identities to the tenant (outbound only).",
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ]
+        },
+        {
+          "name": "f-attacker-appgw",
+          "label": "Attack Traffic",
+          "from": "attacker",
+          "to": "app-gateway",
+          "kind": "blocked",
+          "auth": "anonymous",
+          "blocked_reason": "WAF (OWASP CRS 3.2, prevention mode) and bot protection drop injection and credential-stuffing traffic"
+        },
+        {
+          "name": "f-attacker-sql",
+          "label": "Direct DB Access",
+          "from": "attacker",
+          "to": "sql",
+          "kind": "blocked",
+          "auth": "anonymous",
+          "blocked_reason": "Public network access disabled; the server answers only on its private endpoint"
+        },
+        {
+          "name": "f-attacker-jump",
+          "label": "Direct RDP",
+          "from": "attacker",
+          "to": "jump-vm",
+          "kind": "blocked",
+          "auth": "password",
+          "blocked_reason": "No public IP; NSG denies inbound 3389 except from the AzureBastionSubnet"
+        },
+        {
+          "name": "f-app-logs",
+          "label": "Diagnostics",
+          "from": "app-service",
+          "to": "log-analytics",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "layers": [
+            "observability"
+          ],
+          "info": "App Service diagnostic settings and Defender for App Service telemetry.",
+          "data_classification": "internal"
+        },
+        {
+          "name": "f-sql-logs",
+          "label": "Auditing",
+          "from": "sql",
+          "to": "log-analytics",
+          "direction": "one-way",
+          "kind": "control",
+          "auth": "managed-identity",
+          "protocol": "HTTPS",
+          "port": "443/tcp",
+          "encrypted": true,
+          "layers": [
+            "observability"
+          ],
+          "info": "SQL auditing and Defender for SQL alerts.",
+          "data_classification": "internal"
+        },
+        {
+          "name": "f-api-redis",
+          "label": "Cached Reads",
+          "from": "app-service/api",
+          "to": "redis",
+          "kind": "data",
+          "auth": "redis-key",
+          "protocol": "RESP over TLS",
+          "port": "6380/tcp",
+          "encrypted": true,
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ],
+          "info": "The API reads order and customer records from the cache with the shared access key from its configuration."
+        },
+        {
+          "name": "f-attacker-redis",
+          "label": "Public Endpoint",
+          "from": "attacker",
+          "to": "redis",
+          "kind": "data",
+          "auth": "redis-key",
+          "protocol": "RESP over TLS",
+          "port": "6380/tcp",
+          "encrypted": true,
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ],
+          "info": "The public endpoint answers from any address; the only check is the access key. A leaked key is a direct read of everything cached."
+        }
+      ],
+      "phases": [
+        {
+          "name": "connect",
+          "label": "Connect"
+        },
+        {
+          "name": "identity",
+          "label": "Identity"
+        },
+        {
+          "name": "access",
+          "label": "Access"
+        },
+        {
+          "name": "operate",
+          "label": "Operate"
+        }
+      ],
+      "steps": [
+        {
+          "name": "request",
+          "phase": "connect",
+          "short": "Request",
+          "title": "A customer reaches the only public entry point",
+          "description": "The customer's browser resolves the application's public name to the Application Gateway's public IP and opens an HTTPS session. Nothing else in the design has a public address: App Service, SQL, Key Vault and the jump VM are reachable only on private endpoints or through Bastion.",
+          "details": [
+            "TLS terminates at the Application Gateway (WAF v2)",
+            "One public IP for the whole workload",
+            "PaaS services sit behind private endpoints"
+          ],
+          "flows": [
+            "f-customer-appgw"
+          ],
+          "highlight": [
+            "customer",
+            "app-gateway"
+          ],
+          "packets": [
+            {
+              "flow": "f-customer-appgw",
+              "kind": "data"
+            }
+          ]
+        },
+        {
+          "name": "waf",
+          "phase": "connect",
+          "short": "WAF",
+          "title": "The WAF inspects every request and drops hostile traffic",
+          "description": "The same endpoint is hit constantly by scanners, credential-stuffing bots and injection attempts. The WAF's OWASP Core Rule Set runs in prevention mode with bot protection, so hostile requests are dropped at the edge and never reach the application.",
+          "details": [
+            "OWASP CRS 3.2 in prevention mode",
+            "Bot protection and rate limiting",
+            "Blocked requests logged to Log Analytics"
+          ],
+          "flows": [
+            "f-attacker-appgw"
+          ],
+          "highlight": [
+            "attacker",
+            "app-gateway"
+          ],
+          "packets": [
+            {
+              "flow": "f-attacker-appgw",
+              "kind": "blocked"
+            }
+          ],
+          "threats": [
+            "THR-0002"
+          ]
+        },
+        {
+          "name": "signin",
+          "phase": "identity",
+          "short": "Sign in",
+          "title": "The customer signs in with Entra ID",
+          "description": "The web front end redirects the customer to Entra ID. Conditional Access requires multifactor authentication; ID Protection evaluates sign-in risk. Entra ID returns an ID token and an access token for the Orders API, which the application validates against the tenant's signing keys.",
+          "details": [
+            "OIDC authorization code flow with PKCE",
+            "Conditional Access: MFA for all customers",
+            "Risk-based blocking from ID Protection"
+          ],
+          "flows": [
+            "f-customer-entra",
+            "f-entra-app-trust"
+          ],
+          "highlight": [
+            "customer",
+            "entra-id",
+            "app-service/web"
+          ],
+          "packets": [
+            {
+              "flow": "f-customer-entra",
+              "kind": "auth"
+            },
+            {
+              "flow": "f-customer-entra",
+              "direction": "reverse",
+              "kind": "token",
+              "delay_ms": 900
+            }
+          ],
+          "threats": [
+            "THR-0001"
+          ]
+        },
+        {
+          "name": "frontend",
+          "phase": "access",
+          "short": "Front end",
+          "title": "The front end calls the Orders API with the bearer token",
+          "description": "The Application Gateway forwards the request over end-to-end TLS to the App Service private endpoint. The front end calls the Orders API with the customer's access token; the API validates the token's signature, audience and scopes before doing anything.",
+          "details": [
+            "End-to-end TLS from WAF to private endpoint",
+            "Token validation on every API call",
+            "FTP and basic-auth deployment disabled on App Service"
+          ],
+          "flows": [
+            "f-appgw-web",
+            "f-web-api"
+          ],
+          "highlight": [
+            "app-gateway",
+            "app-service/web",
+            "app-service/api"
+          ],
+          "packets": [
+            {
+              "flow": "f-appgw-web",
+              "kind": "data"
+            },
+            {
+              "flow": "f-web-api",
+              "kind": "data",
+              "delay_ms": 700
+            }
+          ]
+        },
+        {
+          "name": "data",
+          "phase": "access",
+          "short": "Data",
+          "title": "The API reaches SQL and Key Vault with its managed identity",
+          "description": "The Orders API uses its system-assigned managed identity: a least-privilege database user in Azure SQL and the Key Vault Secrets User role. There are no connection-string passwords anywhere; both services answer only on private endpoints inside the data subnet, behind an NSG.",
+          "details": [
+            "Managed identity: no stored secrets",
+            "Private endpoints; public network access disabled",
+            "NSG allows 1433 and 443 from the app subnet only"
+          ],
+          "flows": [
+            "f-api-kv",
+            "f-api-sql"
+          ],
+          "highlight": [
+            "app-service/api",
+            "key-vault",
+            "sql",
+            "nsg-data"
+          ],
+          "packets": [
+            {
+              "flow": "f-api-kv",
+              "kind": "control"
+            },
+            {
+              "flow": "f-api-sql",
+              "kind": "data",
+              "delay_ms": 500
+            },
+            {
+              "flow": "f-api-sql",
+              "direction": "reverse",
+              "kind": "data",
+              "delay_ms": 1400
+            }
+          ],
+          "threats": [
+            "THR-0003"
+          ]
+        },
+        {
+          "name": "cache",
+          "phase": "access",
+          "short": "Cache",
+          "title": "The API reads from the public cache first; the Internet can reach the same endpoint",
+          "description": "With the change applied, order reads go to Azure Cache for Redis and fall back to SQL on a miss. The cache was deployed with its public endpoint enabled and access-key authentication, so the same endpoint the API uses is reachable from the Internet by anyone who holds the key.",
+          "details": [
+            "Access key in App Service configuration and the pipeline",
+            "Public endpoint: the NSG does not apply",
+            "Cached records bypass SQL auditing and row-level security"
+          ],
+          "flows": [
+            "f-api-redis",
+            "f-attacker-redis",
+            "f-api-sql"
+          ],
+          "highlight": [
+            "app-service/api",
+            "redis",
+            "sql",
+            "attacker"
+          ],
+          "packets": [
+            {
+              "flow": "f-api-redis",
+              "kind": "data"
+            },
+            {
+              "flow": "f-attacker-redis",
+              "kind": "data",
+              "delay_ms": 700
+            }
+          ],
+          "threats": [
+            "THR-0006",
+            "THR-0007"
+          ]
+        },
+        {
+          "name": "admin",
+          "phase": "identity",
+          "short": "Admin",
+          "title": "An administrator connects from the office over the VPN",
+          "description": "Administration never comes from the Internet. The administrator signs in to Entra ID with a FIDO2 key, then opens an Azure Bastion session. The traffic leaves the Contoso office through the edge firewall, crosses the IPsec tunnel into the hub VNet's gateway and reaches Bastion on 443.",
+          "details": [
+            "Phishing-resistant MFA for administrators",
+            "Bastion session requires Entra sign-in + RBAC on the VM",
+            "Site-to-site VPN; no public RDP/SSH anywhere"
+          ],
+          "flows": [
+            "f-admin-entra",
+            "f-admin-bastion"
+          ],
+          "highlight": [
+            "admin",
+            "entra-id",
+            "onprem-fw",
+            "vpn-gw",
+            "bastion"
+          ],
+          "packets": [
+            {
+              "flow": "f-admin-entra",
+              "kind": "auth"
+            },
+            {
+              "flow": "f-admin-entra",
+              "direction": "reverse",
+              "kind": "token",
+              "delay_ms": 800
+            },
+            {
+              "flow": "f-admin-bastion",
+              "kind": "data",
+              "delay_ms": 1500
+            }
+          ]
+        },
+        {
+          "name": "bastion",
+          "phase": "access",
+          "short": "Bastion",
+          "title": "Bastion brokers RDP to the jump VM; direct RDP is denied",
+          "description": "Bastion opens the RDP session to the jump VM from inside the VNet. The jump VM has no public IP, and its NSG allows 3389 only from the AzureBastionSubnet, so an attacker scanning for exposed RDP finds nothing to connect to.",
+          "details": [
+            "RDP only from the AzureBastionSubnet",
+            "Azure Policy denies public IPs on VMs",
+            "Just-in-time access and Defender for Servers on the VM"
+          ],
+          "flows": [
+            "f-bastion-jump",
+            "f-attacker-jump"
+          ],
+          "highlight": [
+            "bastion",
+            "azure-firewall",
+            "nsg-mgmt",
+            "jump-vm",
+            "attacker"
+          ],
+          "packets": [
+            {
+              "flow": "f-bastion-jump",
+              "kind": "data"
+            },
+            {
+              "flow": "f-attacker-jump",
+              "kind": "blocked",
+              "delay_ms": 600
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion"
+          ],
+          "threats": [
+            "THR-0004"
+          ]
+        },
+        {
+          "name": "dba",
+          "phase": "access",
+          "short": "DBA",
+          "title": "Database maintenance from the jump VM; the public SQL endpoint stays closed",
+          "description": "From the jump VM the administrator connects to Azure SQL with Entra ID authentication over the private endpoint. The server's public network access is disabled, so the same connection attempted from the Internet is refused before any authentication happens.",
+          "details": [
+            "Entra-only authentication on SQL",
+            "Private endpoint in the data subnet",
+            "SQL auditing records every session"
+          ],
+          "flows": [
+            "f-jump-sql",
+            "f-attacker-sql"
+          ],
+          "highlight": [
+            "jump-vm",
+            "nsg-data",
+            "sql",
+            "attacker"
+          ],
+          "packets": [
+            {
+              "flow": "f-jump-sql",
+              "kind": "data"
+            },
+            {
+              "flow": "f-attacker-sql",
+              "kind": "blocked",
+              "delay_ms": 500
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion",
+            "f-bastion-jump"
+          ]
+        },
+        {
+          "name": "operate",
+          "phase": "operate",
+          "short": "Operate",
+          "title": "Everything logs to one workspace",
+          "description": "WAF decisions, firewall and NSG flow logs, App Service diagnostics, SQL auditing and Defender for Cloud alerts all land in the Log Analytics workspace, where Microsoft Sentinel analytics rules watch for credential stuffing, injection and anomalous data access.",
+          "details": [
+            "Diagnostic settings on every resource",
+            "Defender for App Service, SQL and Servers",
+            "Sentinel analytics on sign-in and data-access anomalies"
+          ],
+          "flows": [
+            "f-app-logs",
+            "f-sql-logs"
+          ],
+          "highlight": [
+            "app-service",
+            "sql",
+            "log-analytics"
+          ],
+          "packets": [
+            {
+              "flow": "f-app-logs",
+              "kind": "control"
+            },
+            {
+              "flow": "f-sql-logs",
+              "kind": "control",
+              "delay_ms": 400
+            }
+          ],
+          "tunnel": [
+            "f-admin-bastion",
+            "f-bastion-jump"
+          ],
+          "badge": "sql",
+          "outcome": "Public traffic stops at the WAF, identities are verified by Entra ID, data and secrets stay on private endpoints, and administration is brokered and logged."
+        }
+      ],
+      "threats": [
+        {
+          "id": "THR-0001",
+          "number": 1,
+          "title": "Credential Stuffing and MFA Fatigue Against Customer Sign-In",
+          "description": "Bots replay leaked username/password pairs at the Entra sign-in page; where a password matches, repeated push prompts try to wear the customer down into approving one.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "spoofing"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0001"
+            ]
+          },
+          "vulnerability": {
+            "category": "broken-authentication",
+            "cwe": "CWE-307"
+          },
+          "targets": [
+            {
+              "kind": "flow",
+              "ref": "f-customer-entra"
+            },
+            {
+              "kind": "node",
+              "ref": "entra-id",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "azure"
+          },
+          "assets_at_risk": [
+            "Customer accounts",
+            "Order history (PII)"
+          ],
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii",
+            "credentials"
+          ],
+          "adversary": {
+            "type": "automated-bot",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "low",
+            "resources": "club",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "Leaked credential lists are replayed through rotating proxies; successful pairs are escalated to push-bombing.",
+            "prerequisites": [
+              "Password reuse by customers",
+              "Push MFA without number matching"
+            ],
+            "mitre_attack": [
+              "T1110.004",
+              "T1621"
+            ],
+            "capec": [
+              "CAPEC-600"
+            ]
+          },
+          "risk": {
+            "method": "owasp-rr",
+            "owasp_rr": {
+              "skill_level": 3,
+              "motive": 9,
+              "opportunity": 9,
+              "size": 9,
+              "ease_of_discovery": 9,
+              "ease_of_exploit": 9,
+              "awareness": 9,
+              "intrusion_detection": 3,
+              "loss_of_confidentiality": 6,
+              "loss_of_integrity": 3,
+              "loss_of_availability": 1,
+              "loss_of_accountability": 7,
+              "impact_basis": "technical",
+              "likelihood_avg": 7.5,
+              "impact_avg": 4.25,
+              "likelihood_level": "high",
+              "impact_level": "medium",
+              "severity": "high"
+            },
+            "rating": "high",
+            "score": 8,
+            "rationale": "Anyone can attempt it and automated tooling is public; MFA keeps most attempts from succeeding but push fatigue works against a share of users.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Number matching and passkeys (CTL-0002) remove the approve-to-dismiss failure mode; ID Protection blocks risky sign-ins."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-307",
+              "CWE-308"
+            ],
+            "owasp": [
+              "A07:2025"
+            ],
+            "nist_800_53": [
+              "IA-2(1)",
+              "IA-5(1)",
+              "AC-7"
+            ],
+            "cis_controls": [
+              "CIS-6.3"
+            ],
+            "compliance": [
+              "GDPR Art. 32"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0001",
+              "CTL-0002",
+              "CTL-0005"
+            ],
+            "current_controls": [
+              "CTL-0001",
+              "CTL-0005"
+            ],
+            "planned_controls": [
+              "CTL-0002"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0002",
+          "number": 2,
+          "title": "SQL Injection Through the Orders API",
+          "description": "A crafted order query slips past input handling in the API and is executed by Azure SQL with the API's database permissions, exposing or altering other customers' orders.",
+          "status": "mitigated",
+          "classification": {
+            "stride": [
+              "tampering",
+              "information-disclosure"
+            ],
+            "attack_tactics": [
+              "TA0001",
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "injection",
+            "cwe": "CWE-89"
+          },
+          "targets": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-sql",
+              "marker": false
+            },
+            {
+              "kind": "node",
+              "ref": "app-gateway",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "hub-vnet"
+          },
+          "assets_at_risk": [
+            "Order and customer records"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "financial"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain",
+              "notoriety"
+            ],
+            "capability": "moderate",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "An authenticated customer tampers with a search parameter; without parameterization the fragment reaches the database.",
+            "prerequisites": [
+              "String-built SQL in the API",
+              "Database identity with broad rights"
+            ],
+            "mitre_attack": [
+              "T1190"
+            ],
+            "capec": [
+              "CAPEC-66"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "high",
+            "impact": "high",
+            "rating": "high",
+            "score": 8,
+            "rationale": "Injection remains among the most attempted web attacks; the data is restricted.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "WAF rules (CTL-0003) plus parameterized queries and a least-privilege database user (CTL-0004), verified by penetration test."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-89"
+            ],
+            "owasp": [
+              "A05:2025"
+            ],
+            "nist_800_53": [
+              "SI-10",
+              "AC-6"
+            ],
+            "cis_controls": [
+              "CIS-16.1",
+              "CIS-13.10"
+            ],
+            "compliance": [
+              "PCI DSS 4.0.1 6.2.4"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0003",
+              "CTL-0004"
+            ],
+            "current_controls": [
+              "CTL-0003",
+              "CTL-0004"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0003",
+          "number": 3,
+          "title": "SSRF from the API Reaches the Instance Metadata Service and Steals a Managed-Identity Token",
+          "description": "If the API can be made to fetch an attacker-chosen URL, it can be pointed at the Azure Instance Metadata Service and asked for an access token for its own managed identity; that token then works against Key Vault and SQL from anywhere.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "elevation-of-privilege",
+              "information-disclosure"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0004"
+            ]
+          },
+          "vulnerability": {
+            "category": "ssrf",
+            "cwe": "CWE-918"
+          },
+          "targets": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-kv"
+            }
+          ],
+          "boundary_crossed": {
+            "type": "cloud-tenant",
+            "from": "snet-app",
+            "to": "snet-data"
+          },
+          "assets_at_risk": [
+            "Managed-identity access token",
+            "Key Vault secrets",
+            "Order data"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials",
+            "pii"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "high",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "A webhook or import feature in the API accepts a URL; the attacker supplies the IMDS token endpoint and reads the response.",
+            "prerequisites": [
+              "A server-side fetch of user-supplied URLs",
+              "No allow-list on outbound destinations"
+            ],
+            "mitre_attack": [
+              "T1552.005",
+              "T1528"
+            ],
+            "capec": [
+              "CAPEC-664"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "very-high",
+            "rating": "high",
+            "score": 8,
+            "rationale": "SSRF is a design flaw that appears regularly; a stolen managed-identity token bypasses the network controls entirely.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Least-privilege RBAC (CTL-0006) limits what a stolen token can do; Defender alerts (CTL-0007) catch anomalous Key Vault access. An outbound URL allow-list in the API is still open."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-918"
+            ],
+            "owasp": [
+              "A01:2025",
+              "API7:2023"
+            ],
+            "nist_800_53": [
+              "AC-6",
+              "SC-7",
+              "SI-4"
+            ],
+            "cis_controls": [
+              "CIS-3.3",
+              "CIS-16.1"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0006",
+              "CTL-0007"
+            ],
+            "current_controls": [
+              "CTL-0006",
+              "CTL-0007"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0004",
+          "number": 4,
+          "title": "NSG Drift Exposes RDP on the Jump VM to the Internet",
+          "description": "A troubleshooting rule that allows 3389 from Any, or a public IP attached during an incident, would put a domain-joined administration host directly on the Internet.",
+          "status": "mitigated",
+          "classification": {
+            "stride": [
+              "elevation-of-privilege"
+            ],
+            "attack_tactics": [
+              "TA0001",
+              "TA0008"
+            ]
+          },
+          "vulnerability": {
+            "category": "security-misconfiguration",
+            "cwe": "CWE-284"
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-attacker-jump",
+              "marker": false
+            },
+            {
+              "kind": "appliance",
+              "ref": "nsg-mgmt",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "snet-mgmt"
+          },
+          "assets_at_risk": [
+            "Jump VM",
+            "Domain credentials cached on it",
+            "Azure SQL via the DBA path"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "credentials"
+          ],
+          "adversary": {
+            "type": "automated-bot",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "low",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "Internet-wide RDP scanners find the port within minutes; password spraying follows.",
+            "prerequisites": [
+              "An NSG rule or public IP added outside the pipeline"
+            ],
+            "mitre_attack": [
+              "T1133",
+              "T1021.001",
+              "T1110.003"
+            ],
+            "capec": [
+              "CAPEC-555"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "low",
+            "impact": "very-high",
+            "rating": "moderate",
+            "score": 5,
+            "rationale": "Drift happens, but policy and monitoring make it short-lived; the host is a direct path to data.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rating": "low",
+              "score": 2,
+              "rationale": "Azure Policy denies public IPs (CTL-0009) and the Bastion-only NSG baseline is continuously monitored (CTL-0008)."
+            }
+          },
+          "standards": {
+            "cwe": [
+              "CWE-284"
+            ],
+            "owasp": [
+              "A02:2025"
+            ],
+            "nist_800_53": [
+              "SC-7",
+              "AC-17",
+              "CM-6"
+            ],
+            "cis_controls": [
+              "CIS-12.2",
+              "CIS-4.4"
+            ]
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0008",
+              "CTL-0009"
+            ],
+            "current_controls": [
+              "CTL-0008",
+              "CTL-0009"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-23",
+            "updated": "2026-10-23",
+            "notes": "Illustrative example for the reference architecture."
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0005",
+          "number": 5,
+          "title": "Saved Database Connections on the Jump VM Turn a Foothold into Data Access",
+          "description": "Administrators keep SQL Server Management Studio connections with cached Entra tokens on the jump VM. Anyone who lands an interactive session on the VM can open the Orders database as the last administrator without a fresh prompt.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "information-disclosure",
+              "elevation-of-privilege"
+            ],
+            "attack_tactics": [
+              "TA0006",
+              "TA0008",
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "credential-exposure",
+            "cwe": "CWE-522",
+            "description": "Saved connections and cached tokens on a shared administration host."
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-jump-sql",
+              "marker": false
+            }
+          ],
+          "boundary_crossed": {
+            "type": "vpc-vnet",
+            "from": "snet-mgmt",
+            "to": "snet-data"
+          },
+          "assets_at_risk": [
+            "Orders database",
+            "Customer PII"
+          ],
+          "data_classification": "restricted",
+          "data_tags": [
+            "pii",
+            "credentials"
+          ],
+          "adversary": {
+            "type": "criminal",
+            "source_class": "group-established",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "With a session on the jump VM the attacker opens SSMS, picks the saved production connection and queries the Orders tables; the private endpoint and the NSG see an ordinary administrator session.",
+            "prerequisites": [
+              "An interactive session on the jump VM (see THR-0004)"
+            ],
+            "mitre_attack": [
+              "T1552.001",
+              "T1078.004",
+              "T1005"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "very-high",
+            "rationale": "Saved connections are the norm on administration hosts; the data behind them is the asset everything else protects.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "very-high",
+              "rationale": "Bastion-only access and just-in-time make the prerequisite session rare, but nothing on the VM itself stops the reuse.",
+              "rating": "moderate",
+              "score": 5
+            },
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rationale": "With no saved connections and MFA on every SQL sign-in the foothold yields nothing.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "high",
+            "score": 8
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0008",
+              "CTL-0010"
+            ],
+            "current_controls": [
+              "CTL-0008"
+            ],
+            "planned_controls": [
+              "CTL-0010"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-25"
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0006",
+          "number": 6,
+          "title": "Public Redis Endpoint Reachable from the Internet with a Shared Access Key",
+          "description": "The cache answers on a public endpoint and the access key is the only credential. The key lives in App Service configuration and pipeline variables; a leak, a repository export or a departing engineer gives a direct, unaudited read of every cached record from anywhere.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "information-disclosure",
+              "spoofing"
+            ],
+            "attack_tactics": [
+              "TA0001",
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "security-misconfiguration",
+            "cwe": "CWE-284",
+            "description": "Public network access enabled; shared-key authentication without identity."
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "redis"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-attacker-redis"
+            }
+          ],
+          "boundary_crossed": {
+            "type": "internet",
+            "from": "internet",
+            "to": "snet-data"
+          },
+          "assets_at_risk": [
+            "Cached order and customer records"
+          ],
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "attack": {
+            "scenario": "The key is found in a leaked pipeline log or a misconfigured repository; redis-cli connects to the public endpoint over TLS and walks the keyspace.",
+            "prerequisites": [
+              "The access key"
+            ],
+            "mitre_attack": [
+              "T1190",
+              "T1552.001",
+              "T1530"
+            ]
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "high",
+            "impact": "high",
+            "rationale": "Shared keys leak; the endpoint is one DNS lookup away.",
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "high",
+              "rationale": "Private endpoint only and Entra authentication remove both the reachability and the shared secret.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "high",
+            "score": 8
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0011",
+              "CTL-0012"
+            ],
+            "planned_controls": [
+              "CTL-0011",
+              "CTL-0012"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-25"
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "THR-0007",
+          "number": 7,
+          "title": "Cached Order Records Bypass SQL Row-Level Security and Auditing",
+          "description": "Records that SQL protects with row-level security, auditing and Entra-only authentication sit in the cache as plain keys for up to 15 minutes; anyone with the key reads across customers and nothing records the read.",
+          "status": "open",
+          "classification": {
+            "stride": [
+              "information-disclosure",
+              "repudiation"
+            ],
+            "attack_tactics": [
+              "TA0009"
+            ]
+          },
+          "vulnerability": {
+            "category": "insecure-design",
+            "cwe": "CWE-653",
+            "description": "A second copy of restricted data with weaker controls than the system of record."
+          },
+          "targets": [
+            {
+              "kind": "node",
+              "ref": "redis",
+              "marker": false
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-redis"
+            }
+          ],
+          "assets_at_risk": [
+            "Customer PII",
+            "Order history"
+          ],
+          "data_classification": "confidential",
+          "data_tags": [
+            "pii"
+          ],
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "low",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "high",
+            "rationale": "Follows directly from any read of the cache; the design copies the most sensitive records into a weaker store.",
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "low",
+              "impact": "moderate",
+              "rationale": "Caching only non-sensitive projections with a short TTL leaves little to read.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "moderate",
+            "score": 5
+          },
+          "treatment": {
+            "decision": "mitigate",
+            "controls": [
+              "CTL-0013"
+            ],
+            "planned_controls": [
+              "CTL-0013"
+            ]
+          },
+          "provenance": {
+            "discovered_by": "workshop",
+            "created": "2026-10-25"
+          },
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ],
+      "controls": [
+        {
+          "id": "CTL-0001",
+          "name": "Conditional Access Requires MFA for All Customer Sign-Ins",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Identity team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)"
+          ],
+          "cis_controls": [
+            "CIS-6.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0002",
+          "name": "Number Matching and Passkeys for Customers",
+          "type": "preventive",
+          "status": "planned",
+          "due_date": "2027-02-28",
+          "effectiveness": "very-high",
+          "owner": "Identity team",
+          "ticket": "SEC-3101",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)",
+            "IA-5(1)"
+          ],
+          "cis_controls": [
+            "CIS-6.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0003",
+          "name": "WAF V2 with OWASP CRS 3.2 in Prevention Mode and Bot Protection",
+          "type": "preventive",
+          "status": "verified",
+          "verification": "penetration-test",
+          "verified_on": "2026-09-12",
+          "effectiveness": "high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "app-gateway"
+            }
+          ],
+          "nist_800_53": [
+            "SI-10",
+            "SC-7"
+          ],
+          "cis_controls": [
+            "CIS-13.10"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0004",
+          "name": "Parameterized Queries and a Least-Privilege SQL Role for the API Identity",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "very-high",
+          "owner": "Orders team",
+          "implemented_on": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            }
+          ],
+          "nist_800_53": [
+            "SI-10",
+            "AC-6"
+          ],
+          "cis_controls": [
+            "CIS-16.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0005",
+          "name": "Entra ID Protection Sign-In Risk Policies",
+          "type": "detective",
+          "status": "implemented",
+          "effectiveness": "moderate",
+          "owner": "Identity team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "entra-id"
+            }
+          ],
+          "nist_800_53": [
+            "AC-7",
+            "SI-4"
+          ],
+          "cis_controls": [
+            "CIS-8.11"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0006",
+          "name": "Least-Privilege Key Vault RBAC; No Secrets in App Settings",
+          "type": "preventive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "key-vault"
+            }
+          ],
+          "nist_800_53": [
+            "AC-6",
+            "SC-12"
+          ],
+          "cis_controls": [
+            "CIS-3.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0007",
+          "name": "Defender for App Service and Defender for SQL Alerts into Sentinel",
+          "type": "detective",
+          "status": "implemented",
+          "effectiveness": "moderate",
+          "owner": "Security operations",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "log-analytics"
+            }
+          ],
+          "nist_800_53": [
+            "SI-4",
+            "AU-6"
+          ],
+          "cis_controls": [
+            "CIS-8.11",
+            "CIS-13.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0008",
+          "name": "Bastion-Only Administration; NSG Denies Inbound 3389/22 from Anywhere Else",
+          "type": "preventive",
+          "status": "verified",
+          "verification": "continuous-monitoring",
+          "verified_on": "2026-10-01",
+          "effectiveness": "very-high",
+          "owner": "Platform team",
+          "implemented_on": [
+            {
+              "kind": "appliance",
+              "ref": "nsg-mgmt"
+            },
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            }
+          ],
+          "nist_800_53": [
+            "SC-7",
+            "AC-17"
+          ],
+          "cis_controls": [
+            "CIS-12.2",
+            "CIS-4.4"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0009",
+          "name": "Azure Policy Denies Public IPs on VMs and Public Network Access on PaaS",
+          "type": "directive",
+          "status": "implemented",
+          "effectiveness": "high",
+          "owner": "Cloud governance",
+          "implemented_on": [
+            {
+              "kind": "zone",
+              "ref": "azure"
+            }
+          ],
+          "nist_800_53": [
+            "CM-6",
+            "CM-7"
+          ],
+          "cis_controls": [
+            "CIS-4.1"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0010",
+          "name": "No Saved Database Connections on the Jump VM; MFA on Every SQL Sign-In",
+          "description": "Remove saved SSMS connections and cached tokens by policy (connection history disabled, no roaming profiles), require a fresh Entra MFA prompt for every SQL administrator sign-in, and alert on SQL sessions from the jump VM outside a change window.",
+          "type": "preventive",
+          "status": "planned",
+          "owner": "Platform team",
+          "due_date": "2026-12-15",
+          "ticket": "SEC-2210",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "jump-vm"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-jump-sql"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2(1)",
+            "IA-5"
+          ],
+          "cis_controls": [
+            "CIS-6.5",
+            "CIS-5.6"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0011",
+          "name": "Private Endpoint Only: Public Network Access Disabled on the Cache",
+          "description": "Deploy the cache with a private endpoint in the data subnet and public network access disabled; Azure Policy (CTL-0009) denies the public setting.",
+          "type": "preventive",
+          "status": "planned",
+          "owner": "Platform team",
+          "due_date": "2026-11-30",
+          "ticket": "SEC-2215",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "redis"
+            }
+          ],
+          "nist_800_53": [
+            "SC-7",
+            "AC-3"
+          ],
+          "cis_controls": [
+            "CIS-12.2"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0012",
+          "name": "Entra ID Authentication for Redis; Access Keys Disabled",
+          "description": "Turn on Microsoft Entra authentication for the cache, grant the API's managed identity the data-reader role, disable access-key authentication and rotate the existing keys out of configuration and the pipeline.",
+          "type": "preventive",
+          "status": "planned",
+          "owner": "Orders team",
+          "due_date": "2026-11-30",
+          "ticket": "SEC-2216",
+          "implemented_on": [
+            {
+              "kind": "node",
+              "ref": "redis"
+            },
+            {
+              "kind": "flow",
+              "ref": "f-api-redis"
+            }
+          ],
+          "nist_800_53": [
+            "IA-2",
+            "IA-5(7)"
+          ],
+          "cis_controls": [
+            "CIS-6.1",
+            "CIS-16.9"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "CTL-0013",
+          "name": "Cache Only Non-Sensitive Projections; 60-Second TTL for Anything with PII",
+          "description": "Cache catalogue and status projections, not customer records; where a PII field must be cached, key it per customer, hash the lookup and expire it in 60 seconds; log cache reads of PII keys to Log Analytics.",
+          "type": "preventive",
+          "status": "proposed",
+          "owner": "Orders team",
+          "ticket": "SEC-2217",
+          "implemented_on": [
+            {
+              "kind": "component",
+              "ref": "app-service/api"
+            }
+          ],
+          "nist_800_53": [
+            "SC-28",
+            "AU-2"
+          ],
+          "cis_controls": [
+            "CIS-3.3"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ],
+      "attack_paths": [
+        {
+          "id": "AP-0001",
+          "number": 1,
+          "title": "Exposed Jump Host to Database Exfiltration",
+          "description": "A drifted NSG rule exposes RDP on the jump VM; a password spray lands a session; the saved SSMS connection opens the Orders database; the data leaves through the RDP session.",
+          "status": "open",
+          "adversary": {
+            "type": "criminal",
+            "source_class": "group-established",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "team",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": false,
+            "actor_node": "attacker"
+          },
+          "entry": "attacker",
+          "hops": [
+            {
+              "threat": "THR-0004",
+              "via": "f-attacker-jump",
+              "to": "jump-vm",
+              "gain": "foothold",
+              "note": "Internet-wide scanners find the exposed 3389 within minutes; a password spray against the local administrator account lands an interactive session.",
+              "bypasses": [
+                "CTL-0008"
+              ]
+            },
+            {
+              "threat": "THR-0005",
+              "via": "f-jump-sql",
+              "to": "sql",
+              "gain": "data-access",
+              "note": "The saved SSMS connection authenticates as the last DBA; the private endpoint and the NSG see an ordinary administration session."
+            },
+            {
+              "threat": "THR-0005",
+              "from": "sql",
+              "to": "jump-vm",
+              "gain": "data-exfiltration",
+              "note": "Query results are copied out through the RDP session (clipboard, mapped drive); nothing on the path inspects outbound RDP content."
+            }
+          ],
+          "impact": "Customer orders and PII copied out of Azure SQL through an administration host: regulatory notification and card-brand exposure.",
+          "assets_at_risk": [
+            "Orders database",
+            "Customer PII",
+            "Payment references"
+          ],
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "low",
+            "impact": "very-high",
+            "rationale": "The chain needs the NSG to drift and the spray to succeed before the saved connection matters.",
+            "residual": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "very-high",
+              "rationale": "Bastion-only administration and the deny rule make hop 1 unlikely; hop 2 is open.",
+              "rating": "low",
+              "score": 2
+            },
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "high",
+              "rationale": "With no saved connections the foothold yields no data; what is left is the VM itself.",
+              "rating": "low",
+              "score": 2
+            },
+            "rating": "moderate",
+            "score": 5
+          },
+          "breaks_at": [
+            "CTL-0008",
+            "CTL-0010"
+          ],
+          "mitre_attack": [
+            "T1133",
+            "T1110.003",
+            "T1552.001",
+            "T1005",
+            "T1041"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        },
+        {
+          "id": "AP-0002",
+          "number": 2,
+          "title": "Leaked Cache Key to Customer Data",
+          "description": "The shared access key leaks from configuration or a pipeline log; the public endpoint answers from anywhere; the keyspace is walked and up to 15 minutes of order and customer records are read outside SQL auditing.",
+          "status": "open",
+          "adversary": {
+            "type": "hacker",
+            "source_class": "individual-outsider",
+            "motivation": [
+              "personal-gain"
+            ],
+            "capability": "moderate",
+            "resources": "individual",
+            "position": "external",
+            "required_privileges": "none",
+            "access_vector": "network",
+            "authentication_required": true,
+            "actor_node": "attacker"
+          },
+          "entry": "attacker",
+          "hops": [
+            {
+              "threat": "THR-0006",
+              "via": "f-attacker-redis",
+              "to": "redis",
+              "gain": "data-access",
+              "note": "With the leaked key, redis-cli connects to the public endpoint over TLS; there is no identity, no conditional access and no NSG in the way."
+            },
+            {
+              "threat": "THR-0007",
+              "from": "redis",
+              "to": "redis",
+              "gain": "data-exfiltration",
+              "note": "SCAN and DUMP walk every cached order and customer record across tenants; the cache has no row-level security and records no reads."
+            }
+          ],
+          "impact": "Up to 15 minutes of order and customer records readable by anyone holding the key, from anywhere, with no audit trail.",
+          "assets_at_risk": [
+            "Cached order and customer records",
+            "Customer PII"
+          ],
+          "risk": {
+            "method": "likelihood-impact",
+            "likelihood": "moderate",
+            "impact": "very-high",
+            "rationale": "Two steps, both easy once the key is out; keys of this kind leak regularly.",
+            "projected": {
+              "method": "likelihood-impact",
+              "likelihood": "very-low",
+              "impact": "moderate",
+              "rationale": "A private endpoint with Entra authentication removes hop 1; projections with a short TTL leave little behind for hop 2.",
+              "rating": "very-low",
+              "score": 0
+            },
+            "rating": "high",
+            "score": 8
+          },
+          "breaks_at": [
+            "CTL-0011",
+            "CTL-0012",
+            "CTL-0013"
+          ],
+          "mitre_attack": [
+            "T1552.001",
+            "T1190",
+            "T1530"
+          ],
+          "layers": [
+            "illustrative-threats"
+          ]
+        }
+      ],
+      "scenario": {
+        "baseline": "main",
+        "change": "Replace the direct Azure SQL read path with an Azure Cache for Redis for read-through caching, deployed with its public endpoint enabled and access-key authentication.",
+        "date": "2026-10-25",
+        "author": "DigitalPrez, LLC",
+        "assumptions": [
+          "The cache holds customer and order records for up to 15 minutes.",
+          "The access key is stored in App Service configuration and in the deployment pipeline."
+        ]
+      },
+      "flow_summary": "Customer to web app; API to cache, SQL on a miss; administrator to jump VM"
+    }
+  ],
+  "$schema": "../../skills/netblueprint-forge/assets/schema/netblueprint.schema.json"
+}

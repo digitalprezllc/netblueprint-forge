@@ -1,0 +1,12 @@
+# Text files are stored and checked out with LF; the renderer, scripts and models are byte-for-byte the same on every platform.
+* text=auto eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

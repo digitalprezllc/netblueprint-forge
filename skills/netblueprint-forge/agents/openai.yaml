@@ -1,0 +1,9 @@
+# Codex / ChatGPT display metadata for this skill.
+# See https://learn.chatgpt.com/docs/build-skills
+interface:
+  display_name: NetBlueprint Forge
+  short_description: Network flow and threat model diagrams as interactive HTML
+  brand_color: "#0033a1"
+  default_prompt: "Help me model a network or application flow and its threats, then render the diagram."
+policy:
+  allow_implicit_invocation: true
