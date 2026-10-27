@@ -20,7 +20,7 @@ Checked 2026-10-23 against each vendor's documentation. Every tool below reads t
 
 | Tool | File | Purpose |
 | - | - | - |
-| Claude Code | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` at repo root | Install this repo as a plugin: `/plugin marketplace add digitalprezllc/netblueprint-forge` then `/plugin install netblueprint-forge@netblueprint` (the marketplace is named `netblueprint` in `marketplace.json`). Validate with `claude plugin validate .` |
+| Claude Code | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` at repo root | Install this repo as a plugin: `/plugin marketplace add DigitalPrez-LLC/netblueprint-forge` then `/plugin install netblueprint-forge@netblueprint` (the marketplace is named `netblueprint` in `marketplace.json`). Validate with `claude plugin validate .` |
 | Codex / ChatGPT | `skills/netblueprint-forge/agents/openai.yaml` | Display name, icon, brand colour, default prompt in the ChatGPT desktop app; `policy.allow_implicit_invocation`; tool dependencies. Standalone skills work in ChatGPT desktop, Codex CLI and the IDE extension; web/mobile need plugin packaging (not yet done). |
 | Cursor | frontmatter `paths`, `disable-model-invocation`, `icon`, `color` | Scope the skill to file globs or make it explicit-only. Not used; the skill should trigger on intent, not file type. |
 | Kiro | `.kiro/steering/*.md` | Always-on project context. Not needed; skills load on demand. Custom Kiro agents must list `skill://.kiro/skills/*/SKILL.md` in `resources`. |
