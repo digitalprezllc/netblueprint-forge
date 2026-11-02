@@ -56,11 +56,33 @@ const template = fs.readFileSync(templatePath, 'utf8').replace(/Copyright \(c\) 
 const slot = '/*__MODEL_JSON__*/null';
 if (!template.includes(slot)) { console.error(`build: template has no ${slot} slot: ${templatePath}`); process.exit(1); }
 
+// Vendor icons (Azure, AWS, Google Cloud from the skill's library; product logos from icons.json beside the model): only the <symbol>s this
+// model uses go into <defs>, with the ref -> symbol map and the cloud
+// cards' icons, so the page stays self-contained and a few kilobytes per distinct icon larger. A missing icon is reported and drawn as
+// the built-in default by the renderer.
+let symbols = '', vendorMap = {}, cardMap = {};
+try {
+  const icons = await import('./icons.mjs');
+  icons.useLocalIndex(modelPath);
+  cardMap = icons.cardIcons();
+  const { refs, missing } = icons.collectIcons(model, cardMap);
+  const emitted = new Set();
+  for (const ref of refs.keys()) {
+    const r = icons.resolveIcon(ref); if (!r) continue;
+    const sym = icons.symbolId(r.provider, r.id); vendorMap[ref] = { sym, viewBox: r.entry.viewBox };
+    if (!emitted.has(sym)) { emitted.add(sym); symbols += icons.symbolMarkup(r.provider, r.id, r.entry); }
+  }
+  for (const m of missing) { const [p, n] = m.split('/'); const hint = icons.FETCHED_PROVIDERS.includes(p) ? `fetch it: node scripts/icons.mjs fetch ${m} --model ${modelPath}` : `try: node scripts/icons.mjs search "${n.replace(/-/g, ' ')}"`; console.warn(`warning: icon "${m}" (${refs.get(m).join(', ')}) is not in the icon library; the built-in icon is drawn instead (${hint})`); }
+} catch (e) { console.warn(`build: vendor icons unavailable (${e.message}); built-in icons are drawn.`); }
+
 // '<' is escaped so no '</script>' or '<!--' sequence can appear inside the JSON block.
 const json = JSON.stringify(model).replace(/</g, '\\u003c');
 const title = `${model.meta && model.meta.title ? model.meta.title : 'NetBlueprint'} · NetBlueprint`;
 const html = template
   .replace(slot, () => json)
+  .replace('<!--__VENDOR_SYMBOLS__-->', () => symbols)
+  .replace('/*__VENDOR_ICONS__*/{}', () => JSON.stringify(vendorMap).replace(/</g, '\\u003c'))
+  .replace('/*__CARD_ICONS__*/{}', () => JSON.stringify(cardMap).replace(/</g, '\\u003c'))
   .replace(/<title>[^<]*<\/title>/, () => `<title>${title.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))}</title>`);
 
 fs.mkdirSync(path.dirname(path.resolve(outPath)), { recursive: true });
@@ -68,4 +90,4 @@ fs.writeFileSync(outPath, html, { encoding: 'utf8' });
 
 const count = (k) => (model.tabs ? model.tabs.reduce((n, t) => n + (t[k] || []).length, 0) : (model[k] || []).length);
 const whatIf = model.tabs ? model.tabs.filter((t) => t.scenario).length : 0;
-console.log(`built ${outPath} (${(html.length / 1024).toFixed(0)} KB): ${count('zones')} zones, ${count('nodes')} nodes, ${count('flows')} flows, ${count('steps')} steps, ${count('threats')} threats, ${count('controls')} controls${count('attack_paths') ? `, ${count('attack_paths')} attack paths` : ''}${model.tabs ? ` in ${model.tabs.length} tabs${whatIf ? ` (${whatIf} what-if)` : ''}` : ''}`);
+console.log(`built ${outPath} (${(html.length / 1024).toFixed(0)} KB): ${count('zones')} zones, ${count('nodes')} nodes, ${count('flows')} flows, ${count('steps')} steps, ${count('threats')} threats, ${count('controls')} controls${count('attack_paths') ? `, ${count('attack_paths')} attack paths` : ''}${Object.keys(vendorMap).length ? `, ${Object.keys(vendorMap).length} vendor icons` : ''}${model.tabs ? ` in ${model.tabs.length} tabs${whatIf ? ` (${whatIf} what-if)` : ''}` : ''}`);

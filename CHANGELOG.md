@@ -4,7 +4,13 @@ Releases of NetBlueprint Forge, newest first. The release number is the skill's 
 
 ## Unreleased
 
-Nothing yet.
+Skill 0.7.0, renderer 1.8.0.
+
+- Vendor icons: the official Microsoft Azure (with Microsoft Entra), AWS and Google Cloud architecture icons ship with the skill as one index per provider (`assets/icons/`), imported unmodified from the vendors' packages by the new `scripts/icons.mjs`. A cloud node with a card shows its vendor icon automatically; `icon: "<provider>/<id>"` puts one on any zone, appliance, node or component; `settings.icons.vendor: false` keeps line icons. `build.mjs` embeds only the icons a page uses; the legend names the vendors; the validator and `tests/check_icons.mjs` check the references. Terms in `THIRD-PARTY-NOTICES.md`.
+- The Azure examples show Azure icons on their services, VNets, subnets, firewalls, gateways and the Entra tenant.
+- Two new examples, one per remaining vendor: AnyCompany on AWS (a three-tier web application in a VPC: CloudFront with WAF, ALB, EC2, RDS, Secrets Manager, S3 and CloudWatch over VPC endpoints, Session Manager; six threats and an SSRF-to-exfiltration attack path) and Cymbal on Google Cloud (a serverless web application: Cloud Armor and the external load balancer, Cloud Run, a VPC connector to Cloud SQL and Memorystore, Secret Manager, Cloud Storage, Identity-Aware Proxy, a VPC Service Controls perimeter; six threats and a dependency-compromise attack path), both with their vendor's icons, in the layout baseline and in the README with pictures.
+- Product logos on demand: `icon: "dashboard/<name>"` plus `node scripts/icons.mjs fetch dashboard/<name> --model <model.json>` puts a logo from the Dashboard Icons collection (Fortinet, Palo Alto, Sophos, Check Point, Cisco, Okta and about 2,250 others) in `icons.json` beside the model; the build embeds it from there, so pages stay self-contained and the skill ships no logo. `search "<name>" --provider dashboard` finds names; a fetched SVG is refused when it carries a script, an event handler or an external reference. Terms in `THIRD-PARTY-NOTICES.md`.
+- Fixed: a document without tabs now shows its attack paths (the red phase in the band, the paths in the Threat Register, the `#path=` deep link). Renderer 1.7.1 dropped them when the model kept `attack_paths` at the top level instead of on a tab.
 
 ## 0.6.1 (2026-10-25)
 

@@ -129,7 +129,8 @@
             "provider": "azure",
             "region": "West Europe"
           },
-          "info": "Hosts the Application Proxy connectors. The connectors need only outbound 443 to Microsoft; the VNet reaches the corporate network over ExpressRoute private peering."
+          "info": "Hosts the Application Proxy connectors. The connectors need only outbound 443 to Microsoft; the VNet reaches the corporate network over ExpressRoute private peering.",
+          "icon": "azure/subscriptions"
         },
         {
           "name": "connector-vnet",
@@ -149,7 +150,8 @@
               "serves": [
                 "corp"
               ],
-              "info": "ExpressRoute private peering carries connector-to-application traffic to the Contoso data centre; nothing from the Internet uses it."
+              "info": "ExpressRoute private peering carries connector-to-application traffic to the Contoso data centre; nothing from the Internet uses it.",
+              "icon": "azure/expressroute-circuits"
             },
             {
               "name": "nsg-connectors",
@@ -161,10 +163,12 @@
               "serves": [
                 "internet"
               ],
-              "info": "Network security group on the connector subnet: no inbound rules; outbound 443 to the Application Proxy service and Entra ID only."
+              "info": "Network security group on the connector subnet: no inbound rules; outbound 443 to the Application Proxy service and Entra ID only.",
+              "icon": "azure/network-security-groups"
             }
           ],
-          "info": "Dedicated subnet for the connector group. No public IPs, no inbound rules."
+          "info": "Dedicated subnet for the connector group. No public IPs, no inbound rules.",
+          "icon": "azure/virtual-networks"
         },
         {
           "name": "corp",
@@ -226,14 +230,15 @@
           "color": "purple",
           "out_of_scope": true,
           "scope_reason": "Operated by the identity team; its internal design is not modelled here.",
-          "info": "Contoso's tenant. Pre-authenticates every Application Proxy request, applies Conditional Access to guests, and issues the session the proxy requires."
+          "info": "Contoso's tenant. Pre-authenticates every Application Proxy request, applies Conditional Access to guests, and issues the session the proxy requires.",
+          "icon": "azure/microsoft-entra-id"
         },
         {
           "name": "app-proxy",
           "label": "Entra Application Proxy",
           "sub": "Microsoft cloud service · public endpoint",
           "type": "saas",
-          "icon": "cloud",
+          "icon": "azure/microsoft-entra-product-family",
           "zone": "internet",
           "color": "teal",
           "cloud": {
@@ -292,7 +297,8 @@
               "smbv1",
               "tls1.0",
               "tls1.1"
-            ]
+            ],
+            "card": "azure-vm"
           },
           "profile": {
             "ownership": {

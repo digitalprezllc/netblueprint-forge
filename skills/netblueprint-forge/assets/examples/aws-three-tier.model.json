@@ -1,0 +1,2235 @@
+{
+  "$schema": "../../skills/netblueprint-forge/assets/schema/netblueprint.schema.json",
+  "netblueprint": "1",
+  "meta": {
+    "title": "AnyCompany Web Application on AWS: Three-Tier Architecture in a VPC",
+    "subtitle": "Reference Architecture",
+    "description": "Customers reach a web application through CloudFront with AWS WAF, an Application Load Balancer in public subnets and EC2 instances in an Auto Scaling group in private subnets. The application talks to Amazon RDS in isolated subnets and to Secrets Manager and S3 over VPC endpoints; operators administer the instances through Systems Manager Session Manager with no inbound SSH. Adapted from the AWS Architecture Center's web application hosting reference architecture, set at AWS's sample organization AnyCompany.",
+    "author": "DigitalPrez, LLC",
+    "organization": "AnyCompany",
+    "date": "2026-11-01",
+    "version": "1.0.0",
+    "revision_note": "First version. Renderer 1.8.0.",
+    "document_classification": "internal",
+    "document_id": "NBF-EX-0004",
+    "status": "draft",
+    "objective": "Serve one public web application from private subnets, with every data store and secret reachable only from the application tier and every administrative path brokered by Session Manager.",
+    "flow_summary": "Customer to the web tier; API to RDS, Secrets Manager and S3; operator to Session Manager",
+    "path_summary": [
+      "Customer",
+      "CloudFront + WAF",
+      "ALB",
+      "EC2",
+      "RDS"
+    ],
+    "access_summary": "Customers: Cognito with MFA (OIDC). Operators: IAM Identity Center with a FIDO2 key and Session Manager. Services: IAM roles, no stored keys.",
+    "assumptions": [
+      "One production account under AWS Organizations with service control policies applied",
+      "Two Availability Zones; the Auto Scaling group spans both",
+      "Secrets Manager rotates the database password; the application reads it at start"
+    ],
+    "out_of_scope": [
+      "The CI/CD pipeline that builds AMIs and deploys",
+      "The data warehouse that reads RDS snapshots"
+    ],
+    "tags": [
+      "aws",
+      "three-tier",
+      "vpc",
+      "reference-architecture"
+    ]
+  },
+  "settings": {
+    "network_label": "AnyCompany: AWS Production Account",
+    "internet_label": "Internet",
+    "layout": {
+      "min_width": 1280,
+      "min_height": 640,
+      "flow_direction": "left-to-right"
+    },
+    "show": {
+      "threats": true,
+      "threat_register": true,
+      "layer_panel": true,
+      "signature_block": true,
+      "legend": true
+    }
+  },
+  "auth_types": [
+    {
+      "id": "cognito-oidc",
+      "label": "Cognito + MFA (OIDC)",
+      "strength": "strong",
+      "description": "Customer sign-in through an Amazon Cognito user pool with MFA; the application receives OIDC tokens."
+    },
+    {
+      "id": "origin-secret",
+      "label": "CloudFront Origin Secret Header",
+      "strength": "moderate",
+      "description": "A custom header with a secret value that the ALB listener rule requires; identifies CloudFront as the caller."
+    },
+    {
+      "id": "tg-none",
+      "label": "Target Group · No Client Auth",
+      "strength": "none",
+      "description": "The load balancer forwards to targets without client authentication; the security group admits only the load balancer."
+    },
+    {
+      "id": "iam-role",
+      "label": "IAM Role (SigV4)",
+      "strength": "strong",
+      "description": "The instance's IAM role signs AWS API calls; no stored keys."
+    },
+    {
+      "id": "iam-db-auth",
+      "label": "RDS IAM Authentication + TLS",
+      "strength": "strong",
+      "description": "Short-lived IAM database tokens over TLS; no database password in the application."
+    },
+    {
+      "id": "oac",
+      "label": "CloudFront Origin Access Control",
+      "strength": "strong",
+      "description": "CloudFront signs S3 requests with SigV4; the bucket policy admits only this distribution."
+    },
+    {
+      "id": "sso-fido2",
+      "label": "IAM Identity Center + FIDO2",
+      "strength": "strong",
+      "phishing_resistant": true,
+      "description": "Operator sign-in with a security key; permission sets grant time-bound access."
+    },
+    {
+      "id": "ssm-session",
+      "label": "Session Manager (IAM)",
+      "strength": "strong",
+      "description": "Sessions authorised by IAM through Identity Center permission sets and logged to CloudWatch; no inbound port."
+    },
+    {
+      "id": "anonymous",
+      "label": "Anonymous",
+      "strength": "none"
+    }
+  ],
+  "layers": [
+    {
+      "name": "illustrative-threats",
+      "label": "Illustrative Threats",
+      "description": "Example threats and controls. Hide to see the plain design.",
+      "visible": true
+    }
+  ],
+  "zones": [
+    {
+      "name": "aws-account",
+      "label": "AWS Account: Production",
+      "sub": "us-east-1 · Organizations · SCPs",
+      "kind": "cloud",
+      "color": "teal",
+      "icon": "aws/group-aws-account",
+      "layout": {
+        "order": 0,
+        "arrange": "column"
+      },
+      "info": "One production account under AWS Organizations; service control policies deny public S3 ACLs, IMDSv1 launches and region use outside us-east-1."
+    },
+    {
+      "name": "vpc-prod",
+      "label": "Production VPC",
+      "sub": "10.40.0.0/16 · 2 AZs · Flow Logs",
+      "parent": "aws-account",
+      "kind": "vpc",
+      "color": "blue",
+      "icon": "aws/group-virtual-private-cloud-vpc",
+      "layout": {
+        "row": 0,
+        "arrange": "row"
+      },
+      "info": "Three subnet tiers in two Availability Zones. Flow logs go to CloudWatch; GuardDuty analyses them."
+    },
+    {
+      "name": "snet-public",
+      "label": "Public Subnets",
+      "sub": "10.40.0.0/24 · 10.40.1.0/24 · ALB, NAT",
+      "parent": "vpc-prod",
+      "kind": "subnet",
+      "icon": "aws/group-public-subnet",
+      "layout": {
+        "order": 0,
+        "arrange": "column"
+      },
+      "appliances": [
+        {
+          "name": "nacl-public",
+          "label": "NACL",
+          "sub": "443 In · Ephemeral Out",
+          "type": "firewall",
+          "edge": "left",
+          "filters": "both",
+          "serves": [
+            "internet"
+          ],
+          "icon": "aws/vpc-network-access-control-list",
+          "info": "Network ACL on the public subnets: inbound 443 from anywhere, ephemeral ports outbound; everything else denied."
+        }
+      ]
+    },
+    {
+      "name": "snet-app",
+      "label": "Private Subnets: Application",
+      "sub": "10.40.10.0/24 · 10.40.11.0/24 · No Public IPs",
+      "parent": "vpc-prod",
+      "kind": "subnet",
+      "icon": "aws/group-private-subnet",
+      "layout": {
+        "order": 1,
+        "arrange": "column"
+      },
+      "appliances": [
+        {
+          "name": "sg-app",
+          "label": "SG: App Tier",
+          "sub": "443 from the ALB SG Only",
+          "type": "firewall",
+          "edge": "left",
+          "filters": "both",
+          "serves": [
+            "snet-public"
+          ],
+          "info": "Security group on the instances: inbound 443 from the ALB security group only; no inbound 22."
+        }
+      ]
+    },
+    {
+      "name": "snet-data",
+      "label": "Isolated Subnets: Data",
+      "sub": "10.40.20.0/24 · 10.40.21.0/24 · No Internet Route",
+      "parent": "vpc-prod",
+      "kind": "subnet",
+      "icon": "aws/group-private-subnet",
+      "layout": {
+        "order": 2,
+        "arrange": "column"
+      },
+      "appliances": [
+        {
+          "name": "sg-db",
+          "label": "SG: Database",
+          "sub": "5432 from the App SG Only",
+          "type": "firewall",
+          "edge": "left",
+          "filters": "inbound",
+          "serves": [
+            "snet-app"
+          ],
+          "info": "Security group on the RDS instance: inbound 5432 from the application security group only."
+        }
+      ]
+    },
+    {
+      "name": "aws-services",
+      "label": "AWS Regional Services",
+      "sub": "Secrets Manager · S3 · CloudWatch · Systems Manager",
+      "parent": "aws-account",
+      "kind": "provider",
+      "color": "slate",
+      "icon": "aws/group-aws-cloud",
+      "layout": {
+        "row": 1,
+        "arrange": "row"
+      },
+      "info": "Regional AWS services the application uses. The VPC reaches them through interface and gateway endpoints, never over the Internet.",
+      "appliances": [
+        {
+          "name": "vpce",
+          "label": "VPC Endpoints",
+          "sub": "PrivateLink · Endpoint Policies",
+          "type": "gateway",
+          "edge": "top",
+          "filters": "both",
+          "serves": [
+            "vpc-prod"
+          ],
+          "icon": "aws/vpc-endpoints",
+          "info": "Interface endpoints for Secrets Manager, Systems Manager and CloudWatch, a gateway endpoint for S3; endpoint policies limit the S3 endpoint to buckets in this account."
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "customer",
+      "layout": {
+        "order": 0
+      },
+      "label": "Customer",
+      "sub": "Browser · Any Device",
+      "type": "remote-user",
+      "zone": "internet",
+      "info": "A shopper on the public Internet."
+    },
+    {
+      "name": "cognito",
+      "layout": {
+        "order": 1
+      },
+      "label": "Cognito User Pool",
+      "sub": "Customer Identities · MFA · Risk Policies",
+      "type": "identity-provider",
+      "zone": "internet",
+      "icon": "aws/cognito",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon Cognito",
+        "exposure": "internet",
+        "endpoint": "public"
+      },
+      "info": "Holds customer identities; advanced security mode scores sign-ins and requires MFA on risk."
+    },
+    {
+      "name": "cloudfront",
+      "layout": {
+        "order": 2
+      },
+      "label": "CloudFront + AWS WAF",
+      "sub": "Edge · TLS 1.2+ · Managed Rules · Rate Limit",
+      "type": "public-endpoint",
+      "zone": "internet",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon CloudFront",
+        "card": "aws-cloudfront",
+        "exposure": "internet",
+        "endpoint": "public",
+        "disabled_protocols": [
+          "tls1.0",
+          "tls1.1",
+          "http"
+        ]
+      },
+      "info": "The only public entry point. AWS WAF with managed rule groups and a rate-based rule is attached to the distribution."
+    },
+    {
+      "name": "attacker",
+      "layout": {
+        "order": 3
+      },
+      "label": "Internet Attacker",
+      "sub": "Scanning · Credential Stuffing · Injection",
+      "type": "bad-actor",
+      "zone": "internet",
+      "info": "Opportunistic attacker probing the public surface."
+    },
+    {
+      "name": "identity-center",
+      "layout": {
+        "order": 4
+      },
+      "label": "IAM Identity Center",
+      "sub": "SSO · Permission Sets · FIDO2",
+      "type": "identity-provider",
+      "zone": "internet",
+      "icon": "aws/iam-identity-center",
+      "cloud": {
+        "provider": "aws",
+        "service": "IAM Identity Center",
+        "exposure": "internet",
+        "endpoint": "public"
+      },
+      "info": "Workforce sign-in for operators; permission sets map to IAM roles in the account."
+    },
+    {
+      "name": "operator",
+      "layout": {
+        "order": 5
+      },
+      "label": "Operations Engineer",
+      "sub": "Managed Laptop · FIDO2 Key",
+      "type": "admin",
+      "zone": "internet",
+      "info": "Administers instances through Session Manager; never holds long-lived access keys."
+    },
+    {
+      "name": "alb",
+      "label": "Application Load Balancer",
+      "sub": "Internet-Facing · TLS · Origin Header Rule",
+      "type": "service",
+      "zone": "snet-public",
+      "cloud": {
+        "provider": "aws",
+        "service": "Application Load Balancer",
+        "card": "aws-alb",
+        "exposure": "internet",
+        "endpoint": "public",
+        "disabled_protocols": [
+          "tls1.0",
+          "tls1.1"
+        ]
+      },
+      "layout": {
+        "order": 0
+      },
+      "info": "Public listener on 443; its security group admits only the CloudFront managed prefix list, and a listener rule requires the origin secret header."
+    },
+    {
+      "name": "nat",
+      "label": "NAT Gateway",
+      "sub": "Egress Only · Package Updates",
+      "type": "connector",
+      "zone": "snet-public",
+      "icon": "aws/vpc-nat-gateway",
+      "cloud": {
+        "provider": "aws",
+        "service": "NAT Gateway",
+        "exposure": "private",
+        "endpoint": "none"
+      },
+      "layout": {
+        "order": 1
+      },
+      "info": "Outbound Internet access for the private subnets. Nothing filters what leaves."
+    },
+    {
+      "name": "web-asg",
+      "label": "Web/App Tier",
+      "sub": "EC2 Auto Scaling · 2 AZs · IMDSv2",
+      "type": "host",
+      "zone": "snet-app",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon EC2",
+        "card": "aws-ec2",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "public-ip",
+          "ssh-from-internet",
+          "imdsv1"
+        ]
+      },
+      "info": "Amazon Linux instances in an Auto Scaling group across two AZs. No public IPs; IMDSv2 required; the SSM agent connects outbound.",
+      "components": [
+        {
+          "name": "web",
+          "label": "Web Front End",
+          "type": "web-server",
+          "ports": [
+            "443/tcp"
+          ],
+          "info": "Serves the storefront; validates Cognito tokens."
+        },
+        {
+          "name": "api",
+          "label": "Orders API",
+          "type": "api",
+          "ports": [
+            "443/tcp"
+          ],
+          "info": "Reads and writes orders; calls RDS, Secrets Manager and S3 with the instance role."
+        }
+      ]
+    },
+    {
+      "name": "rds",
+      "label": "Amazon RDS (PostgreSQL)",
+      "sub": "Multi-AZ · KMS Encryption · IAM Auth",
+      "type": "database",
+      "zone": "snet-data",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon RDS",
+        "card": "aws-rds",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "public-access",
+          "plaintext"
+        ]
+      },
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "info": "Orders and customer records. Not publicly accessible; isolated subnets have no route to the Internet."
+    },
+    {
+      "name": "s3-assets",
+      "label": "S3: Static Assets and Uploads",
+      "sub": "Block Public Access · OAC · SSE-KMS",
+      "type": "storage",
+      "zone": "aws-services",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon S3",
+        "card": "aws-s3",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "public-acls",
+          "http"
+        ]
+      },
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "layout": {
+        "order": 0
+      },
+      "info": "One bucket for the storefront assets CloudFront serves and the documents customers upload."
+    },
+    {
+      "name": "secrets",
+      "label": "Secrets Manager + KMS",
+      "sub": "DB Credentials · API Keys · CMK",
+      "type": "service",
+      "zone": "aws-services",
+      "cloud": {
+        "provider": "aws",
+        "service": "AWS Secrets Manager",
+        "card": "aws-secrets-kms",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "layout": {
+        "order": 1
+      },
+      "info": "Rotated database credentials and third-party API keys, encrypted with a customer-managed KMS key."
+    },
+    {
+      "name": "cloudwatch",
+      "label": "CloudWatch + CloudTrail",
+      "sub": "Logs · Alarms · Org Trail · GuardDuty",
+      "type": "service",
+      "zone": "aws-services",
+      "icon": "aws/cloudwatch",
+      "cloud": {
+        "provider": "aws",
+        "service": "Amazon CloudWatch",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "layout": {
+        "order": 2
+      },
+      "info": "Application and session logs, the organization CloudTrail trail and GuardDuty findings, with alarms to the on-call rotation."
+    },
+    {
+      "name": "ssm",
+      "label": "Systems Manager",
+      "sub": "Session Manager · Patch Manager",
+      "type": "service",
+      "zone": "aws-services",
+      "icon": "aws/systems-manager",
+      "cloud": {
+        "provider": "aws",
+        "service": "AWS Systems Manager",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "layout": {
+        "order": 3
+      },
+      "info": "Brokers operator sessions to the instances and schedules patching; the agent on each instance connects outbound."
+    }
+  ],
+  "flows": [
+    {
+      "name": "f-customer-cognito",
+      "label": "Sign-In",
+      "from": "customer",
+      "to": "cognito",
+      "kind": "auth",
+      "auth": "cognito-oidc",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "info": "Hosted sign-in with MFA; the browser receives ID and access tokens."
+    },
+    {
+      "name": "f-customer-cf",
+      "label": "Storefront",
+      "from": "customer",
+      "to": "cloudfront",
+      "kind": "data",
+      "auth": "cognito-oidc",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "Every request carries the Cognito access token; TLS terminates at the edge."
+    },
+    {
+      "name": "f-cf-alb",
+      "label": "Origin Request",
+      "from": "cloudfront",
+      "to": "alb",
+      "kind": "data",
+      "auth": "origin-secret",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "CloudFront reaches the load balancer over TLS with the origin secret header; the ALB security group admits only the CloudFront prefix list."
+    },
+    {
+      "name": "f-alb-web",
+      "label": "Forward to Targets",
+      "from": "alb",
+      "to": "web-asg/web",
+      "kind": "data",
+      "auth": "tg-none",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "Re-encrypted to the instances; the app security group admits only the load balancer."
+    },
+    {
+      "name": "f-web-api",
+      "label": "Internal Call",
+      "from": "web-asg/web",
+      "to": "web-asg/api",
+      "kind": "data",
+      "auth": "tg-none",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "The front end calls the API on the same instance with the forwarded Cognito token."
+    },
+    {
+      "name": "f-api-rds",
+      "label": "Orders Database",
+      "from": "web-asg/api",
+      "to": "rds",
+      "kind": "data",
+      "auth": "iam-db-auth",
+      "protocol": "PostgreSQL",
+      "port": "5432/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "info": "IAM authentication tokens over TLS; the database security group admits only the app tier."
+    },
+    {
+      "name": "f-api-secrets",
+      "label": "Secrets",
+      "from": "web-asg",
+      "to": "secrets",
+      "kind": "control",
+      "auth": "iam-role",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "info": "Reads third-party API keys at start and on rotation through the Secrets Manager interface endpoint."
+    },
+    {
+      "name": "f-api-s3",
+      "label": "Customer Uploads",
+      "from": "web-asg",
+      "to": "s3-assets",
+      "kind": "data",
+      "auth": "iam-role",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "Uploaded documents go to the bucket through the S3 gateway endpoint; objects are encrypted with the KMS key."
+    },
+    {
+      "name": "f-cf-s3",
+      "label": "Static Assets (OAC)",
+      "from": "cloudfront",
+      "to": "s3-assets",
+      "kind": "data",
+      "auth": "oac",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "public",
+      "via": [],
+      "info": "CloudFront fetches the storefront assets with origin access control; the bucket policy admits only this distribution."
+    },
+    {
+      "name": "f-web-cloudwatch",
+      "label": "Logs and Metrics",
+      "from": "web-asg",
+      "to": "cloudwatch",
+      "kind": "control",
+      "auth": "iam-role",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "internal",
+      "info": "The CloudWatch agent ships application logs and metrics through the interface endpoint."
+    },
+    {
+      "name": "f-web-ssm",
+      "label": "SSM Agent (Outbound)",
+      "from": "web-asg",
+      "to": "ssm",
+      "kind": "control",
+      "auth": "iam-role",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "internal",
+      "info": "The agent registers with Systems Manager over the interface endpoint; sessions ride this connection, so no inbound port is needed."
+    },
+    {
+      "name": "f-web-nat",
+      "label": "Outbound via NAT",
+      "from": "web-asg",
+      "to": "nat",
+      "kind": "control",
+      "auth": "anonymous",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "public",
+      "info": "Package updates and any AWS call not covered by an endpoint leave through the NAT gateway. No egress filtering."
+    },
+    {
+      "name": "f-operator-sso",
+      "label": "Operator Sign-In",
+      "from": "operator",
+      "to": "identity-center",
+      "kind": "auth",
+      "auth": "sso-fido2",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "info": "Identity Center with a FIDO2 key; the permission set grants the operator role for eight hours."
+    },
+    {
+      "name": "f-operator-ssm",
+      "label": "Session Manager",
+      "from": "operator",
+      "to": "ssm",
+      "kind": "control",
+      "auth": "ssm-session",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "via": [],
+      "info": "The operator starts a session from the console or CLI; Systems Manager relays it to the agent. Sessions are logged to CloudWatch."
+    },
+    {
+      "name": "f-attacker-cf",
+      "label": "Credential Stuffing / Scanning",
+      "from": "attacker",
+      "to": "cloudfront",
+      "kind": "data",
+      "auth": "anonymous",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "public",
+      "info": "Automated traffic hits the only public endpoint; WAF managed rules and the rate-based rule absorb most of it."
+    },
+    {
+      "name": "f-attacker-alb",
+      "label": "Direct to ALB",
+      "from": "attacker",
+      "to": "alb",
+      "kind": "blocked",
+      "auth": "anonymous",
+      "blocked_reason": "The ALB security group admits only the CloudFront managed prefix list; direct requests never reach a listener"
+    },
+    {
+      "name": "f-attacker-s3",
+      "label": "Public Bucket Access",
+      "from": "attacker",
+      "to": "s3-assets",
+      "kind": "blocked",
+      "auth": "anonymous",
+      "blocked_reason": "Block Public Access at the account level; the bucket policy admits only the CloudFront distribution and the instance role"
+    }
+  ],
+  "phases": [
+    {
+      "name": "connect",
+      "label": "Connect"
+    },
+    {
+      "name": "identity",
+      "label": "Identity"
+    },
+    {
+      "name": "access",
+      "label": "Access"
+    },
+    {
+      "name": "operate",
+      "label": "Operate"
+    }
+  ],
+  "steps": [
+    {
+      "name": "request",
+      "phase": "connect",
+      "short": "Request",
+      "title": "A customer reaches the application at the edge",
+      "description": "The customer's browser resolves the storefront name to CloudFront. AWS WAF inspects the request against managed rule groups and a rate-based rule before anything reaches AnyCompany's account; TLS 1.2 or later is required.",
+      "flows": [
+        "f-customer-cf"
+      ],
+      "highlight": [
+        "customer",
+        "cloudfront"
+      ],
+      "packets": [
+        {
+          "flow": "f-customer-cf"
+        }
+      ],
+      "details": [
+        "One public entry point for the whole application",
+        "WAF managed rules and rate limiting at the edge",
+        "TLS terminates at CloudFront"
+      ]
+    },
+    {
+      "name": "edge-origin",
+      "phase": "connect",
+      "short": "Origin",
+      "title": "CloudFront forwards to the load balancer with its origin secret",
+      "description": "The distribution reaches the Application Load Balancer over TLS. The ALB security group admits only the CloudFront managed prefix list, and a listener rule drops any request without the origin secret header, so the load balancer cannot be reached directly.",
+      "flows": [
+        "f-cf-alb"
+      ],
+      "highlight": [
+        "cloudfront",
+        "alb"
+      ],
+      "packets": [
+        {
+          "flow": "f-cf-alb"
+        }
+      ],
+      "details": [
+        "Security group: CloudFront prefix list only",
+        "Listener rule: origin secret header required"
+      ],
+      "threats": [
+        "THR-0002"
+      ]
+    },
+    {
+      "name": "signin",
+      "phase": "identity",
+      "short": "Sign-In",
+      "title": "The customer signs in through Cognito",
+      "description": "Hosted sign-in with MFA issues OIDC tokens; the storefront carries the access token on every request and the web tier validates it against the user pool.",
+      "flows": [
+        "f-customer-cognito",
+        "f-customer-cf"
+      ],
+      "highlight": [
+        "customer",
+        "cognito"
+      ],
+      "packets": [
+        {
+          "flow": "f-customer-cognito"
+        },
+        {
+          "flow": "f-customer-cf"
+        }
+      ],
+      "details": [
+        "MFA enforced; advanced security mode scores sign-ins",
+        "Tokens validated by the web tier"
+      ],
+      "threats": [
+        "THR-0001"
+      ]
+    },
+    {
+      "name": "web-tier",
+      "phase": "access",
+      "short": "Web Tier",
+      "title": "The load balancer hands the request to the web tier in private subnets",
+      "description": "Instances in an Auto Scaling group across two AZs serve the storefront and the Orders API. They have no public IPs; the app security group admits only the load balancer; IMDSv2 is required on every instance.",
+      "flows": [
+        "f-alb-web",
+        "f-web-api"
+      ],
+      "highlight": [
+        "alb",
+        "web-asg"
+      ],
+      "packets": [
+        {
+          "flow": "f-alb-web"
+        },
+        {
+          "flow": "f-web-api"
+        }
+      ],
+      "details": [
+        "No public IPs, no inbound SSH",
+        "IMDSv2 with hop limit 1"
+      ],
+      "threats": [
+        "THR-0003"
+      ]
+    },
+    {
+      "name": "data",
+      "phase": "access",
+      "short": "Data",
+      "title": "The API reaches RDS and Secrets Manager with its instance role",
+      "description": "IAM authentication tokens open the database connection over TLS; third-party keys come from Secrets Manager through the interface endpoint. No password sits in the application configuration.",
+      "flows": [
+        "f-api-rds",
+        "f-api-secrets"
+      ],
+      "highlight": [
+        "web-asg",
+        "rds",
+        "secrets"
+      ],
+      "packets": [
+        {
+          "flow": "f-api-rds"
+        },
+        {
+          "flow": "f-api-secrets"
+        }
+      ],
+      "details": [
+        "IAM database authentication; TLS required",
+        "Secrets rotated by Secrets Manager",
+        "All of it over private endpoints"
+      ],
+      "threats": [
+        "THR-0005"
+      ]
+    },
+    {
+      "name": "assets",
+      "phase": "access",
+      "short": "Assets",
+      "title": "Static assets come from S3 through CloudFront; uploads go to the same bucket",
+      "description": "CloudFront fetches assets with origin access control; the API writes customer uploads through the S3 gateway endpoint. Block Public Access is on at the account level and the bucket policy names only the distribution and the instance role.",
+      "flows": [
+        "f-cf-s3",
+        "f-api-s3"
+      ],
+      "highlight": [
+        "cloudfront",
+        "s3-assets"
+      ],
+      "packets": [
+        {
+          "flow": "f-cf-s3"
+        },
+        {
+          "flow": "f-api-s3"
+        }
+      ],
+      "details": [
+        "Origin access control, no public bucket",
+        "SSE-KMS on every object"
+      ],
+      "threats": [
+        "THR-0004"
+      ]
+    },
+    {
+      "name": "operate",
+      "phase": "operate",
+      "short": "Operate",
+      "title": "Instances log to CloudWatch and update through the NAT gateway",
+      "description": "Logs and metrics leave through the CloudWatch interface endpoint; package updates and anything without an endpoint leave through the NAT gateway, which filters nothing.",
+      "flows": [
+        "f-web-cloudwatch",
+        "f-web-nat"
+      ],
+      "highlight": [
+        "web-asg",
+        "cloudwatch",
+        "nat"
+      ],
+      "packets": [
+        {
+          "flow": "f-web-cloudwatch"
+        },
+        {
+          "flow": "f-web-nat"
+        }
+      ],
+      "details": [
+        "GuardDuty watches flow logs and CloudTrail",
+        "Egress through NAT is unrestricted"
+      ],
+      "threats": [
+        "THR-0006"
+      ]
+    },
+    {
+      "name": "admin",
+      "phase": "operate",
+      "short": "Admin",
+      "title": "An operator opens a Session Manager session; no inbound port",
+      "description": "The operator signs in to IAM Identity Center with a FIDO2 key and starts a session from the console. Systems Manager relays it to the agent on the instance over its outbound connection; the session transcript goes to CloudWatch.",
+      "flows": [
+        "f-operator-sso",
+        "f-operator-ssm",
+        "f-web-ssm"
+      ],
+      "highlight": [
+        "operator",
+        "identity-center",
+        "ssm",
+        "web-asg"
+      ],
+      "packets": [
+        {
+          "flow": "f-operator-sso"
+        },
+        {
+          "flow": "f-operator-ssm"
+        },
+        {
+          "flow": "f-web-ssm"
+        }
+      ],
+      "details": [
+        "Phishing-resistant sign-in",
+        "No bastion, no inbound 22",
+        "Sessions logged"
+      ]
+    },
+    {
+      "name": "denied",
+      "phase": "operate",
+      "short": "Denied",
+      "title": "What the attacker cannot do",
+      "description": "Direct requests to the load balancer and public reads of the bucket are refused before any application code runs; the instances have no public IP and no inbound SSH, and RDS is not publicly accessible, so there is nothing to connect to.",
+      "flows": [
+        "f-attacker-alb",
+        "f-attacker-s3"
+      ],
+      "highlight": [
+        "attacker",
+        "web-asg",
+        "rds"
+      ],
+      "packets": [
+        {
+          "flow": "f-attacker-alb",
+          "kind": "blocked"
+        },
+        {
+          "flow": "f-attacker-s3",
+          "kind": "blocked"
+        }
+      ],
+      "details": [
+        "ALB: CloudFront prefix list only",
+        "Instances: no public IP, no 22",
+        "RDS: not publicly accessible",
+        "S3: Block Public Access"
+      ],
+      "outcome": "The public surface is the CloudFront distribution and nothing else."
+    }
+  ],
+  "threats": [
+    {
+      "id": "THR-0001",
+      "number": 1,
+      "title": "Credential Stuffing and MFA Fatigue Against the Cognito User Pool",
+      "description": "Password lists from other breaches replayed against hosted sign-in; push-style MFA prompts accepted by tired customers.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "spoofing"
+        ],
+        "attack_tactics": [
+          "TA0006",
+          "TA0001"
+        ]
+      },
+      "vulnerability": {
+        "category": "broken-authentication",
+        "cwe": "CWE-307"
+      },
+      "targets": [
+        {
+          "kind": "flow",
+          "ref": "f-customer-cognito"
+        },
+        {
+          "kind": "node",
+          "ref": "cognito",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "internet"
+      },
+      "assets_at_risk": [
+        "Customer accounts",
+        "Order history"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "credentials"
+      ],
+      "adversary": {
+        "type": "automated-bot",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "low",
+        "resources": "club",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Automated sign-in attempts from rotating IP ranges; successful pairs are resold or used to place fraudulent orders.",
+        "mitre_attack": [
+          "T1110.004",
+          "T1621"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "high",
+        "impact": "high",
+        "rationale": "Hosted sign-in is public and lists are cheap; a taken-over account exposes PII and payment references.",
+        "consequence": "An attacker holds a valid customer session and can read and change that customer's orders.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "MFA with advanced security (CTL-0001) stops matched passwords; the WAF rate-based rule (CTL-0002) throttles the campaign.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-307"
+        ],
+        "owasp": [
+          "A07:2025"
+        ],
+        "nist_800_53": [
+          "IA-2(1)",
+          "AC-7"
+        ],
+        "cis_controls": [
+          "CIS-6.3"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0001",
+          "CTL-0002"
+        ],
+        "current_controls": [
+          "CTL-0001",
+          "CTL-0002"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0002",
+      "number": 2,
+      "title": "Direct Requests to the Load Balancer Bypass CloudFront and the WAF",
+      "description": "If the ALB accepted traffic from anywhere, an attacker who found its public name could skip the WAF, the rate limit and the edge TLS policy.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "tampering",
+          "elevation-of-privilege"
+        ],
+        "attack_tactics": [
+          "TA0001"
+        ]
+      },
+      "vulnerability": {
+        "category": "security-misconfiguration",
+        "cwe": "CWE-284"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "alb"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-attacker-alb",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "snet-public"
+      },
+      "assets_at_risk": [
+        "Web tier",
+        "WAF protections"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Certificate transparency logs or DNS history reveal the ALB name; the attacker sends injection payloads to it directly.",
+        "mitre_attack": [
+          "T1190",
+          "T1595.002"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "high",
+        "rationale": "Load balancer names are discoverable; without the gate every WAF rule is moot.",
+        "consequence": "Injection and brute-force traffic reaches the application unfiltered.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "high",
+          "rationale": "The security group admits only the CloudFront prefix list (CTL-0003) and the listener requires the origin secret (CTL-0004).",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "moderate",
+        "score": 5
+      },
+      "standards": {
+        "cwe": [
+          "CWE-284"
+        ],
+        "owasp": [
+          "A02:2025"
+        ],
+        "nist_800_53": [
+          "SC-7",
+          "AC-4"
+        ],
+        "cis_controls": [
+          "CIS-12.2"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0003",
+          "CTL-0004"
+        ],
+        "current_controls": [
+          "CTL-0003",
+          "CTL-0004"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0003",
+      "number": 3,
+      "title": "SSRF from the Orders API Reaches the Instance Metadata Service and Steals Role Credentials",
+      "description": "The image-import feature fetches URLs the customer supplies. Pointed at 169.254.169.254 on an instance that still allows IMDSv1, it returns the temporary credentials of the instance role.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "elevation-of-privilege",
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0006",
+          "TA0001"
+        ]
+      },
+      "vulnerability": {
+        "category": "ssrf",
+        "cwe": "CWE-918"
+      },
+      "targets": [
+        {
+          "kind": "component",
+          "ref": "web-asg/api"
+        },
+        {
+          "kind": "node",
+          "ref": "web-asg",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "machine",
+        "from": "snet-app",
+        "to": "snet-app"
+      },
+      "assets_at_risk": [
+        "Instance role credentials",
+        "Everything the role may read"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "A crafted import URL makes the API fetch the metadata endpoint; the response is echoed in an error message.",
+        "prerequisites": [
+          "An instance launched without IMDSv2 enforcement"
+        ],
+        "mitre_attack": [
+          "T1190",
+          "T1552.005"
+        ],
+        "capec": [
+          "CAPEC-664"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "SSRF is common in URL-fetching features; role credentials open every service the role can call.",
+        "consequence": "The attacker calls AWS APIs as the instance role from anywhere.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "very-high",
+          "rationale": "IMDSv2 with hop limit 1 (CTL-0005) makes the metadata service unreachable through a forwarded request; AWS Config flags any instance without it.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-918"
+        ],
+        "owasp": [
+          "A10:2025"
+        ],
+        "nist_800_53": [
+          "SI-10",
+          "AC-6"
+        ],
+        "cis_controls": [
+          "CIS-16.10"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0005"
+        ],
+        "current_controls": [
+          "CTL-0005"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0004",
+      "number": 4,
+      "title": "Bucket Misconfiguration Exposes Customer Uploads to the Internet",
+      "description": "A bucket policy or ACL added during a support case could make the uploads prefix readable by anyone, as happened in many published breaches.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0009"
+        ]
+      },
+      "vulnerability": {
+        "category": "security-misconfiguration",
+        "cwe": "CWE-284"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "s3-assets"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-attacker-s3",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "aws-services"
+      },
+      "assets_at_risk": [
+        "Customer documents"
+      ],
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "automated-bot",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "low",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Bucket-name scanners find the bucket within hours of a public grant and copy everything listable.",
+        "mitre_attack": [
+          "T1530"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "low",
+        "impact": "high",
+        "rationale": "Account-level Block Public Access makes the grant impossible rather than merely unlikely.",
+        "consequence": "Customer documents readable by anyone with the URL.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "high",
+          "rationale": "Block Public Access is enforced by the account and an SCP; the bucket policy admits only the distribution and the role (CTL-0006).",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "low",
+        "score": 2
+      },
+      "standards": {
+        "cwe": [
+          "CWE-284"
+        ],
+        "owasp": [
+          "A02:2025"
+        ],
+        "nist_800_53": [
+          "AC-3",
+          "SC-7"
+        ],
+        "cis_controls": [
+          "CIS-3.3"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0006"
+        ],
+        "current_controls": [
+          "CTL-0006"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0005",
+      "number": 5,
+      "title": "Over-Broad Instance Role Reads Every Secret and Opens the Database as Its Master User",
+      "description": "The instance role carries secretsmanager:GetSecretValue on every secret in the account and the role-based database user is also the master user. Any code running on the instance, legitimate or not, inherits the lot.",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "elevation-of-privilege",
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0006",
+          "TA0009"
+        ]
+      },
+      "vulnerability": {
+        "category": "privilege-escalation",
+        "cwe": "CWE-250"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "secrets"
+        },
+        {
+          "kind": "node",
+          "ref": "rds",
+          "marker": false
+        },
+        {
+          "kind": "node",
+          "ref": "web-asg",
+          "marker": false
+        },
+        {
+          "kind": "flow",
+          "ref": "f-api-secrets",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "vpc-vnet",
+        "from": "snet-app",
+        "to": "aws-services"
+      },
+      "assets_at_risk": [
+        "Database master credentials",
+        "Third-party API keys",
+        "Orders database"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials",
+        "pii",
+        "financial"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Code running on the instance, through SSRF or a compromised dependency, lists and reads every secret and connects to the database as the master user.",
+        "mitre_attack": [
+          "T1552.001",
+          "T1078.004",
+          "T1005"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "The permission is one wildcard away from least privilege and every foothold on the instance becomes full data access.",
+        "consequence": "Any compromise of the web tier is a compromise of the whole data layer.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "very-high",
+          "rationale": "GuardDuty and CloudTrail (CTL-0007) see unusual GetSecretValue calls after the fact; nothing prevents them.",
+          "rating": "high",
+          "score": 8
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "Per-secret resource policies and a least-privilege role (CTL-0008) limit the role to the two secrets it needs and a non-master database user.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-250",
+          "CWE-732"
+        ],
+        "owasp": [
+          "A01:2025"
+        ],
+        "nist_800_53": [
+          "AC-6",
+          "AC-6(1)"
+        ],
+        "cis_controls": [
+          "CIS-3.3",
+          "CIS-6.8"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0007",
+          "CTL-0008"
+        ],
+        "current_controls": [
+          "CTL-0007"
+        ],
+        "planned_controls": [
+          "CTL-0008"
+        ],
+        "suggested_mitigations": [
+          {
+            "text": "Replace the role-based database user with a least-privilege application user and keep the master credential in Secrets Manager with no application access.",
+            "source": "reviewer",
+            "status": "suggested"
+          }
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0006",
+      "number": 6,
+      "title": "Unrestricted Egress Through the NAT Gateway Enables Exfiltration and Command-and-Control",
+      "description": "The private subnets route all Internet-bound traffic through the NAT gateway with no domain or destination filtering, so a compromised instance can talk to any host and copy data out.",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0010",
+          "TA0011"
+        ]
+      },
+      "vulnerability": {
+        "category": "data-exfiltration",
+        "cwe": "CWE-923"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "nat"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-web-nat",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "snet-app",
+        "to": "internet"
+      },
+      "assets_at_risk": [
+        "Orders database contents",
+        "Customer documents"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "adversary": {
+        "type": "criminal",
+        "source_class": "group-established",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "team",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "After a foothold on an instance, query results and documents are posted to an attacker-controlled host over HTTPS; the NAT gateway forwards it like any update download.",
+        "mitre_attack": [
+          "T1041",
+          "T1071.001"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "Open egress is the default; it turns every other compromise into a breach.",
+        "consequence": "Data leaves the account unnoticed until the bill or a GuardDuty finding says so.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "very-high",
+          "rationale": "GuardDuty flow-log findings (CTL-0007) can detect known-bad destinations; unknown hosts pass.",
+          "rating": "high",
+          "score": 8
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "very-high",
+          "rationale": "A Network Firewall domain allow-list in front of the NAT gateway (CTL-0009) limits egress to update repositories and approved APIs.",
+          "rating": "moderate",
+          "score": 5
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-923"
+        ],
+        "owasp": [
+          "A02:2025"
+        ],
+        "nist_800_53": [
+          "SC-7(5)",
+          "SC-7(11)"
+        ],
+        "cis_controls": [
+          "CIS-13.4"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0007",
+          "CTL-0009"
+        ],
+        "current_controls": [
+          "CTL-0007"
+        ],
+        "planned_controls": [
+          "CTL-0009"
+        ],
+        "suggested_mitigations": [
+          {
+            "text": "Route the private subnets through AWS Network Firewall with a domain allow-list before the NAT gateway, and alarm on denied flows.",
+            "source": "reviewer",
+            "status": "suggested"
+          }
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0001",
+      "name": "Cognito: MFA Required and Advanced Security Mode Enforced",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "high",
+      "owner": "Identity team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "cognito"
+        }
+      ],
+      "nist_800_53": [
+        "IA-2(1)",
+        "AC-7"
+      ],
+      "cis_controls": [
+        "CIS-6.3"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0002",
+      "name": "AWS WAF: Managed Rule Groups and a Rate-Based Rule at CloudFront",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "test",
+      "verified_on": "2026-10-15",
+      "effectiveness": "moderate",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "cloudfront"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7",
+        "SI-10"
+      ],
+      "cis_controls": [
+        "CIS-13.10"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0003",
+      "name": "ALB Security Group Admits Only the CloudFront Managed Prefix List",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "continuous-monitoring",
+      "verified_on": "2026-10-20",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "alb"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7",
+        "AC-4"
+      ],
+      "cis_controls": [
+        "CIS-12.2"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0004",
+      "name": "Listener Rule Requires the CloudFront Origin Secret Header",
+      "type": "preventive",
+      "status": "implemented",
+      "verification": "not-yet-verified",
+      "effectiveness": "moderate",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "alb"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0005",
+      "name": "IMDSv2 Required with Hop Limit 1 on Every Instance",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "scanner",
+      "verified_on": "2026-10-20",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "web-asg"
+        }
+      ],
+      "nist_800_53": [
+        "AC-6",
+        "CM-6"
+      ],
+      "cis_controls": [
+        "CIS-4.1"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0006",
+      "name": "S3 Block Public Access (Account and SCP) with an OAC-Only Bucket Policy",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "s3-assets"
+        }
+      ],
+      "nist_800_53": [
+        "AC-3",
+        "SC-7"
+      ],
+      "cis_controls": [
+        "CIS-3.3"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0007",
+      "name": "GuardDuty, the Organization CloudTrail Trail and VPC Flow Logs with Alarms",
+      "type": "detective",
+      "status": "verified",
+      "verification": "continuous-monitoring",
+      "verified_on": "2026-10-20",
+      "effectiveness": "moderate",
+      "owner": "Security operations",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "cloudwatch"
+        }
+      ],
+      "nist_800_53": [
+        "AU-6",
+        "SI-4"
+      ],
+      "cis_controls": [
+        "CIS-8.2",
+        "CIS-13.6"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0008",
+      "name": "Least-Privilege Instance Role with Per-Secret Resource Policies and a Non-Master Database User",
+      "type": "preventive",
+      "status": "planned",
+      "effectiveness": "high",
+      "owner": "Application team",
+      "due_date": "2026-12-15",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "secrets"
+        },
+        {
+          "kind": "node",
+          "ref": "web-asg"
+        },
+        {
+          "kind": "node",
+          "ref": "rds"
+        }
+      ],
+      "nist_800_53": [
+        "AC-6",
+        "AC-6(1)"
+      ],
+      "cis_controls": [
+        "CIS-3.3",
+        "CIS-6.8"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0009",
+      "name": "Egress Filtering: Network Firewall Domain Allow-List in Front of the NAT Gateway",
+      "type": "preventive",
+      "status": "planned",
+      "effectiveness": "high",
+      "owner": "Platform team",
+      "due_date": "2027-01-31",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "nat"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7(5)",
+        "SC-7(11)"
+      ],
+      "cis_controls": [
+        "CIS-13.4"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0010",
+      "name": "Session Manager Only: No Inbound SSH, Sessions Logged to CloudWatch",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "web-asg"
+        },
+        {
+          "kind": "node",
+          "ref": "ssm"
+        }
+      ],
+      "nist_800_53": [
+        "AC-17",
+        "AU-12"
+      ],
+      "cis_controls": [
+        "CIS-12.2",
+        "CIS-8.5"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0011",
+      "name": "RDS: Not Publicly Accessible, IAM Authentication, TLS Required, KMS Encryption",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Data team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "rds"
+        }
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-28",
+        "IA-2"
+      ],
+      "cis_controls": [
+        "CIS-3.11"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ],
+  "attack_paths": [
+    {
+      "id": "AP-0001",
+      "number": 1,
+      "title": "SSRF to Role Credentials to Database Exfiltration",
+      "description": "A crafted import URL steals the instance role from the metadata service; the over-broad role reads the database master credentials from Secrets Manager; the database is read from the instance; the results leave through the unfiltered NAT gateway.",
+      "status": "open",
+      "adversary": {
+        "type": "criminal",
+        "source_class": "group-established",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "team",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "entry": "attacker",
+      "hops": [
+        {
+          "threat": "THR-0003",
+          "from": "attacker",
+          "via": "f-alb-web",
+          "to": "web-asg",
+          "gain": "token",
+          "note": "A crafted image-import URL travels through CloudFront and the load balancer to the API, which fetches 169.254.169.254; on an instance still answering IMDSv1 the role's temporary credentials come back in the error message.",
+          "bypasses": [
+            "CTL-0005"
+          ]
+        },
+        {
+          "threat": "THR-0005",
+          "from": "web-asg",
+          "via": "f-api-rds",
+          "to": "rds",
+          "gain": "data-access",
+          "note": "The stolen role is the database's IAM master-equivalent user and may read every secret in the account besides; from the instance, a client dumps the orders tables and the database security group sees an ordinary application connection."
+        },
+        {
+          "threat": "THR-0005",
+          "from": "rds",
+          "to": "web-asg",
+          "gain": "data-access",
+          "note": "The dump is staged on the instance's disk next to the application; nothing on the host inspects it."
+        },
+        {
+          "threat": "THR-0006",
+          "from": "web-asg",
+          "via": "f-web-nat",
+          "to": "nat",
+          "gain": "data-exfiltration",
+          "note": "The dump is posted to an attacker-controlled host over HTTPS; the NAT gateway forwards it like any package download."
+        }
+      ],
+      "impact": "Customer orders, PII and payment references copied out of the account: regulatory notification, card-brand exposure and a full credential rotation.",
+      "assets_at_risk": [
+        "Orders database",
+        "Customer PII",
+        "Third-party API keys"
+      ],
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "low",
+        "impact": "very-high",
+        "rationale": "Every hop needs a misconfiguration that AWS Config or GuardDuty would flag, but none of them stops the chain by itself.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "very-high",
+          "rationale": "IMDSv2 enforcement (CTL-0005) removes hop 1 on every compliant instance; hops 2 to 4 remain open.",
+          "rating": "low",
+          "score": 2
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "high",
+          "rationale": "Per-secret policies (CTL-0008) and egress filtering (CTL-0009) break hops 2 and 4; what is left is the instance itself.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "moderate",
+        "score": 5
+      },
+      "breaks_at": [
+        "CTL-0005",
+        "CTL-0008",
+        "CTL-0009"
+      ],
+      "mitre_attack": [
+        "T1190",
+        "T1552.005",
+        "T1552.001",
+        "T1005",
+        "T1041"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ]
+}

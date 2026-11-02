@@ -93,7 +93,13 @@
             "443/tcp"
           ]
         }
-      ]
+      ],
+      "icon": "azure/virtual-machine",
+      "cloud": {
+        "provider": "azure",
+        "service": "Virtual Machines",
+        "card": "azure-vm"
+      }
     },
     {
       "name": "app-01",

@@ -15,6 +15,10 @@ terms from the licensor, DigitalPrez, LLC:
 3. Trademarks. "NetBlueprint Forge" and "DigitalPrez" are trademarks of DigitalPrez, LLC. This license grants no trademark rights.
 4. Notices. Keep this file with every copy of the software; the renderer repeats a short form of this notice at the top of every document
    it generates.
+5. Third-party icons. The icon library in assets/icons reproduces architecture icons published by Microsoft, Amazon Web Services and
+   Google for use in diagrams and documentation, and scripts/icons.mjs can fetch, at the user's request, product logos from the
+   Dashboard Icons collection into the user's own model folder. All of them remain the property of their owners, are used under
+   the terms reproduced in THIRD-PARTY-NOTICES.md, and this license grants no rights in them.
 
 Where these additional terms give more permission than the PolyForm Noncommercial License 1.0.0, the additional terms prevail; nothing in
 them takes away a permission that license gives.

@@ -242,7 +242,8 @@ button{font:inherit;color:inherit;cursor:pointer}button:disabled{opacity:.45;cur
 .node .t,.app .t{fill:var(--ink);font:600 12px var(--sans)}.node .s,.app .s{fill:var(--ink-3);font:11px var(--sans)}
 .node .accent,.app .accent{fill:var(--nc,#1F5FFF)}
 .node .ic,.app .ic,.comp .ic{fill:none;stroke:var(--nc,#1F5FFF);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.node.hostile .ic{stroke:var(--block)}.node.hostile .accent{fill:var(--block)}
+.node.hostile .ic{stroke:var(--block)}
+.vic use{pointer-events:none}.node.oos .vic,.app.oos .vic,.comp.oos .vic,.zone.oos .vic{opacity:.45;filter:grayscale(1)}.node.hostile .accent{fill:var(--block)}
 .node .ring{fill:none;stroke:var(--nc);stroke-width:2.4;opacity:0;transform-box:fill-box;transform-origin:center;pointer-events:none}
 .node.pulse .ring{animation:ring 1.2s ease-out infinite}
 @keyframes ring{0%{opacity:.75;transform:scale(1)}100%{opacity:0;transform:scale(1.08)}}
@@ -355,7 +356,7 @@ ol.hops{margin:0;padding:0;list-style:none}ol.hops li{margin:4px 0;line-height:1
     </div>
     <div class="diagram-wrap" id="wrap">
       <svg class="main" id="diagram" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Network diagram">
-        <defs id="defs"></defs>
+        <defs id="defs"><!--__VENDOR_SYMBOLS__--></defs>
         <g id="g-seam"></g><g id="g-zones"></g><g id="g-flows"></g><g id="g-apps"></g><g id="g-nodes"></g>
         <g id="g-fbadges"></g><g id="g-packets"></g><g id="g-cbadges"></g><g id="g-tmarkers"></g><g id="g-hops"></g><g id="g-badges"></g>
       </svg>
@@ -382,7 +383,7 @@ ol.hops{margin:0;padding:0;list-style:none}ol.hops li{margin:4px 0;line-height:1
 <script>
 (function(){
 'use strict';
-const RENDERER_VERSION='1.7.1';
+const RENDERER_VERSION='1.8.0';
 let MODEL=null;
 try{MODEL=JSON.parse(document.getElementById('nb-model').textContent.replace(/^\s*\/\*__MODEL_JSON__\*\//,''));}catch(e){MODEL=null;}
 if(!MODEL){document.body.innerHTML='<p style="padding:2rem;font-family:sans-serif">No model embedded. Run <code>node scripts/build.mjs model.json</code> to produce a diagram.</p>';return;}
@@ -429,12 +430,20 @@ const BAND_LABEL_DEFAULT={'very-low':'Very Low',low:'Low',moderate:'Moderate',hi
 const BAND_STYLE={'very-low':{fill:'#9BD79B',text:'#14213D',pat:null},low:{fill:'#F2C94C',text:'#14213D',pat:'5 3'},moderate:{fill:'#F28C28',text:'#fff',pat:'2 3'},high:{fill:'#D1352C',text:'#fff',pat:'solid'},'very-high':{fill:'#111111',text:'#FF3B30',pat:'inner'}};
 const BAND_SCORE={'very-low':0,low:2,moderate:5,high:8,'very-high':10};
 const NIST_MATRIX={'very-high':['very-low','low','moderate','high','very-high'],high:['very-low','low','moderate','high','very-high'],moderate:['very-low','low','moderate','moderate','high'],low:['very-low','low','low','low','moderate'],'very-low':['very-low','very-low','very-low','low','low']};
+// vendor icons (Azure, AWS, Google Cloud): build.mjs fills VENDOR_ICONS with the <symbol>s it injected into <defs> (ref -> {sym, viewBox})
+// and CARD_ICON with each cloud card's icon, from assets/icons/<provider>.json. An element's own icon wins, vendor or built-in; a cloud
+// node with a card and no icon gets the card's icon unless settings.icons.vendor is false; a vendor icon the page does not carry falls
+// back to the built-in default and is listed in MISSING_ICONS for the self-check
+const VENDOR_ICONS=/*__VENDOR_ICONS__*/{};const CARD_ICON=/*__CARD_ICONS__*/{};const MISSING_ICONS=new Set();const VENDOR_NAME={azure:'Microsoft Azure',aws:'AWS',gcp:'Google Cloud',dashboard:'product logos via Dashboard Icons'};
+const isVendorRef=r=>typeof r==='string'&&r.includes('/');
+function effIcon(explicit,cloud,fallback){let ref=explicit;if(!ref&&cloud&&cloud.card&&CARD_ICON[cloud.card]&&!(S.icons&&S.icons.vendor===false))ref=CARD_ICON[cloud.card];if(isVendorRef(ref)){if(VENDOR_ICONS[ref])return ref;MISSING_ICONS.add(ref);return fallback;}return ref||fallback;}
 const TYPE_ICON={server:'server',host:'server',service:'service',database:'database',storage:'storage',api:'api',connector:'connector',saas:'cloud','public-endpoint':'globe',user:'user','remote-user':'remote-user',admin:'admin','bad-actor':'bad-actor',laptop:'laptop',workstation:'workstation',mobile:'mobile',iot:'iot',ot:'ot','identity-provider':'shield',generic:'generic'};
 const COMP_ICON={'web-server':'server','app-server':'server',api:'api',database:'database','sql-server':'database',cache:'cache',queue:'queue','file-share':'storage',directory:'directory',dns:'dns',mail:'mail',container:'container',function:'function',agent:'service',scheduler:'service',process:'service',storage:'storage',secrets:'key',monitoring:'monitor',identity:'shield',custom:'generic'};
 const APP_ICON={firewall:'firewall',ngfw:'firewall',waf:'shield',gateway:'connector','api-gateway':'api',proxy:'connector','reverse-proxy':'connector','load-balancer':'load-balancer',nat:'connector',bastion:'lock',vpn:'lock','ids-ips':'monitor','zero-trust-broker':'connector','sd-wan':'globe',router:'connector',switch:'queue',other:'generic'};
 
 /* ===== 3. icons (24 x 22 box) ===== */
 function iconG(type){
+  if(isVendorRef(type)){const v=VENDOR_ICONS[type];const vg=el('g',{class:'vic'});if(v)el('use',{href:'#'+v.sym,x:1,y:0,width:22,height:22},vg);return vg;} // a vendor icon fills the same 24 x 22 slot, drawn as the vendor drew it
   const g=el('g',{class:'ic'});const P=d=>el('path',{d},g);const C=(x,y,r)=>el('circle',{cx:x,cy:y,r},g);const R=(x,y,w,hh,rx)=>el('rect',{x,y,width:w,height:hh,rx},g);
   switch(type){
     case'server':R(0,0,24,22,2);P('M0,7.3 H24 M0,14.6 H24');C(4,3.7,1);C(4,11,1);C(4,18.3,1);break;
@@ -478,7 +487,7 @@ const M=MODEL,S=M.settings||{},META=M.meta||{},LAYOUT=S.layout||{},SHOW=Object.a
 const INTERNET='internet';
 // a document is a list of tabs; a model without tabs[] is one tab made of the top-level collections
 const TAB_META_KEYS=['description','objective','flow_summary','path_summary','access_summary'];
-const TABS=(M.tabs&&M.tabs.length)?M.tabs:[{name:'main',label:'Diagram',zones:M.zones,nodes:M.nodes,flows:M.flows,phases:M.phases,steps:M.steps,threats:M.threats,controls:M.controls}];
+const TABS=(M.tabs&&M.tabs.length)?M.tabs:[{name:'main',label:'Diagram',zones:M.zones,nodes:M.nodes,flows:M.flows,phases:M.phases,steps:M.steps,threats:M.threats,controls:M.controls,attack_paths:M.attack_paths}];
 const liveThreats=t=>(t.threats||[]).filter(x=>!x.retired&&x.status!=='retired');
 const livePaths=t=>(t.attack_paths||[]).filter(p=>p.status!=='retired');const pathBand=p=>p.risk?(ratingOf(p.risk.residual)||ratingOf(p.risk)):null; // a chain's current band: residual if rated, else the path's own rating
 const ANY_THREATS=TABS.some(t=>liveThreats(t).length>0);
@@ -1011,7 +1020,7 @@ else if(hasPriv){const b=el('text',{x:G.margin,y:y0-12,class:'seam-label'},gSeam
 else if(hasInt){const a=el('text',{x:G.margin,y:y0-12,class:'seam-label'},gSeam);a.textContent=S.internet_label||'Internet';}
 // zones (outer first so inner draw on top)
 const zoneDepth=z=>chain(z.name).length;
-[...zones].sort((a,b)=>zoneDepth(a)-zoneDepth(b)).forEach(z=>{const b=z._box;if(!b)return;const g=el('g',{class:'zone'+(z.dashed||z.trust_boundary?' dashed':'')+(z.out_of_scope?' oos':'')+(z.suggested?' suggested':''),id:'zone-'+z.name},gZones);g.style.setProperty('--zc',zoneColor(z));el('path',{class:'zbox',d:rrect(b,zoneCorners(z,b))},g);let lx=b.x+16;if(z.icon){const ic=iconG(z.icon);ic.setAttribute('transform',`translate(${b.x+16},${b.y+9})`);g.appendChild(ic);lx=b.x+46;}const l=el('text',{x:lx,y:b.y+26,class:'zlabel'},g);l.textContent=z.label;if(z.sub){const s=el('text',{x:lx,y:b.y+43,class:'zsub'},g);s.textContent=titleCase(z.sub);}if(z.suggested){const t=el('text',{x:b.x+b.w-14,y:b.y+20,'text-anchor':'end',class:'tag-sugg'},g);t.textContent='SUGGESTED';}setTip(l,'Zone · '+pretty(z.kind||'network'),z.label+(z.sub?'\n'+titleCase(z.sub):'')+(z.trust_boundary?'\nTrust boundary':''));l.addEventListener('click',e=>{e.stopPropagation();selectZone(z);});EL.zone[z.name]=g;});
+[...zones].sort((a,b)=>zoneDepth(a)-zoneDepth(b)).forEach(z=>{const b=z._box;if(!b)return;const g=el('g',{class:'zone'+(z.dashed||z.trust_boundary?' dashed':'')+(z.out_of_scope?' oos':'')+(z.suggested?' suggested':''),id:'zone-'+z.name},gZones);g.style.setProperty('--zc',zoneColor(z));el('path',{class:'zbox',d:rrect(b,zoneCorners(z,b))},g);let lx=b.x+16;const zi=effIcon(z.icon,null,null);if(zi){const ic=iconG(zi);ic.setAttribute('transform',`translate(${b.x+16},${b.y+9})`);g.appendChild(ic);lx=b.x+46;}const l=el('text',{x:lx,y:b.y+26,class:'zlabel'},g);l.textContent=z.label;if(z.sub){const s=el('text',{x:lx,y:b.y+43,class:'zsub'},g);s.textContent=titleCase(z.sub);}if(z.suggested){const t=el('text',{x:b.x+b.w-14,y:b.y+20,'text-anchor':'end',class:'tag-sugg'},g);t.textContent='SUGGESTED';}setTip(l,'Zone · '+pretty(z.kind||'network'),z.label+(z.sub?'\n'+titleCase(z.sub):'')+(z.trust_boundary?'\nTrust boundary':''));l.addEventListener('click',e=>{e.stopPropagation();selectZone(z);});EL.zone[z.name]=g;});
 // flows
 const isPlain=f=>f.kind!=='blocked'&&f.kind!=='trust'&&(f.encrypted===false||(f.transport&&(f.transport.security_protocol==='none'||(f.transport.provides&&f.transport.provides.confidentiality===false))));
 routes.forEach(r=>{const f=r.f;const a=authOf(f);const g=el('g',{class:`flow kind-${f.kind||'data'} strength-${a.strength}`+(f.out_of_scope?' oos':'')+(isPlain(f)?' plain':''),id:'flow-'+f.name},gFlows);g.style.setProperty('--fc',KIND_COLOR[f.kind||'data']);const d=polyToPath(r.points,10);const line=el('path',{class:'line',d},g);const hit=el('path',{class:'hit',d},g);if(f.kind!=='blocked'&&f.kind!=='trust'){line.setAttribute('marker-end',`url(#arr-${f.kind||'data'})`);if(f.direction==='two-way')line.setAttribute('marker-start',`url(#arr-${f.kind||'data'})`);}
@@ -1038,8 +1047,8 @@ routes.forEach(r=>{const f=r.f;if(f.kind==='blocked'||f.kind==='trust')return;co
   setTip(g,'Authentication',(a.label||'Not specified')+' · '+st.label+(f.protocol?'\n'+f.protocol+(f.port?' '+f.port:''):'')+(isPlain(f)?'\nUNENCRYPTED':''));g.addEventListener('click',e=>{e.stopPropagation();selectFlow(f);});r.badge=g;});
 // appliances
 Object.values(APP).forEach(a=>{const b=a._box;if(!b)return;const z=Z[a._zone];const col=a.color?colorOf(a.color):zoneColor(z);const g=el('g',{class:'app'+(a.suggested?' suggested':'')+(a.out_of_scope?' oos':''),id:'app-'+a.name,tabindex:'0',role:'button'},gApps);g.style.setProperty('--nc',col);el('path',{class:'box',d:rrect(b,a._orient==='v'?{tl:0,tr:0,br:9,bl:9}:{tl:0,bl:0,tr:9,br:9})},g);
-  if(a._orient==='v'){el('rect',{class:'accent',x:b.x,y:b.y,width:b.w,height:5},g);const ic=iconG(APP_ICON[a.type]||'firewall');ic.setAttribute('transform',`translate(${b.x+(b.w-24)/2},${b.y+12})`);g.appendChild(ic);const cx=b.x+b.w/2,cy=a._labelAt!=null?a._labelAt:b.y+b.h/2+8;const t=el('text',{class:'t',x:cx,y:cy-6,'text-anchor':'middle',transform:`rotate(-90 ${cx} ${cy})`},g);const lm=Math.min(b.h-52,a._labelMax??Infinity);t.textContent=a._labelHide?'':fit(a.label,lm,FONT_T);if(a._labelHide)t.remove();if(a.sub){const s=el('text',{class:'s',x:cx,y:cy+12,'text-anchor':'middle',transform:`rotate(-90 ${cx} ${cy})`},g);s.textContent=a._labelHide?'':fit(titleCase(a.sub),lm,FONT_S);if(a._labelHide)s.remove();}}
-  else{el('rect',{class:'accent',x:b.x,y:b.y,width:5,height:b.h},g);const ic=iconG(APP_ICON[a.type]||'firewall');ic.setAttribute('transform',`translate(${b.x+14},${b.y+(b.h-22)/2})`);g.appendChild(ic);const lx=a._labelX!=null?a._labelX:b.x+48;const t=el('text',{class:'t',x:lx,y:b.y+b.h/2-2},g);const lm=Math.min(b.w-60,a._labelMax??Infinity);t.textContent=a._labelHide?'':fit(a.label,lm,FONT_T);if(a._labelHide)t.remove();if(a.sub){const s=el('text',{class:'s',x:lx,y:b.y+b.h/2+12},g);s.textContent=a._labelHide?'':fit(titleCase(a.sub),lm,FONT_S);if(a._labelHide)s.remove();}}
+  if(a._orient==='v'){el('rect',{class:'accent',x:b.x,y:b.y,width:b.w,height:5},g);const ic=iconG(effIcon(a.icon,null,APP_ICON[a.type]||'firewall'));ic.setAttribute('transform',`translate(${b.x+(b.w-24)/2},${b.y+12})`);g.appendChild(ic);const cx=b.x+b.w/2,cy=a._labelAt!=null?a._labelAt:b.y+b.h/2+8;const t=el('text',{class:'t',x:cx,y:cy-6,'text-anchor':'middle',transform:`rotate(-90 ${cx} ${cy})`},g);const lm=Math.min(b.h-52,a._labelMax??Infinity);t.textContent=a._labelHide?'':fit(a.label,lm,FONT_T);if(a._labelHide)t.remove();if(a.sub){const s=el('text',{class:'s',x:cx,y:cy+12,'text-anchor':'middle',transform:`rotate(-90 ${cx} ${cy})`},g);s.textContent=a._labelHide?'':fit(titleCase(a.sub),lm,FONT_S);if(a._labelHide)s.remove();}}
+  else{el('rect',{class:'accent',x:b.x,y:b.y,width:5,height:b.h},g);const ic=iconG(effIcon(a.icon,null,APP_ICON[a.type]||'firewall'));ic.setAttribute('transform',`translate(${b.x+14},${b.y+(b.h-22)/2})`);g.appendChild(ic);const lx=a._labelX!=null?a._labelX:b.x+48;const t=el('text',{class:'t',x:lx,y:b.y+b.h/2-2},g);const lm=Math.min(b.w-60,a._labelMax??Infinity);t.textContent=a._labelHide?'':fit(a.label,lm,FONT_T);if(a._labelHide)t.remove();if(a.sub){const s=el('text',{class:'s',x:lx,y:b.y+b.h/2+12},g);s.textContent=a._labelHide?'':fit(titleCase(a.sub),lm,FONT_S);if(a._labelHide)s.remove();}}
   setTip(g,pretty(a.type||'appliance'),a.label+(a.sub?'\n'+titleCase(a.sub):''));
   g.addEventListener('click',e=>{e.stopPropagation();selectAppliance(a);});g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectAppliance(a);}});EL.app[a.name]=g;});
 // nodes
@@ -1047,9 +1056,9 @@ nodes.forEach(n=>{const b=n._box;if(!b)return;const col=nodeColor(n);const g=el(
   el('path',{class:'ring',d:rrect({x:b.x-5,y:b.y-5,w:b.w+10,h:b.h+10},{tl:0,bl:0,tr:13,br:13})},g);
   const NODE_R={tl:0,bl:0,tr:9,br:9};if(n.stack){for(let i=n.stack-1;i>=1;i--)el('path',{class:'box stack',d:rrect({x:b.x+i*5,y:b.y+i*5,w:b.w,h:b.h},NODE_R)},g);}
   el('path',{class:'box',d:rrect(b,NODE_R)},g);el('rect',{class:'accent',x:b.x,y:b.y,width:5,height:b.h},g);
-  const icon=n.icon||TYPE_ICON[n.type]||'generic';const sub=n.sub?titleCase(n.sub):'';
+  const icon=effIcon(n.icon,n.cloud,TYPE_ICON[n.type]||'generic');n._vicon=isVendorRef(icon)?icon:null;const sub=n.sub?titleCase(n.sub):'';
   if(n.components&&n.components.length){const ic=iconG(icon);ic.setAttribute('transform',`translate(${b.x+14},${b.y+13})`);g.appendChild(ic);const t=el('text',{class:'t',x:b.x+48,y:b.y+24},g);t.textContent=fit(n.label,b.w-62,FONT_T);if(sub){const s=el('text',{class:'s',x:b.x+48,y:b.y+40},g);s.textContent=fit(sub,b.w-62,FONT_S);}
-    n.components.forEach(c=>{const cb=c._box;const cg=el('g',{class:'comp'+(c.suggested?' suggested':'')+(c.out_of_scope?' oos':''),id:'comp-'+n.name+'-'+c.name},g);el('rect',{class:'cbox',x:cb.x,y:cb.y,width:cb.w,height:cb.h,rx:6},cg);const ci=iconG(c.icon||COMP_ICON[c.type]||'generic');ci.setAttribute('transform',`translate(${cb.x+8},${cb.y+4.5}) scale(.78)`);cg.appendChild(ci);const ct=el('text',{class:'t',x:cb.x+34,y:cb.y+18},cg);const ports=(c.ports||[]).join(', ');ct.textContent=fit(c.label,cb.w-44-(ports?measure(ports,'10px monospace')+8:0),FONT_C);if(ports){const pt=el('text',{class:'p',x:cb.x+cb.w-8,y:cb.y+18,'text-anchor':'end'},cg);pt.textContent=ports;}setTip(cg,pretty(c.type||'component'),c.label+'\non '+n.label+(ports?'\nPorts '+ports:'')+(c.out_of_scope?'\nOut of scope':''));cg.addEventListener('click',e=>{e.stopPropagation();selectNode(n,c);});EL.comp[n.name+'/'+c.name]=cg;});}
+    n.components.forEach(c=>{const cb=c._box;const cg=el('g',{class:'comp'+(c.suggested?' suggested':'')+(c.out_of_scope?' oos':''),id:'comp-'+n.name+'-'+c.name},g);el('rect',{class:'cbox',x:cb.x,y:cb.y,width:cb.w,height:cb.h,rx:6},cg);const cic=effIcon(c.icon,null,COMP_ICON[c.type]||'generic');c._vicon=isVendorRef(cic)?cic:null;const ci=iconG(cic);ci.setAttribute('transform',`translate(${cb.x+8},${cb.y+4.5}) scale(.78)`);cg.appendChild(ci);const ct=el('text',{class:'t',x:cb.x+34,y:cb.y+18},cg);const ports=(c.ports||[]).join(', ');ct.textContent=fit(c.label,cb.w-44-(ports?measure(ports,'10px monospace')+8:0),FONT_C);if(ports){const pt=el('text',{class:'p',x:cb.x+cb.w-8,y:cb.y+18,'text-anchor':'end'},cg);pt.textContent=ports;}setTip(cg,pretty(c.type||'component'),c.label+'\non '+n.label+(ports?'\nPorts '+ports:'')+(c.out_of_scope?'\nOut of scope':''));cg.addEventListener('click',e=>{e.stopPropagation();selectNode(n,c);});EL.comp[n.name+'/'+c.name]=cg;});}
   else{const ic=iconG(icon);ic.setAttribute('transform',`translate(${b.x+16},${b.y+b.h/2-11})`);g.appendChild(ic);const tx=b.x+52,mw=b.x+b.w-12-tx;const sl=sub?[fit(sub,mw,FONT_S)]:[];const th=17+sl.length*13;const by=b.y+(b.h-th)/2+13;const t=el('text',{class:'t',x:tx,y:by},g);t.textContent=fit(n.label,mw,FONT_T);sl.forEach((ln,i)=>{const s=el('text',{class:'s',x:tx,y:by+15+i*13},g);s.textContent=ln;});}
   if(n.suggested){const t=el('text',{x:b.x+b.w-8,y:b.y+11,'text-anchor':'end',class:'tag-sugg'},g);t.textContent='SUGGESTED';}
   else if(n.data_classification&&!n.components){const t=el('text',{x:b.x+b.w-8,y:b.y+11,'text-anchor':'end',class:'cls-tag'},g);t.textContent=n.data_classification.toUpperCase();}
@@ -1098,6 +1107,8 @@ renderSummary(TAB);
   const strengths=new Set(flows.filter(f=>f.kind!=='blocked'&&f.kind!=='trust').map(f=>authOf(f).strength));['strong','moderate','weak','none','unspecified'].forEach(s=>{if(!strengths.has(s))return;const st=STRENGTH[s];add(h('span',null,h('i',{class:'ab',style:`--c:${st.color}`,text:st.glyph==='lock'?'🔒':st.glyph==='dot'?'•':st.glyph}),st.label));});
   if(Object.keys(APP).length)add(h('span',null,h('i',{class:'bar',style:'--c:#5B6B85'}),'Boundary Appliance (Firewall, WAF, Gateway)'));
   if(threats.length){const bands=new Set(markers.map(m=>m.band));BANDS.forEach(b=>{if(!bands.has(b))return;const st=BAND_STYLE[b];add(h('span',null,h('i',{class:'sev',style:`background:${st.fill};color:${st.text}`,text:'#'}),'Threat · '+BAND_LABEL[b]));});}
+  // vendor icons on this tab: name their owners (the icons are used under the vendors' terms, see THIRD-PARTY-NOTICES.md)
+  const vendors=new Set([...svg.querySelectorAll('.vic use')].map(u=>(u.getAttribute('href')||'').split('-')[1]).filter(p=>VENDOR_NAME[p]));if(vendors.size)add(h('span',{class:'vendors'},'Service icons: '+[...vendors].map(p=>VENDOR_NAME[p]).join(', ')+' · the icons belong to their owners and are used under their terms'));
   if(paths.length)add(h('span',null,h('i',{class:'sev',style:'background:#D1352C;color:#fff',text:'1'}),'Attack Path Hop (Walk It From the Band)'));if(threats.some(t=>t.status==='mitigated'))add(h('span',null,h('i',{class:'sev',style:'background:#F2C94C;color:#14213D;position:relative;overflow:visible',html:'#<svg viewBox="-8 -8 16 16" width="12" height="12" style="position:absolute;right:-6px;top:-6px"><path d="M0,-7.5 L6,-5.3 V-0.5 C6,3 3.4,5.4 0,6.8 C-3.4,5.4 -6,3 -6,-0.5 V-5.3 Z" fill="#1B8A5A" stroke="#fff" stroke-width="1.4"/><path d="M-2.6,0 l1.8,1.8 l3.6,-4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/></svg>'}),'Mitigated Threat (Shield)'));if(controls.some(c=>c.implemented_on&&c.implemented_on.length))add(h('span',null,h('i',{class:'ab',style:'--c:#1B8A5A',text:'✓'}),'Control in Place (Green Shield)'));
   if(nodes.some(n=>n.suggested)||zones.some(z=>z.suggested))add(h('span',null,h('i',{class:'line',style:'--c:#E0A100;--s:dotted'}),'Suggested, Not Yet Confirmed'));})();
 // severity chips: counts for this tab; the on/off state is shared with the register
@@ -1139,7 +1150,7 @@ const ctlLine=c=>h('span',null,`${c.id} ${c.name} `,h('span',{class:'tag',text:p
 
 function selectNode(n,c){clearFocus();EL.node[n.name].classList.add('focus');if(c)EL.comp[n.name+'/'+c.name].classList.add('focus');const ref=c?`${n.name}/${c.name}`:n.name;const subject=c||n;
   const rows=flat(subject,'',[],new Set([...SKIP,'components','info','out_of_scope','scope_reason','profile','cloud','ports','sub','type','icon','zone','stack']));
-  rows.push({k:'Name (id)',v:ref},{k:'Type',v:prettyVal(subject.type)});if(subject.sub)rows.push({k:'Subtitle',v:titleCase(subject.sub)});if(subject.info)rows.push({k:'Description',v:subject.info});scopeRows(subject,rows);
+  rows.push({k:'Name (id)',v:ref},{k:'Type',v:prettyVal(subject.type)});if(subject._vicon)rows.push({k:'Icon',v:subject._vicon});if(subject.sub)rows.push({k:'Subtitle',v:titleCase(subject.sub)});if(subject.info)rows.push({k:'Description',v:subject.info});scopeRows(subject,rows);
   if(c){rows.push({k:'Host',v:refLink(n.name)});if(c.ports&&c.ports.length)rows.push({k:'Ports',v:c.ports.join(', ')});}
   else{rows.push({k:'Zone',v:n.zone===INTERNET?(S.internet_label||'Internet'):chain(n.zone).map(x=>Z[x]?Z[x].label:x).join(' ‹ ')});if(n.stack)rows.push({k:'Instances',v:String(n.stack)});if(n.components&&n.components.length)rows.push({k:'Components',v:joinEls(n.components.map(cc=>refLink(n.name+'/'+cc.name,cc.label)),', ')});}
   if(subject.cloud)flat(subject.cloud,'Cloud',rows,new Set());if(subject.profile)flat(subject.profile,'Profile',rows,new Set());if(subject.layers&&subject.layers.length)rows.push({k:'Layers',v:subject.layers.join(', ')});
@@ -1249,7 +1260,7 @@ if(noSteps){renderPanel(null,0,false);$('#step-title').textContent='No walkthrou
 const collisions=[],nearMisses=[];{const soft=obstacles.map(o=>inflate(o,7));routes.forEach(r=>{for(let i=0;i<r.points.length-1;i++){const a=r.points[i],b=r.points[i+1];if(a.bar&&b.bar)continue;const dx=Math.sign(b.x-a.x),dy=Math.sign(b.y-a.y);if(!dx&&!dy)continue;
   const A={x:a.x+(a.port?dx*11:0),y:a.y+(a.port?dy*11:0)},Bp={x:b.x-(b.port?dx*11:0),y:b.y-(b.port?dy*11:0)};if((Bp.x-A.x)*dx<0||(Bp.y-A.y)*dy<0)continue; // a stub only
   if(hits([A,Bp],obstacles))collisions.push(r.f.name+'#'+i);else if(!a.port&&!b.port&&hits([a,b],soft))nearMisses.push(r.f.name+'#'+i);}});}
-window.__nb={model:M,tab:TAB.name,routes,markers,paths,VB,collisions,nearMisses,obstacles,LIFT,router:{XS,YS,nodeOk,edgeOk,INFL,DX,DY}};
+window.__nb={model:M,tab:TAB.name,routes,markers,paths,VB,collisions,nearMisses,obstacles,LIFT,router:{XS,YS,nodeOk,edgeOk,INFL,DX,DY},vendorIcons:Object.keys(VENDOR_ICONS),missingIcons:[...MISSING_ICONS]};
 return{ti:TI,ST,runStep,stepIndex:s=>{s=String(s);if(/^\d+$/.test(s))return +s>=1&&+s<=walk.length?+s-1:-1;return walk.findIndex(x=>x.name===s);},clearFocus,selectThreatById:id=>{const t=THR[id];if(t)selectThreat(t);},runPath:id=>{const p=paths.find(x=>x.id===id);if(p)selectPath(p,0);},refreshBands(){applyVisibility();},stop(){clearTimeout(ST.timer);ST.run++;gPk.innerHTML='';}};
 }
 
@@ -1280,7 +1291,7 @@ function checkTab(){const nb=window.__nb;if(!nb||!nb.routes)return null;const R=
   const col=(a,b,c)=>(Math.abs(a.x-b.x)<.5&&Math.abs(b.x-c.x)<.5)||(Math.abs(a.y-b.y)<.5&&Math.abs(b.y-c.y)<.5);const bends={},jogs=[];let maxBends=0;
   R.forEach(r=>{const p=r.points;let n=0;for(let i=1;i<p.length-1;i++)if(!col(p[i-1],p[i],p[i+1]))n++;bends[r.f.name]=n;maxBends=Math.max(maxBends,n);
     for(let i=1;i<p.length-2;i++){const L=Math.abs(p[i].x-p[i+1].x)+Math.abs(p[i].y-p[i+1].y);if(L<20&&!col(p[i-1],p[i],p[i+1])&&!col(p[i],p[i+1],p[i+2]))jogs.push(r.f.name+': '+Math.round(L)+' px');}});
-  return{tab:nb.tab,collisions:nb.collisions.slice(),nearMisses:nb.nearMisses.slice(),fallback:R.filter(r=>r.fallback).map(r=>r.f.name),lineOverText:[...lineOverText],textOverlaps,glyphsNear:[...glyphsNear],jogs,sharedStretches:shared,crossings,maxBends,bends,canvas:{w:Math.round(nb.VB.w),h:Math.round(nb.VB.h)}};}
+  return{tab:nb.tab,missingIcons:(nb.missingIcons||[]).slice(),collisions:nb.collisions.slice(),nearMisses:nb.nearMisses.slice(),fallback:R.filter(r=>r.fallback).map(r=>r.f.name),lineOverText:[...lineOverText],textOverlaps,glyphsNear:[...glyphsNear],jogs,sharedStretches:shared,crossings,maxBends,bends,canvas:{w:Math.round(nb.VB.w),h:Math.round(nb.VB.h)}};}
 const HARD_CHECKS=['collisions','nearMisses','fallback','lineOverText','textOverlaps','glyphsNear','jogs','sharedStretches'];
 function checkAll(){const start=CUR.ti;const out={renderer:RENDERER_VERSION,title:document.title,tabs:[]};TABS.forEach((t,i)=>{if(t.register)return;showTab(i);const rep=checkTab();if(rep)out.tabs.push(rep);});showTab(start);out.ok=out.tabs.every(r=>HARD_CHECKS.every(k=>!r[k].length));return out;}
 window.__nbTabs={names:TABS.map(t=>t.name),show:showTab,current:()=>CUR.ti,check:checkAll,hardChecks:HARD_CHECKS};

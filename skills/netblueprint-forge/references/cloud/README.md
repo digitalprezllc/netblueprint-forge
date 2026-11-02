@@ -25,3 +25,7 @@ Each card has the same sections:
 6. Never put live-fetched content into the rendered HTML as a dependency. Text only.
 
 Background and sources: `docs/research/cloud-service-catalogue.md` in the repository.
+
+## Icons
+
+Every card carries an **Icon** line, the vendor's official icon for that service (`azure/key-vaults`, `aws/lambda`, `gcp/cloud-sql`). A node whose `cloud.card` names the card shows that icon on the page automatically; set `icon` only to choose another. For a service without a card, `node scripts/icons.mjs search "<service>"` finds the id to put in `icon`. The icons are the vendors' and are used under their terms (`THIRD-PARTY-NOTICES.md`): only on the product they depict, never altered.

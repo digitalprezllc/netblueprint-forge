@@ -28,6 +28,8 @@ jobs:
           node-version: 22
       - name: Fixtures and examples through validate.mjs
         run: node tests/check_validate.mjs
+      - name: Vendor icon library, card icons and the examples' symbols
+        run: node tests/check_icons.mjs
 
   schema:
     name: Schema check

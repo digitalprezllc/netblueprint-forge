@@ -24,5 +24,17 @@
       "crossings": 2,
       "maxBends": 4
     }
+  },
+  "aws-three-tier": {
+    "main": {
+      "crossings": 8,
+      "maxBends": 3
+    }
+  },
+  "gcp-serverless-web": {
+    "main": {
+      "crossings": 15,
+      "maxBends": 4
+    }
   }
 }

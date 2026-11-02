@@ -23,6 +23,10 @@ const SHOTS = [
     shows: 'Threat Register tab of the hub-spoke document' },
   { page: 'examples/partner-portal-tabs/partner-portal-tabs.html', out: 'docs/images/partner-portal-admin-access.png', tab: 'admin-access', step: 'jump', width: 1600,
     shows: 'Partner Portal, Admin Access tab: the jump host step' },
+  { page: 'examples/aws-three-tier/aws-three-tier.html', out: 'docs/images/aws-three-tier.png', path: 'AP-0001', hop: 1, width: 1700,
+    shows: 'AnyCompany on AWS: attack path AP-0001 at hop 1' },
+  { page: 'examples/gcp-serverless-web/gcp-serverless-web.html', out: 'docs/images/gcp-serverless-web.png', step: 'orders', width: 1600,
+    shows: 'Cymbal on Google Cloud: the orders step through the VPC connector' },
 ];
 
 async function main() {

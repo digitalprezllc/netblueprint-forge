@@ -114,6 +114,12 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 - Every flow that is not `trust` or `blocked` has a data classification (`data_classification` or `data.sensitivity`); the validator warns otherwise.
 - An open threat (identified, investigating, open) with no current or planned control and no suggested mitigation is flagged; controls are written as engineering actions.
 
+### 2.21 Vendor icons
+- The skill ships the official Microsoft Azure (with Microsoft Entra), AWS and Google Cloud architecture icons as one index file per provider in `assets/icons/`, imported from the vendors' packages by `scripts/icons.mjs` without dependencies and without changing colour, shape or proportion; ids and CSS classes are prefixed so icons can share a page. The vendors' terms are reproduced in `THIRD-PARTY-NOTICES.md` (root and skill folder) and the LICENSE says the icons are not licensed by DigitalPrez.
+- `icon` accepts, besides the built-in names, `<provider>/<id>` (`azure/key-vaults`, `aws/lambda`, `gcp/cloud-sql`), with aliases (`aws/s3`, `azure/key-vault`); appliances can carry an icon too. Every cloud card declares its icon; a cloud node with a card and no icon gets the card's icon unless `settings.icons.vendor` is false. The validator warns about an icon the library lacks and about a provider mismatch.
+- AWS: service and resource icons, group and category icons. Google: the 2025 product and category icons plus the legacy per-product icons, product first. `tests/check_icons.mjs` checks the library, the cards and the examples' pages.
+- Product logos on demand: `icon: "dashboard/<name>"` names a logo from the Dashboard Icons collection; `node scripts/icons.mjs fetch` downloads it (jsDelivr, then GitHub), refuses scripts, event handlers, foreign objects and external references, normalizes it and stores it in `icons.json` beside the model, which `build.mjs`, `validate.mjs` and `icons.mjs check` read; `search --provider dashboard` queries the collection's catalogue. The skill ships no logo; the notices file states the collection's licence and its trademark disclaimer; `tests/check_icons.mjs` exercises the fetch offline from a folder.
+
 ## 3. Renderer
 
 ### 3.1 Output
@@ -211,6 +217,10 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 - The URL hash opens a page at a point: `#tab=<name>` a tab, `&step=<n | step name>` the walkthrough at that step (n counts the story's steps, then the attack-path hops; a hop is named `AP-nnnn-hop-<n>`), `&path=AP-nnnn[&hop=n]` an attack path at a hop. Once the page has settled on a tab the hash is rewritten to the tab alone.
 - `scripts/screenshot.mjs` renders one such view to a PNG with the same headless browser as the check: by default the whole page, band to signature block, at the diagram's natural size (the self-check report carries the document's natural size as `page`, measured once the walkthrough has settled), or a fixed height; `--scale` for high-resolution pictures. `tests/readme_screenshots.mjs` regenerates the README's pictures from the examples.
 
+### 3.15 Vendor icons on the page
+- `build.mjs` injects one `<symbol>` per distinct vendor icon the model uses into the page's `<defs>`, plus the ref-to-symbol map and the cards' icons; the page stays self-contained and grows by a few kilobytes per icon.
+- The renderer draws a vendor icon with `<use>` in the same 24 × 22 slot as a line icon (22 × 22, centred, never stretched), on nodes, host title rows, component rows, appliance bars and zone titles; an out-of-scope element dims it. A vendor icon the page does not carry falls back to the built-in icon and is listed in the self-check report (`missingIcons`, informational). The legend names the vendors whose icons the tab shows; the Attributes card shows the icon id. A fetched logo is embedded from `icons.json` beside the model like any vendor icon, and the legend names the collection.
+
 ## 4. Skill (interview)
 
 - Steers a structured interview in roughly this order: network and zones → boundaries and appliances → nodes and services → users, devices and actors → flows and auth → story steps → threats and controls → layers → signature details.
@@ -273,9 +283,9 @@ Releases: every version is also published as `netblueprint-forge-<version>.zip` 
 
 ## 8. Open questions
 
-- Severity band names. Research recommends the NIST five: Very Low (light green), Low (yellow), Moderate (orange), High (red), Very High (black, bold red number), because both risk methods and CVSS map onto them 1:1 (see [research/threat-attributes.md §4.4](research/threat-attributes.md)). Display labels configurable per model. **Awaiting confirmation.**
+- Severity band names. Research recommends the NIST five: Very Low (light green), Low (yellow), Moderate (orange), High (red), Very High (black, bold red number), because both risk methods and CVSS map onto them 1:1 (see [research/threat-attributes.md §4.4](research/threat-attributes.md)). Display labels configurable per model. **Settled:** the five bands are what the renderer, the register and the validator use.
 - Whether Codex plugin packaging (beyond `agents/openai.yaml`) is needed for ChatGPT web/mobile.
-- Minimum diagram size in pixels (proposal: 1280 × 640).
+- Minimum diagram size in pixels. **Settled:** 1280 × 640 are the defaults of `settings.layout.min_width` and `min_height`; below them the page scrolls.
 
 ## Appendix A: Draft threat object
 

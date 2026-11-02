@@ -12,6 +12,8 @@ const files = [
   path.join(root, 'examples', 'azure-hub-spoke', 'azure-hub-spoke.model.json'),
   path.join(root, 'examples', 'entra-app-proxy', 'entra-app-proxy.model.json'),
   path.join(root, 'examples', 'partner-portal-tabs', 'partner-portal-tabs.model.json'),
+  path.join(root, 'examples', 'aws-three-tier', 'aws-three-tier.model.json'),
+  path.join(root, 'examples', 'gcp-serverless-web', 'gcp-serverless-web.model.json'),
 ];
 let failures = 0;
 for (const file of files) {

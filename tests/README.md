@@ -29,7 +29,7 @@ This is a development check of the schema itself. The validator users run is `sk
 ## Layout checks (automated)
 
 ```bash
-node tests/check_layout.mjs              # builds the three examples, checks every diagram tab, compares with the baseline
+node tests/check_layout.mjs              # builds the five examples, checks every diagram tab, compares with the baseline
 node tests/check_layout.mjs --no-build   # check the HTML files as they are
 node tests/check_layout.mjs --update     # rewrite tests/layout-baseline.json from the current numbers (after looking at the diagrams)
 ```
@@ -49,7 +49,7 @@ A tab **fails** when any of these is non-empty (the "hard" checks, also listed i
 | `jogs` | a middle segment shorter than 20 px between two bends |
 | `sharedStretches` | two different flows share one lane for more than 1 px |
 
-It also reports, per tab, the number of perpendicular **crossings** between flows and the **longest flow's bends** (`maxBends`, with `bends` per flow). `tests/layout-baseline.json` records those for every example tab; the test fails when either number grows, so a routing change that adds crossings or bends is visible even though it breaks no hard rule. Baseline on 2026-10-25 (renderer 1.7.0): Entra Application Proxy 6 crossings / 2 bends, Azure hub-spoke Baseline 33 / 7 and What-If 51 / 7, Partner Access 6 / 2, Admin Access 2 / 4. The hub-spoke numbers grew with the second threat marker on the jump VM, the control shield on its SQL flow and the what-if tab's extra node and flows; the checks above stay at zero.
+It also reports, per tab, the number of perpendicular **crossings** between flows and the **longest flow's bends** (`maxBends`, with `bends` per flow). `tests/layout-baseline.json` records those for every example tab; the test fails when either number grows, so a routing change that adds crossings or bends is visible even though it breaks no hard rule. Baseline on 2026-10-25 (renderer 1.7.0): Entra Application Proxy 6 crossings / 2 bends, Azure hub-spoke Baseline 33 / 7 and What-If 51 / 7, Partner Access 6 / 2, Admin Access 2 / 4. The hub-spoke numbers grew with the second threat marker on the jump VM, the control shield on its SQL flow and the what-if tab's extra node and flows; the checks above stay at zero. Added on 2026-11-01 (renderer 1.8.0): AnyCompany on AWS 8 crossings / 3 bends, Cymbal on Google Cloud 15 / 4.
 
 Without a browser available to Node, the same report is one call away in any browser: open the built page, press F12 and run `window.__nbTabs.check()` in the console (it switches through the tabs and comes back), or open the page with `?nbcheck=1` and read the `#nb-report` element. The page also exposes `window.__nb` for the current tab (`model` with computed `_box` geometry, `routes` with points and a `fallback` count, `markers`, `VB`, `collisions`, `nearMisses`, `router` with the routing grid) and `window.__nbTabs.show(i)` to switch tabs.
 
@@ -70,3 +70,11 @@ Regenerates `docs/images/*.png`, the pictures the README shows, from the built e
 `--hard-only` is deliberate: the renderer measures text with the browser's fonts ("Segoe UI", then Arial), and a Linux runner substitutes them, so boxes come out a few pixels wider or narrower and crossings or bends can move by one. The hard checks (nothing through or hugging a box, nothing over text, no glyph clashes, no jogs, no shared lanes, nothing unrouted) hold on any font; the crossings and bends baseline is compared where it was taken, on a developer machine, with the plain `node tests/check_layout.mjs`.
 
 `.github/workflows/release.yml` is the second workflow: on every push to `master` it runs the validator suite, builds `netblueprint-forge-<version>.zip` with `platforms/package.mjs`, tests the archive with Python's `zipfile`, keeps it as a workflow artifact, and publishes a GitHub Release tagged `v<version>` when that tag does not exist yet. The archive was checked locally with Python's `zipfile -t` and with PowerShell's `Expand-Archive`, whose extraction matched the skill folder file for file by SHA-256.
+
+## Icon library check
+
+```bash
+node tests/check_icons.mjs
+```
+
+Checks the vendor icon library and its use without a browser: the three index files in `skills/netblueprint-forge/assets/icons` parse, hold real icons and have aliases that resolve; every cloud card's icon resolves; every example's icons resolve and each built example page carries exactly one `<symbol>` per distinct icon it uses, with unique ids, every `<style>` inside a symbol scoped to prefixed class names, and the symbols within a 200 KB budget; and the normalizer prefixes ids, `url(#…)` references and classes while leaving colours alone; and the fetch path, offline, with a folder standing in for the CDN: a logo lands in `icons.json` beside the model, normalized and prefixed, and resolves from there, while an SVG that carries a script, a name the source lacks and a shipped provider are refused. CI runs it in the validator job.

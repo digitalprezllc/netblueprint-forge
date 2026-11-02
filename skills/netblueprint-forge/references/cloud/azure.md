@@ -5,6 +5,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 ---
 
 ## `azure-vm` — Azure Virtual Machines
+- **Icon:** `azure/virtual-machine`
 - **What:** VMs in a VNet subnet with NSGs.
 - **Attaches to:** VNet + subnet; optional public IP; NSG on NIC and/or subnet; egress via NAT Gateway, Azure Firewall or default outbound (being retired for new subnets).
 - **Default exposure:** NSG default rules deny inbound from the Internet; a public IP exposes whatever the NSG allows. The Azure IMDS (169.254.169.254) requires the `Metadata: true` header and is not routable, but SSRF with header control can still reach it.
@@ -15,6 +16,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** RDP/SSH exposed to the Internet · Elevation of privilege · `security-misconfiguration` · T1133 · control: no inbound NSG rule, Bastion / JIT ‖ SSRF reaches IMDS managed-identity token · Elevation of privilege · `ssrf` · T1552.005 · control: egress allow-list, least-privilege identity ‖ Unpatched OS · Elevation of privilege · `vulnerable-components` · control: Update Manager SLA ‖ Credentials in custom script / extensions · Information disclosure · `credential-exposure` · CWE-798 · control: Key Vault references.
 
 ## `azure-storage` — Azure Storage account (blob, file, queue, table)
+- **Icon:** `azure/storage-accounts`
 - **What:** Object, file and queue storage.
 - **Attaches to:** Public endpoint per service; private endpoints per sub-service; service endpoints; firewall with allow-listed VNets/IPs.
 - **Default exposure:** public endpoint reachable, but anonymous blob access is prohibited by default on new accounts; Shared Key is enabled unless disabled.
@@ -25,6 +27,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Container made public · Information disclosure · `security-misconfiguration` · CWE-284 · control: account-level disallow + policy deny ‖ Leaked SAS or account key · Spoofing · `credential-exposure` · CWE-522 · control: disable Shared Key, short SAS, rotation ‖ Public endpoint reachable from anywhere · Information disclosure · `excessive-trust-or-flat-network` · control: private endpoints + firewall ‖ Ransomware / deletion · Tampering · `insider-misuse` · control: soft delete, versioning, immutability.
 
 ## `azure-sql` — Azure SQL Database / Managed Instance
+- **Icon:** `azure/sql-database`
 - **What:** Managed SQL Server.
 - **Attaches to:** Public endpoint with server firewall (incl. "Allow Azure services"), service endpoint, or private endpoint; Managed Instance lives in a delegated subnet.
 - **Default exposure:** public endpoint exists; firewall rules decide; "Allow Azure services" opens it to all Azure tenants.
@@ -35,6 +38,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Server open to all Azure services / Internet · Information disclosure · `security-misconfiguration` · CWE-284 · control: private endpoint, public access off ‖ SQL logins with passwords in app settings · Spoofing · `credential-exposure` · CWE-798 · control: Entra-only auth + managed identity ‖ SQL injection via the app · Tampering · `injection` · CWE-89, A05:2025 · control: parameterized queries ‖ No audit trail · Repudiation · `insufficient-logging-monitoring` · CWE-778 · control: auditing to Log Analytics.
 
 ## `azure-app-service` — Azure App Service (web apps, APIs)
+- **Icon:** `azure/app-services`
 - **What:** PaaS web hosting (Windows/Linux, containers).
 - **Attaches to:** Public hostname by default; inbound private endpoint; outbound regional VNet integration; access restrictions (IP / service tag / VNet rules); Application Gateway or Front Door in front.
 - **Default exposure:** public endpoint; the SCM (Kudu) site is also public unless restricted; basic-auth publishing (FTP/FTPS, SCM) is disabled by default for new apps, older apps may have it on.
@@ -45,6 +49,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Direct access bypasses the WAF · Tampering · `security-misconfiguration` · control: access restrictions allow only the front door ‖ Publishing credentials leaked · Spoofing · `credential-exposure` · CWE-522 · control: basic auth off, pipeline identity ‖ SSRF to IMDS token · Elevation of privilege · `ssrf` · CWE-918 · control: least-privilege identity, egress allow-list ‖ Secrets in app settings · Information disclosure · `credential-exposure` · control: Key Vault references ‖ Legacy TLS / FTP · Information disclosure · `missing-or-weak-encryption` · control: HTTPS-only, TLS 1.2+, FTP off.
 
 ## `azure-functions` — Azure Functions
+- **Icon:** `azure/function-apps`
 - **What:** Serverless functions on App Service infrastructure (Consumption / Flex / Premium).
 - **Attaches to:** Public hostname; HTTP triggers at `/api/*`; private endpoint and VNet integration on Flex/Premium; event triggers from Storage, Service Bus, Event Grid.
 - **Default exposure:** HTTP triggers with authorization level `anonymous` are open; `function`/`admin` keys are shared secrets.
@@ -55,6 +60,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Anonymous HTTP trigger · Spoofing · `broken-authentication` · CWE-306 · control: Easy Auth / Entra ‖ Function key leak · Spoofing · `credential-exposure` · control: identity-based auth, rotation ‖ Host storage account exposed · Information disclosure · `security-misconfiguration` · control: identity-based connections, private endpoint ‖ Over-permissive identity · Elevation of privilege · `privilege-escalation` · control: least-privilege RBAC.
 
 ## `azure-aks` — Azure Kubernetes Service
+- **Icon:** `azure/kubernetes-services`
 - **What:** Managed Kubernetes.
 - **Attaches to:** API server public (authenticated) or private cluster / API Server VNet Integration; nodes in a VNet subnet; Azure CNI or overlay; ingress via Application Gateway for Containers / NGINX + public LB.
 - **Default exposure:** public API server unless private; `LoadBalancer` services get public IPs by default.
@@ -65,6 +71,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Exposed API server · Elevation of privilege · `security-misconfiguration` · T1190 · control: private cluster / authorized IPs ‖ Pod steals node identity via IMDS · Elevation of privilege · `ssrf` · T1552.005 · control: Workload Identity + block IMDS ‖ Flat pod network · Elevation of privilege · `excessive-trust-or-flat-network` · control: network policy default deny ‖ Vulnerable images · Elevation of privilege · `supply-chain` · A03:2025 · control: ACR scanning, admission policy.
 
 ## `azure-key-vault` — Azure Key Vault (secrets, keys, certificates)
+- **Icon:** `azure/key-vaults`
 - **What:** Secret/key/certificate store (Standard, Premium HSM-backed, Managed HSM).
 - **Attaches to:** Public endpoint with firewall and trusted-services bypass; private endpoint.
 - **Default exposure:** public endpoint reachable, access governed by RBAC (or legacy access policies).
@@ -75,6 +82,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Secrets readable by too many identities · Information disclosure · `unauthorized-access` · CWE-284 · control: RBAC least privilege per secret ‖ Vault reachable from the Internet · Information disclosure · `security-misconfiguration` · control: private endpoint ‖ Accidental or malicious deletion · Denial of service · `insider-misuse` · control: soft delete + purge protection.
 
 ## `azure-app-gateway` — Application Gateway (WAF v2)
+- **Icon:** `azure/application-gateways`
 - **What:** Regional L7 load balancer with WAF.
 - **Attaches to:** Its own subnet; public and/or private frontend; back-end pools (VMs, App Service, private endpoints).
 - **Default exposure:** public frontend when a public IP is attached; HTTP listeners pass plaintext unless redirected.
@@ -85,6 +93,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Web attacks reach the app · Tampering · `injection` · A05:2025 · control: WAF prevention mode ‖ Back-end reachable around the gateway · Elevation of privilege · `security-misconfiguration` · control: back-end allows gateway subnet only ‖ Legacy TLS · Information disclosure · `missing-or-weak-encryption` · control: TLS 1.2+ policy.
 
 ## `azure-front-door` — Azure Front Door (global entry, CDN, WAF)
+- **Icon:** `azure/front-door-and-cdn-profiles`
 - **What:** Global anycast HTTP(S) entry point with WAF and caching.
 - **Attaches to:** Internet edge; origins public or via Private Link (Premium).
 - **Default exposure:** public; origins remain directly reachable unless locked (Private Link or `X-Azure-FDID` / service tag checks).
@@ -95,6 +104,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Origin bypass · Information disclosure · `security-misconfiguration` · control: Private Link origin / header check ‖ L7 DoS · Denial of service · `resource-exhaustion` · control: WAF rate limiting + DDoS protection ‖ Bot abuse of sign-in · Spoofing · `broken-authentication` · control: bot manager rules.
 
 ## `azure-service-bus` — Service Bus / Event Hubs (messaging)
+- **Icon:** `azure/azure-service-bus`
 - **What:** Enterprise messaging (queues, topics) and event streaming.
 - **Attaches to:** Public namespace endpoint; private endpoint; IP firewall / VNet rules (Premium).
 - **Default exposure:** public endpoint; SAS policies with `Manage` rights are common and over-broad.
@@ -105,6 +115,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Leaked SAS with Manage rights · Tampering · `credential-exposure` · control: Entra RBAC, local auth off ‖ Namespace reachable from the Internet · Information disclosure · `excessive-trust-or-flat-network` · control: private endpoint ‖ Poison messages · Denial of service · `improper-input-validation` · control: validation + DLQ.
 
 ## `azure-cosmos-db` — Azure Cosmos DB
+- **Icon:** `azure/azure-cosmos-db`
 - **What:** Globally distributed NoSQL database.
 - **Attaches to:** Public endpoint with IP firewall / VNet rules; private endpoint.
 - **Default exposure:** public endpoint; account keys grant full access; "Allow access from Azure portal / Azure datacenters" widen it.
@@ -115,6 +126,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Account key leak · Spoofing · `credential-exposure` · CWE-522 · control: local auth off, RBAC ‖ Public endpoint open · Information disclosure · `security-misconfiguration` · control: private endpoint ‖ NoSQL injection · Tampering · `injection` · CWE-943 · control: parameterized queries.
 
 ## `azure-bastion` — Azure Bastion
+- **Icon:** `azure/bastions`
 - **What:** Managed RDP/SSH broker over TLS 443 from the portal or native client.
 - **Attaches to:** `AzureBastionSubnet` in the VNet (or peered hub); public IP on the Bastion host (Developer SKU without).
 - **Default exposure:** public 443 for the Bastion service only; target VMs need no public IP.

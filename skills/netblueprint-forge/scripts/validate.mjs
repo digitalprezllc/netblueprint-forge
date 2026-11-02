@@ -18,6 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { suggest } from './normalize.mjs';
+import { resolveIcon, useLocalIndex, PROVIDERS as SHIPPED_ICON_PROVIDERS, FETCHED_PROVIDERS } from './icons.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.join(here, '..', 'assets', 'schema', 'netblueprint.schema.json');
@@ -237,6 +238,10 @@ function lintScope(model, { fix = false } = {}) {
   // cycles
   zones.forEach((z) => { const seen = new Set(); let cur = z; while (cur && cur.parent && cur.parent !== 'internet') { if (seen.has(cur.name)) { err(`zone "${z.name}" is inside a parent loop`); break; } seen.add(cur.name); cur = zones.find((k) => k.name === cur.parent); } });
   nodes.forEach((n) => { if (n.zone !== 'internet' && !Z.has(n.zone)) err(`node "${n.name}": zone "${n.zone}" does not exist (use "internet" for Internet-side nodes)`); checkLayers(n.layers, `node "${n.name}"`); (n.components || []).forEach((c) => checkLayers(c.layers, `component "${n.name}/${c.name}"`)); if (n.zone === 'internet' && ['database', 'storage'].includes(n.type) && !n.cloud) warn(`node "${n.name}" is a ${n.type} on the Internet side; if it is a cloud service add a cloud block, otherwise check it is really public`); });
+  // vendor icons: a "provider/id" icon must be in the icon library (the renderer falls back to the built-in icon otherwise) and should match the element's cloud provider
+  const iconLint = (ref, what, cloud) => { if (typeof ref !== 'string' || !ref.includes('/')) return; const r = resolveIcon(ref); if (!r) { const [p, n] = ref.split('/'); const hint = FETCHED_PROVIDERS.includes(p) ? `fetch it beside the model: node scripts/icons.mjs fetch ${ref} --model <model.json>` : `try: node scripts/icons.mjs search "${n.replace(/-/g, ' ')}"`; warn(`${what}: icon "${ref}" is not in the icon library; the built-in icon will be drawn (${hint})`); return; } if (cloud && cloud.provider && SHIPPED_ICON_PROVIDERS.includes(r.provider) && cloud.provider !== r.provider) warn(`${what}: icon "${ref}" is a ${r.provider} icon on a ${cloud.provider} service`); };
+  zones.forEach((z) => { iconLint(z.icon, `zone "${z.name}"`, z.cloud); (z.appliances || []).forEach((a) => iconLint(a.icon, `appliance "${a.name}"`, a.cloud)); });
+  nodes.forEach((n) => { iconLint(n.icon, `node "${n.name}"`, n.cloud); (n.components || []).forEach((c) => iconLint(c.icon, `component "${n.name}/${c.name}"`, null)); });
   flows.forEach((f) => {
     if (!refOk(f.from)) err(`flow "${f.name}": from "${f.from}" is not a node, component (node/component) or appliance`);
     if (!refOk(f.to)) err(`flow "${f.name}": to "${f.to}" is not a node, component (node/component) or appliance`);
@@ -425,6 +430,7 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   const args = process.argv.slice(2);
   const file = args.find((a) => !a.startsWith('-'));
+  try { useLocalIndex(file); } catch (e) { console.warn(`warning: ${e.message}`); }
   if (!file || args.includes('-h') || args.includes('--help')) { console.error('usage: node scripts/validate.mjs <model.json> [--fix] [--json] [--quiet]'); process.exit(file ? 0 : 2); }
   let model;
   try { model = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')); }

@@ -147,7 +147,8 @@
             "order": 0,
             "arrange": "column"
           },
-          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall."
+          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall.",
+          "icon": "azure/subscriptions"
         },
         {
           "name": "hub-vnet",
@@ -172,10 +173,12 @@
               "serves": [
                 "onprem"
               ],
-              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way."
+              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way.",
+              "icon": "azure/virtual-network-gateways"
             }
           ],
-          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises."
+          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises.",
+          "icon": "azure/virtual-networks"
         },
         {
           "name": "spoke-web",
@@ -196,10 +199,12 @@
               "type": "firewall",
               "edge": "top",
               "filters": "both",
-              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled."
+              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled.",
+              "icon": "azure/firewalls"
             }
           ],
-          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints."
+          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints.",
+          "icon": "azure/virtual-networks"
         },
         {
           "name": "snet-app",
@@ -211,7 +216,8 @@
             "order": 0,
             "arrange": "column"
           },
-          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound."
+          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound.",
+          "icon": "azure/subnet"
         },
         {
           "name": "snet-data",
@@ -234,10 +240,12 @@
               "sub": "data subnet · allow 1433/443 from app and mgmt only",
               "type": "firewall",
               "edge": "left",
-              "filters": "inbound"
+              "filters": "inbound",
+              "icon": "azure/network-security-groups"
             }
           ],
-          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service."
+          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service.",
+          "icon": "azure/subnet"
         },
         {
           "name": "snet-mgmt",
@@ -256,10 +264,12 @@
               "sub": "mgmt subnet · RDP from Bastion only",
               "type": "firewall",
               "edge": "top",
-              "filters": "inbound"
+              "filters": "inbound",
+              "icon": "azure/network-security-groups"
             }
           ],
-          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion."
+          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion.",
+          "icon": "azure/subnet"
         },
         {
           "name": "onprem",
@@ -293,7 +303,8 @@
           "type": "identity-provider",
           "zone": "internet",
           "color": "purple",
-          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies."
+          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies.",
+          "icon": "azure/microsoft-entra-id"
         },
         {
           "name": "customer",
@@ -316,7 +327,6 @@
           "label": "Application Gateway",
           "sub": "WAF v2 · public IP · TLS termination",
           "type": "service",
-          "icon": "load-balancer",
           "zone": "hub-vnet",
           "cloud": {
             "provider": "azure",
@@ -327,7 +337,8 @@
               "tls1.0",
               "tls1.1",
               "http"
-            ]
+            ],
+            "card": "azure-app-gateway"
           },
           "info": "The only Internet-facing endpoint. WAF v2 with the OWASP Core Rule Set in prevention mode; end-to-end TLS to the App Service private endpoint.",
           "layout": {
@@ -339,7 +350,6 @@
           "label": "Azure Bastion",
           "sub": "AzureBastionSubnet · browser / native client",
           "type": "service",
-          "icon": "lock",
           "zone": "hub-vnet",
           "cloud": {
             "provider": "azure",
@@ -349,7 +359,8 @@
             "disabled_protocols": [
               "public-rdp",
               "public-ssh"
-            ]
+            ],
+            "card": "azure-bastion"
           },
           "info": "Brokers RDP/SSH to VMs over TLS 443 without exposing them. Session access requires an Entra ID sign-in and Azure RBAC on the target VM.",
           "layout": {
@@ -361,7 +372,6 @@
           "label": "App Service",
           "sub": "Premium v3 · private endpoint · VNet integration",
           "type": "host",
-          "icon": "cloud",
           "zone": "snet-app",
           "cloud": {
             "provider": "azure",
@@ -376,7 +386,8 @@
               "tls1.1",
               "public-access",
               "scm-public-access"
-            ]
+            ],
+            "card": "azure-app-service"
           },
           "info": "The web application and its API on one App Service plan. Inbound only through the private endpoint (from the Application Gateway); outbound through VNet integration and the Azure Firewall. FTP and basic-auth deployment credentials are disabled.",
           "components": [
@@ -424,7 +435,8 @@
               "sql-password-auth",
               "tls1.0",
               "tls1.1"
-            ]
+            ],
+            "card": "azure-sql"
           },
           "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
           "layout": {
@@ -436,7 +448,6 @@
           "label": "Key Vault",
           "sub": "private endpoint · RBAC · soft delete",
           "type": "service",
-          "icon": "key",
           "zone": "snet-data",
           "data_classification": "restricted",
           "data_tags": [
@@ -450,7 +461,8 @@
             "disabled_protocols": [
               "public-access",
               "access-policies"
-            ]
+            ],
+            "card": "azure-key-vault"
           },
           "info": "Application secrets and certificates. Reached only by managed identities with least-privilege RBAC roles.",
           "layout": {
@@ -462,7 +474,6 @@
           "label": "Jump VM",
           "sub": "Windows Server · no public IP",
           "type": "server",
-          "icon": "workstation",
           "zone": "snet-mgmt",
           "cloud": {
             "provider": "azure",
@@ -473,7 +484,8 @@
               "public-ip",
               "rdp-from-internet",
               "smbv1"
-            ]
+            ],
+            "card": "azure-vm"
           },
           "info": "Domain-joined administration host with SQL tooling. Reachable only through Azure Bastion; Defender for Servers and just-in-time access enabled."
         },
@@ -482,7 +494,7 @@
           "label": "Log Analytics Workspace",
           "sub": "diagnostics · Defender for Cloud · Sentinel",
           "type": "service",
-          "icon": "monitor",
+          "icon": "azure/log-analytics-workspaces",
           "zone": "azure",
           "layers": [
             "observability"
@@ -2154,7 +2166,8 @@
             "order": 0,
             "arrange": "column"
           },
-          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall."
+          "info": "Contoso's Azure landing zone subscription. Azure Policy denies public IPs on VMs and public network access on PaaS; all spokes route through the hub firewall.",
+          "icon": "azure/subscriptions"
         },
         {
           "name": "hub-vnet",
@@ -2179,10 +2192,12 @@
               "serves": [
                 "onprem"
               ],
-              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way."
+              "info": "Site-to-site connectivity to the Contoso office. Only on-premises traffic enters the hub this way.",
+              "icon": "azure/virtual-network-gateways"
             }
           ],
-          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises."
+          "info": "Shared services: the public entry point (Application Gateway with WAF), Azure Bastion for administration, and the gateway to on-premises.",
+          "icon": "azure/virtual-networks"
         },
         {
           "name": "spoke-web",
@@ -2203,10 +2218,12 @@
               "type": "firewall",
               "edge": "top",
               "filters": "both",
-              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled."
+              "info": "Azure Firewall Premium in the hub. User-defined routes send all spoke ingress and egress through it; TLS inspection and IDPS enabled.",
+              "icon": "azure/firewalls"
             }
           ],
-          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints."
+          "info": "The workload spoke. Each subnet has its own NSG; PaaS services are reached only through private endpoints.",
+          "icon": "azure/virtual-networks"
         },
         {
           "name": "snet-app",
@@ -2218,7 +2235,8 @@
             "order": 0,
             "arrange": "column"
           },
-          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound."
+          "info": "Regional VNet integration for App Service outbound traffic, plus the private endpoint for inbound.",
+          "icon": "azure/subnet"
         },
         {
           "name": "snet-data",
@@ -2241,10 +2259,12 @@
               "sub": "data subnet · allow 1433/443 from app and mgmt only",
               "type": "firewall",
               "edge": "left",
-              "filters": "inbound"
+              "filters": "inbound",
+              "icon": "azure/network-security-groups"
             }
           ],
-          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service."
+          "info": "Private endpoints for Azure SQL and Key Vault. No public network access on either service.",
+          "icon": "azure/subnet"
         },
         {
           "name": "snet-mgmt",
@@ -2263,10 +2283,12 @@
               "sub": "mgmt subnet · RDP from Bastion only",
               "type": "firewall",
               "edge": "top",
-              "filters": "inbound"
+              "filters": "inbound",
+              "icon": "azure/network-security-groups"
             }
           ],
-          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion."
+          "info": "Jump host for database and platform administration. Reachable only from Azure Bastion.",
+          "icon": "azure/subnet"
         },
         {
           "name": "onprem",
@@ -2300,7 +2322,8 @@
           "type": "identity-provider",
           "zone": "internet",
           "color": "purple",
-          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies."
+          "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies.",
+          "icon": "azure/microsoft-entra-id"
         },
         {
           "name": "customer",
@@ -2323,7 +2346,6 @@
           "label": "Application Gateway",
           "sub": "WAF v2 · public IP · TLS termination",
           "type": "service",
-          "icon": "load-balancer",
           "zone": "hub-vnet",
           "cloud": {
             "provider": "azure",
@@ -2334,7 +2356,8 @@
               "tls1.0",
               "tls1.1",
               "http"
-            ]
+            ],
+            "card": "azure-app-gateway"
           },
           "info": "The only Internet-facing endpoint. WAF v2 with the OWASP Core Rule Set in prevention mode; end-to-end TLS to the App Service private endpoint.",
           "layout": {
@@ -2346,7 +2369,6 @@
           "label": "Azure Bastion",
           "sub": "AzureBastionSubnet · browser / native client",
           "type": "service",
-          "icon": "lock",
           "zone": "hub-vnet",
           "cloud": {
             "provider": "azure",
@@ -2356,7 +2378,8 @@
             "disabled_protocols": [
               "public-rdp",
               "public-ssh"
-            ]
+            ],
+            "card": "azure-bastion"
           },
           "info": "Brokers RDP/SSH to VMs over TLS 443 without exposing them. Session access requires an Entra ID sign-in and Azure RBAC on the target VM.",
           "layout": {
@@ -2368,7 +2391,6 @@
           "label": "App Service",
           "sub": "Premium v3 · private endpoint · VNet integration",
           "type": "host",
-          "icon": "cloud",
           "zone": "snet-app",
           "cloud": {
             "provider": "azure",
@@ -2383,7 +2405,8 @@
               "tls1.1",
               "public-access",
               "scm-public-access"
-            ]
+            ],
+            "card": "azure-app-service"
           },
           "info": "The web application and its API on one App Service plan. Inbound only through the private endpoint (from the Application Gateway); outbound through VNet integration and the Azure Firewall. FTP and basic-auth deployment credentials are disabled.",
           "components": [
@@ -2431,7 +2454,8 @@
               "sql-password-auth",
               "tls1.0",
               "tls1.1"
-            ]
+            ],
+            "card": "azure-sql"
           },
           "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
           "layout": {
@@ -2443,7 +2467,6 @@
           "label": "Key Vault",
           "sub": "private endpoint · RBAC · soft delete",
           "type": "service",
-          "icon": "key",
           "zone": "snet-data",
           "data_classification": "restricted",
           "data_tags": [
@@ -2457,7 +2480,8 @@
             "disabled_protocols": [
               "public-access",
               "access-policies"
-            ]
+            ],
+            "card": "azure-key-vault"
           },
           "info": "Application secrets and certificates. Reached only by managed identities with least-privilege RBAC roles.",
           "layout": {
@@ -2469,7 +2493,6 @@
           "label": "Jump VM",
           "sub": "Windows Server · no public IP",
           "type": "server",
-          "icon": "workstation",
           "zone": "snet-mgmt",
           "cloud": {
             "provider": "azure",
@@ -2480,7 +2503,8 @@
               "public-ip",
               "rdp-from-internet",
               "smbv1"
-            ]
+            ],
+            "card": "azure-vm"
           },
           "info": "Domain-joined administration host with SQL tooling. Reachable only through Azure Bastion; Defender for Servers and just-in-time access enabled."
         },
@@ -2489,7 +2513,7 @@
           "label": "Log Analytics Workspace",
           "sub": "diagnostics · Defender for Cloud · Sentinel",
           "type": "service",
-          "icon": "monitor",
+          "icon": "azure/log-analytics-workspaces",
           "zone": "azure",
           "layers": [
             "observability"
@@ -2551,7 +2575,8 @@
           "info": "Read-through cache of order and customer records, 15-minute TTL. Deployed with the public endpoint on and access-key authentication, as proposed; the NSG does not apply to the public endpoint.",
           "layout": {
             "order": 2
-          }
+          },
+          "icon": "azure/cache-redis"
         }
       ],
       "flows": [

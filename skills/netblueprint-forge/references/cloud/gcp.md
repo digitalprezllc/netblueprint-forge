@@ -5,6 +5,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 ---
 
 ## `gcp-compute-engine` — Compute Engine (virtual machines)
+- **Icon:** `gcp/compute-engine`
 - **What:** VMs in a VPC subnet with firewall rules and service accounts.
 - **Attaches to:** VPC + regional subnet; optional external IP; VPC firewall rules (tags / service accounts); Cloud NAT for private egress; Private Google Access for Google APIs.
 - **Default exposure:** the default network ships with permissive rules (`default-allow-ssh/rdp` from anywhere); custom networks deny inbound. The metadata server (169.254.169.254) needs the `Metadata-Flavor: Google` header.
@@ -15,6 +16,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** SSH/RDP open to the Internet · Elevation of privilege · `security-misconfiguration` · T1133 · control: IAP TCP forwarding + firewall from IAP range only ‖ SSRF to metadata server steals service-account token · Elevation of privilege · `ssrf` · T1552.005 · control: least-privilege SA, block metadata from app, no legacy endpoints ‖ Default SA with Editor role · Elevation of privilege · `privilege-escalation` · control: dedicated SA, minimal roles ‖ Unpatched images · Elevation of privilege · `vulnerable-components` · control: OS Config patch policy.
 
 ## `gcp-cloud-storage` — Cloud Storage (buckets)
+- **Icon:** `gcp/cloud-storage`
 - **What:** Object storage.
 - **Attaches to:** Global public endpoint; Private Google Access / Private Service Connect from VPCs; VPC Service Controls perimeters.
 - **Default exposure:** private unless an IAM binding grants `allUsers` / `allAuthenticatedUsers`; secure-by-default posture enforces public access prevention and uniform bucket-level access (no per-object ACLs). Older buckets may use fine-grained ACLs.
@@ -25,6 +27,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Bucket granted to allUsers · Information disclosure · `security-misconfiguration` · CWE-284 · control: org policy `storage.publicAccessPrevention` ‖ Over-broad IAM at project level · Information disclosure · `unauthorized-access` · control: bucket-level least privilege ‖ Data exfiltration to another project · Information disclosure · `data-exfiltration` · control: VPC Service Controls ‖ Deletion · Denial of service · `insider-misuse` · control: versioning, retention policy.
 
 ## `gcp-cloud-sql` — Cloud SQL (PostgreSQL / MySQL / SQL Server)
+- **Icon:** `gcp/cloud-sql`
 - **What:** Managed relational database.
 - **Attaches to:** Public IP with authorized networks and/or private IP (private services access / PSC); Cloud SQL Auth Proxy or connectors with IAM authentication.
 - **Default exposure:** instances can be created with a public IP; authorized networks `0.0.0.0/0` is a common mistake. SSL is optional unless required.
@@ -35,6 +38,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Public IP with wide authorized networks · Information disclosure · `security-misconfiguration` · CWE-284 · control: private IP only, org policy restrict public IP ‖ Passwords in app config · Spoofing · `credential-exposure` · control: IAM DB auth + Secret Manager ‖ Unencrypted client connections · Information disclosure · `missing-or-weak-encryption` · control: require SSL / Auth Proxy ‖ SQL injection via the app · Tampering · `injection` · CWE-89 · control: parameterized queries.
 
 ## `gcp-cloud-run` — Cloud Run (services and jobs)
+- **Icon:** `gcp/cloud-run`
 - **What:** Serverless containers.
 - **Attaches to:** Public `run.app` URL; ingress `all` / `internal` / `internal-and-cloud-load-balancing`; Serverless VPC Access or Direct VPC egress; behind an external HTTP(S) LB with Cloud Armor and IAP.
 - **Default exposure:** URL is public when ingress is `all`; authentication is separate: `allUsers` invoker makes it anonymous, otherwise callers need an IAM-signed ID token.
@@ -45,6 +49,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Service invokable anonymously · Spoofing · `broken-authentication` · CWE-306 · control: remove allUsers, require ID tokens / IAP ‖ Direct URL bypasses Cloud Armor · Tampering · `security-misconfiguration` · control: ingress internal-and-cloud-load-balancing ‖ Secrets in environment variables · Information disclosure · `credential-exposure` · control: Secret Manager volumes ‖ Over-privileged runtime SA · Elevation of privilege · `privilege-escalation` · control: dedicated SA, least privilege.
 
 ## `gcp-cloud-functions` — Cloud Run functions (Cloud Functions)
+- **Icon:** `gcp/cloud-functions`
 - **What:** Event-driven functions (now on the Cloud Run platform).
 - **Attaches to:** HTTPS endpoint or event triggers (Pub/Sub, Storage, Eventarc); ingress settings as Cloud Run.
 - **Default exposure:** HTTP functions need `roles/cloudfunctions.invoker` / `run.invoker`; `allUsers` makes them public.
@@ -55,6 +60,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Public HTTP function · Spoofing · `broken-authentication` · control: IAM invoker ‖ Event payload injection · Tampering · `improper-input-validation` · control: schema validation ‖ Over-privileged SA · Elevation of privilege · `privilege-escalation` · control: least privilege.
 
 ## `gcp-gke` — Google Kubernetes Engine
+- **Icon:** `gcp/gke`
 - **What:** Managed Kubernetes (Standard / Autopilot).
 - **Attaches to:** Control plane endpoint public (authenticated) or private; authorized networks; nodes in a VPC subnet (VPC-native); ingress via GCLB.
 - **Default exposure:** public control-plane endpoint unless private cluster / authorized networks; legacy ABAC off by default; Autopilot enforces Workload Identity and Shielded nodes.
@@ -65,6 +71,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Exposed control plane · Elevation of privilege · `security-misconfiguration` · T1190 · control: private endpoint + authorized networks ‖ Pod steals node SA token · Elevation of privilege · `ssrf` · T1552.005 · control: Workload Identity, metadata concealment ‖ Flat pod network · Elevation of privilege · `excessive-trust-or-flat-network` · control: network policy default deny ‖ Vulnerable images · Elevation of privilege · `supply-chain` · control: Binary Authorization.
 
 ## `gcp-secret-manager-kms` — Secret Manager and Cloud KMS
+- **Icon:** `gcp/secret-manager`
 - **What:** Secret storage with versions and rotation reminders; key management (software, HSM, external).
 - **Attaches to:** Global API endpoints; Private Google Access / PSC from VPCs; VPC Service Controls.
 - **Default exposure:** IAM-controlled; project-level roles (Editor) grant far more than intended.
@@ -75,6 +82,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Secret accessible to broad roles · Information disclosure · `unauthorized-access` · control: per-secret IAM ‖ Static secrets never rotated · Spoofing · `credential-exposure` · control: rotation schedule ‖ Key admin equals key user · Information disclosure · `privilege-escalation` · control: separate admin and encrypter/decrypter roles.
 
 ## `gcp-external-lb-cloud-armor` — External HTTP(S) Load Balancer with Cloud Armor (and IAP)
+- **Icon:** `gcp/cloud-load-balancing`
 - **What:** Global L7 entry point with WAF (Cloud Armor), optional Identity-Aware Proxy.
 - **Attaches to:** Internet anycast IP; back ends (instance groups, NEGs for Cloud Run / GKE / on-prem).
 - **Default exposure:** public; back ends remain directly reachable unless they only accept the LB (Cloud Run ingress setting, firewall from LB ranges).
@@ -85,6 +93,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Web attacks reach back ends · Tampering · `injection` · control: Cloud Armor preconfigured WAF rules ‖ Back-end bypass · Information disclosure · `security-misconfiguration` · control: firewall from LB ranges / Cloud Run ingress ‖ L7 DoS · Denial of service · `resource-exhaustion` · control: rate limiting + adaptive protection ‖ Internal app published without identity · Spoofing · `broken-authentication` · control: IAP.
 
 ## `gcp-pubsub` — Pub/Sub (messaging)
+- **Icon:** `gcp/pubsub`
 - **What:** Global pub/sub messaging.
 - **Attaches to:** Global API endpoint; Private Google Access; VPC Service Controls.
 - **Default exposure:** IAM-controlled; `allUsers` publisher/subscriber bindings make topics public.
@@ -95,6 +104,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Public topic accepts injected messages · Tampering · `unauthorized-access` · control: IAM per principal ‖ Push endpoint accepts unauthenticated posts · Spoofing · `broken-authentication` · control: OIDC push auth ‖ Poison messages · Denial of service · `improper-input-validation` · control: validation + dead-letter topic.
 
 ## `gcp-bigquery` — BigQuery (analytics warehouse)
+- **Icon:** `gcp/bigquery`
 - **What:** Serverless data warehouse.
 - **Attaches to:** Global API; Private Google Access; VPC Service Controls perimeter.
 - **Default exposure:** IAM-controlled; dataset sharing with `allAuthenticatedUsers` / public domains is a common leak; authorized views and row/column policies refine access.
@@ -105,6 +115,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Dataset shared too widely · Information disclosure · `unauthorized-access` · control: dataset-level IAM, policy tags ‖ Exfiltration via export · Information disclosure · `data-exfiltration` · control: VPC Service Controls ‖ PII visible in analytics · Information disclosure · `sensitive-data-exposure` · control: column-level security / masking.
 
 ## `gcp-iap` — Identity-Aware Proxy (TCP forwarding and HTTPS resources)
+- **Icon:** `gcp/beyondcorp`
 - **What:** Identity-based access to VMs (SSH/RDP tunnels) and web apps without public exposure.
 - **Attaches to:** Google front end; TCP forwarding reaches VMs through firewall rules from `35.235.240.0/20`; HTTPS IAP sits on the external LB.
 - **Default exposure:** nothing until IAM `IAP-secured Tunnel User` / `IAP-secured Web App User` is granted.
@@ -115,6 +126,7 @@ Same format as `aws.md`. Bold tokens are the ids for `cloud.disabled_protocols` 
 - **Threats:** Firewall still allows direct SSH · Elevation of privilege · `security-misconfiguration` · control: allow IAP range only ‖ Over-broad tunnel grants · Elevation of privilege · `unauthorized-access` · control: per-instance / group bindings ‖ Stolen Google session · Spoofing · `broken-authentication` · control: MFA + access levels.
 
 ## `gcp-memorystore` — Memorystore (Redis / Valkey / Memcached)
+- **Icon:** `gcp/memorystore`
 - **What:** Managed in-memory cache.
 - **Attaches to:** Private IP in a VPC (private services access / PSC); no public endpoint.
 - **Default exposure:** reachable from the whole authorized VPC unless AUTH and in-transit encryption are enabled.

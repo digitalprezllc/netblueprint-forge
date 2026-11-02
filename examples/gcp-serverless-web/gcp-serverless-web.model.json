@@ -1,0 +1,2338 @@
+{
+  "$schema": "../../skills/netblueprint-forge/assets/schema/netblueprint.schema.json",
+  "netblueprint": "1",
+  "meta": {
+    "title": "Cymbal Shop on Google Cloud: Serverless Web Application with Cloud Run",
+    "subtitle": "Reference Architecture",
+    "description": "Customers reach Cloud Run services through a global external HTTPS load balancer with Cloud Armor and Cloud CDN. The services reach Cloud SQL and Memorystore on private IPs through a Serverless VPC Access connector, keep credentials in Secret Manager, serve static assets from Cloud Storage, and expose an admin console only through Identity-Aware Proxy. Adapted from the Google Cloud Architecture Center's guidance for serverless web applications, set at Google's sample organization Cymbal.",
+    "author": "DigitalPrez, LLC",
+    "organization": "Cymbal",
+    "date": "2026-11-01",
+    "version": "1.0.0",
+    "revision_note": "First version. Renderer 1.8.0.",
+    "document_classification": "internal",
+    "document_id": "NBF-EX-0005",
+    "status": "draft",
+    "objective": "Run the storefront without servers to manage, with every data store on a private IP, every credential in Secret Manager and every administrative page behind Identity-Aware Proxy.",
+    "flow_summary": "Customer to the storefront; API to Cloud SQL, Memorystore and Secret Manager; SRE to the admin console through IAP",
+    "path_summary": [
+      "Customer",
+      "Cloud Armor + LB",
+      "Cloud Run",
+      "VPC Connector",
+      "Cloud SQL"
+    ],
+    "access_summary": "Customers: Identity Platform with MFA (OIDC). SREs: Cloud Identity with a security key, then IAP. Services: per-service accounts, ID tokens between services, no key files.",
+    "assumptions": [
+      "One production project with Org Policy constraints applied at the folder",
+      "Cloud Run ingress is restricted to the load balancer and the VPC",
+      "Cloud SQL and Memorystore have private IPs only, through Private Service Access"
+    ],
+    "out_of_scope": [
+      "The Cloud Build pipeline that builds and deploys the images",
+      "BigQuery analytics fed from Cloud SQL exports"
+    ],
+    "tags": [
+      "gcp",
+      "serverless",
+      "cloud-run",
+      "reference-architecture"
+    ]
+  },
+  "settings": {
+    "network_label": "Cymbal: Google Cloud Production Project",
+    "internet_label": "Internet",
+    "layout": {
+      "min_width": 1280,
+      "min_height": 640,
+      "flow_direction": "left-to-right"
+    },
+    "show": {
+      "threats": true,
+      "threat_register": true,
+      "layer_panel": true,
+      "signature_block": true,
+      "legend": true
+    }
+  },
+  "auth_types": [
+    {
+      "id": "idp-oidc",
+      "label": "Identity Platform + MFA (OIDC)",
+      "strength": "strong",
+      "description": "Customer sign-in through Identity Platform with MFA; the storefront receives OIDC tokens."
+    },
+    {
+      "id": "lb-ingress",
+      "label": "Ingress: Load Balancer Only",
+      "strength": "moderate",
+      "description": "Cloud Run accepts requests only from the load balancer and the VPC; the request carries no caller identity of its own."
+    },
+    {
+      "id": "run-id-token",
+      "label": "Service Account ID Token",
+      "strength": "strong",
+      "description": "Service-to-service calls carry a Google-signed ID token; the callee's IAM policy admits only the caller's service account."
+    },
+    {
+      "id": "sa-iam",
+      "label": "Service Account (IAM)",
+      "strength": "strong",
+      "description": "The workload identity of the Cloud Run service; no key file anywhere."
+    },
+    {
+      "id": "sql-iam",
+      "label": "Cloud SQL IAM Authentication + TLS",
+      "strength": "strong",
+      "description": "Database sign-in with the service account over TLS; no database password in the application."
+    },
+    {
+      "id": "redis-auth",
+      "label": "Memorystore AUTH String",
+      "strength": "weak",
+      "description": "A shared AUTH string in the service's configuration; no identity, no rotation."
+    },
+    {
+      "id": "signed-url",
+      "label": "Signed URL",
+      "strength": "moderate",
+      "description": "Time-limited signed URLs for uploads, minted by the storefront with its service account."
+    },
+    {
+      "id": "google-sso",
+      "label": "Cloud Identity + Security Key",
+      "strength": "strong",
+      "phishing_resistant": true,
+      "description": "Workforce sign-in with a FIDO2 security key enforced by Cloud Identity."
+    },
+    {
+      "id": "iap-oidc",
+      "label": "Identity-Aware Proxy (OIDC)",
+      "strength": "strong",
+      "phishing_resistant": true,
+      "description": "IAP checks the identity, the access level and the device before the request reaches the service."
+    },
+    {
+      "id": "iap-jwt",
+      "label": "IAP-Signed JWT",
+      "strength": "strong",
+      "description": "The admin service verifies the signed IAP header on every request, so a bypass of the proxy carries no valid identity."
+    },
+    {
+      "id": "anonymous",
+      "label": "Anonymous",
+      "strength": "none"
+    }
+  ],
+  "layers": [
+    {
+      "name": "illustrative-threats",
+      "label": "Illustrative Threats",
+      "description": "Example threats and controls. Hide to see the plain design.",
+      "visible": true
+    }
+  ],
+  "zones": [
+    {
+      "name": "gcp-project",
+      "label": "Google Cloud Project: Cymbal-Shop-Prod",
+      "sub": "us-central1 · Org Policy · Audit Logs",
+      "kind": "cloud",
+      "color": "teal",
+      "icon": "gcp/project",
+      "layout": {
+        "order": 0,
+        "arrange": "column"
+      },
+      "info": "One production project under the Cymbal organization. Org Policy enforces public access prevention, uniform bucket-level access and domain-restricted sharing."
+    },
+    {
+      "name": "serverless",
+      "label": "Cloud Run (Managed)",
+      "sub": "Regional · Ingress: Load Balancer and VPC · Min Instances",
+      "parent": "gcp-project",
+      "kind": "provider",
+      "color": "blue",
+      "icon": "gcp/cloud-run",
+      "layout": {
+        "row": 0,
+        "arrange": "row"
+      },
+      "info": "Fully managed Cloud Run services; each runs as its own service account and reaches the VPC through the connector."
+    },
+    {
+      "name": "vpc-prod",
+      "label": "Production VPC",
+      "sub": "10.60.0.0/16 · Private Google Access · Cloud NAT",
+      "parent": "gcp-project",
+      "kind": "vpc",
+      "color": "blue",
+      "icon": "gcp/virtual-private-cloud",
+      "layout": {
+        "row": 1,
+        "order": 0,
+        "arrange": "row"
+      },
+      "info": "Holds the connector subnet and the Private Service Access range for Cloud SQL and Memorystore. No workload has a public IP.",
+      "appliances": [
+        {
+          "name": "fw-rules",
+          "label": "VPC Firewall",
+          "sub": "Connector Range to 5432/6379 Only",
+          "type": "firewall",
+          "edge": "top",
+          "filters": "inbound",
+          "serves": [
+            "serverless"
+          ],
+          "icon": "gcp/cloud-firewall-rules",
+          "info": "Firewall rules admit the connector range to the database and cache ports; everything else is denied by the implied rule."
+        }
+      ]
+    },
+    {
+      "name": "snet-connector",
+      "label": "Connector Subnet",
+      "sub": "10.60.1.0/28 · Serverless VPC Access",
+      "parent": "vpc-prod",
+      "kind": "subnet",
+      "layout": {
+        "order": 0,
+        "arrange": "column"
+      },
+      "info": "Dedicated /28 for the Serverless VPC Access connector instances."
+    },
+    {
+      "name": "snet-services",
+      "label": "Private Services Range",
+      "sub": "10.60.16.0/20 · Private Service Access · No Public IPs",
+      "parent": "vpc-prod",
+      "kind": "subnet",
+      "layout": {
+        "order": 1,
+        "arrange": "column"
+      },
+      "info": "Google-managed range peered into the VPC; Cloud SQL and Memorystore answer here on private IPs only."
+    },
+    {
+      "name": "gcp-services",
+      "label": "Google Cloud APIs",
+      "sub": "IAP · Secret Manager · Logging · Cloud Storage",
+      "parent": "gcp-project",
+      "kind": "provider",
+      "color": "slate",
+      "icon": "gcp/cloud-apis",
+      "layout": {
+        "row": 1,
+        "order": 1,
+        "arrange": "column"
+      },
+      "info": "Regional Google APIs the services call with their service accounts over Private Google Access; a VPC Service Controls perimeter around the project keeps the data from leaving it.",
+      "appliances": [
+        {
+          "name": "vpc-sc",
+          "label": "VPC Service Controls",
+          "sub": "Perimeter: Project Only",
+          "type": "zero-trust-broker",
+          "edge": "top",
+          "filters": "both",
+          "serves": [
+            "serverless",
+            "vpc-prod"
+          ],
+          "icon": "gcp/category-security-identity",
+          "info": "A service perimeter around the project: Secret Manager and Cloud Storage API calls from outside the perimeter are denied even with valid credentials."
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "customer",
+      "layout": {
+        "order": 0
+      },
+      "label": "Customer",
+      "sub": "Browser · Any Device",
+      "type": "remote-user",
+      "zone": "internet",
+      "info": "A shopper on the public Internet."
+    },
+    {
+      "name": "identity-platform",
+      "layout": {
+        "order": 1
+      },
+      "label": "Identity Platform",
+      "sub": "Customer Identities · MFA · OIDC",
+      "type": "identity-provider",
+      "zone": "internet",
+      "icon": "gcp/identity-platform",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Identity Platform",
+        "exposure": "internet",
+        "endpoint": "public"
+      },
+      "info": "Customer identities with MFA and reCAPTCHA Enterprise on sign-in."
+    },
+    {
+      "name": "ext-lb",
+      "layout": {
+        "order": 2
+      },
+      "label": "External HTTPS Load Balancer",
+      "sub": "Global · Cloud Armor · Cloud CDN · Managed TLS",
+      "type": "public-endpoint",
+      "zone": "internet",
+      "cloud": {
+        "provider": "gcp",
+        "service": "External HTTP(S) Load Balancer",
+        "card": "gcp-external-lb-cloud-armor",
+        "exposure": "internet",
+        "endpoint": "public",
+        "disabled_protocols": [
+          "tls1.0",
+          "tls1.1",
+          "http"
+        ]
+      },
+      "info": "The only public entry point. Cloud Armor applies preconfigured WAF rules and a rate limit; Cloud CDN serves the static assets."
+    },
+    {
+      "name": "attacker",
+      "layout": {
+        "order": 3
+      },
+      "label": "Internet Attacker",
+      "sub": "Scanning · Credential Stuffing · Injection",
+      "type": "bad-actor",
+      "zone": "internet",
+      "info": "Opportunistic attacker probing the public surface."
+    },
+    {
+      "name": "google-identity",
+      "layout": {
+        "order": 4
+      },
+      "label": "Cloud Identity",
+      "sub": "Workforce · Security Keys · Context-Aware Access",
+      "type": "identity-provider",
+      "zone": "internet",
+      "icon": "gcp/identity-and-access-management",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Identity",
+        "exposure": "internet",
+        "endpoint": "public"
+      },
+      "info": "Workforce identities for the SRE team; security keys required."
+    },
+    {
+      "name": "sre",
+      "layout": {
+        "order": 5
+      },
+      "label": "Site Reliability Engineer",
+      "sub": "Managed Device · Security Key",
+      "type": "admin",
+      "zone": "internet",
+      "info": "Operates the storefront through the admin console behind IAP and the Cloud Console; holds no service account keys."
+    },
+    {
+      "name": "iap",
+      "layout": {
+        "order": 0
+      },
+      "label": "Identity-Aware Proxy",
+      "sub": "OIDC · Access Levels · Security Keys",
+      "type": "service",
+      "zone": "gcp-services",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Identity-Aware Proxy",
+        "card": "gcp-iap",
+        "exposure": "internet",
+        "endpoint": "public"
+      },
+      "info": "Fronts the admin console: identity, access level and device checks before the request is forwarded with a signed header."
+    },
+    {
+      "name": "run-web",
+      "label": "Storefront (Cloud Run)",
+      "sub": "Ingress: LB Only · Service Account · Min 2",
+      "type": "service",
+      "zone": "serverless",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Run",
+        "card": "gcp-cloud-run",
+        "exposure": "internet",
+        "endpoint": "public",
+        "disabled_protocols": [
+          "run-url-public",
+          "unauthenticated-invocation"
+        ]
+      },
+      "layout": {
+        "order": 0
+      },
+      "info": "Renders the storefront and validates Identity Platform tokens. Ingress allows only the load balancer and the VPC; the run.app URL answers 403."
+    },
+    {
+      "name": "run-api",
+      "label": "Orders API (Cloud Run)",
+      "sub": "Ingress: Internal · ID Tokens · VPC Egress",
+      "type": "service",
+      "zone": "serverless",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Run",
+        "card": "gcp-cloud-run",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "unauthenticated-invocation"
+        ]
+      },
+      "layout": {
+        "order": 1
+      },
+      "info": "Reads and writes orders; invoked only with an ID token from the storefront or the admin console; reaches the VPC through the connector."
+    },
+    {
+      "name": "run-admin",
+      "label": "Admin Console (Cloud Run)",
+      "sub": "Ingress: LB Only · Behind IAP",
+      "type": "service",
+      "zone": "serverless",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Run",
+        "card": "gcp-cloud-run",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "unauthenticated-invocation"
+        ]
+      },
+      "layout": {
+        "order": 2
+      },
+      "info": "Order management for the SRE and support teams; every request arrives through IAP and carries its signed header."
+    },
+    {
+      "name": "vpc-connector",
+      "label": "Serverless VPC Access Connector",
+      "sub": "e2-micro × 2–10 · Egress to the VPC",
+      "type": "connector",
+      "zone": "snet-connector",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Serverless VPC Access",
+        "exposure": "private",
+        "endpoint": "none"
+      },
+      "info": "Google-managed connector instances that carry Cloud Run egress into the VPC."
+    },
+    {
+      "name": "cloud-sql",
+      "label": "Cloud SQL (PostgreSQL)",
+      "sub": "Private IP · CMEK · IAM Auth · HA",
+      "type": "database",
+      "zone": "snet-services",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud SQL",
+        "card": "gcp-cloud-sql",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "public-ip",
+          "plaintext"
+        ]
+      },
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "layout": {
+        "order": 0
+      },
+      "info": "Orders and customer records. Private IP only, no authorized networks, customer-managed encryption key."
+    },
+    {
+      "name": "memorystore",
+      "label": "Memorystore (Redis)",
+      "sub": "Private IP · AUTH · In-Transit Encryption",
+      "type": "database",
+      "zone": "snet-services",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Memorystore for Redis",
+        "card": "gcp-memorystore",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "layout": {
+        "order": 1
+      },
+      "info": "Session and catalogue cache. Reachable by any workload in the VPC that holds the AUTH string."
+    },
+    {
+      "name": "secret-manager",
+      "label": "Secret Manager + Cloud KMS",
+      "sub": "DB Credentials · API Keys · CMEK",
+      "type": "service",
+      "zone": "gcp-services",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Secret Manager",
+        "card": "gcp-secret-manager-kms",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "layout": {
+        "order": 1
+      },
+      "info": "Third-party API keys and the Redis AUTH string, with versions and audit logs; keys in Cloud KMS."
+    },
+    {
+      "name": "gcs-assets",
+      "label": "Cloud Storage: Assets and Uploads",
+      "sub": "Public Access Prevention · Uniform Access · CMEK",
+      "type": "storage",
+      "zone": "gcp-services",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Storage",
+        "card": "gcp-cloud-storage",
+        "exposure": "private",
+        "endpoint": "private",
+        "disabled_protocols": [
+          "public-access",
+          "legacy-acls"
+        ]
+      },
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "layout": {
+        "order": 3
+      },
+      "info": "One bucket for storefront assets, served through the load balancer and Cloud CDN, and the documents customers upload with signed URLs."
+    },
+    {
+      "name": "logging",
+      "label": "Cloud Logging + Monitoring",
+      "sub": "Audit Logs · Alerts · Security Command Center",
+      "type": "service",
+      "zone": "gcp-services",
+      "icon": "gcp/cloud-logging",
+      "cloud": {
+        "provider": "gcp",
+        "service": "Cloud Logging",
+        "exposure": "private",
+        "endpoint": "private"
+      },
+      "layout": {
+        "order": 2
+      },
+      "info": "Request, audit and data-access logs with alerting; Security Command Center findings go to the SRE on-call."
+    }
+  ],
+  "flows": [
+    {
+      "name": "f-customer-idp",
+      "label": "Sign-In",
+      "from": "customer",
+      "to": "identity-platform",
+      "kind": "auth",
+      "auth": "idp-oidc",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "info": "Identity Platform sign-in with MFA and reCAPTCHA Enterprise; the browser receives OIDC tokens."
+    },
+    {
+      "name": "f-customer-lb",
+      "label": "Storefront",
+      "from": "customer",
+      "to": "ext-lb",
+      "kind": "data",
+      "auth": "idp-oidc",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "Every request carries the Identity Platform token; Cloud Armor inspects it first."
+    },
+    {
+      "name": "f-lb-web",
+      "label": "Serverless NEG",
+      "from": "ext-lb",
+      "to": "run-web",
+      "kind": "data",
+      "auth": "lb-ingress",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "via": [],
+      "info": "The load balancer forwards to the storefront through a serverless network endpoint group; ingress settings refuse any other source."
+    },
+    {
+      "name": "f-web-api",
+      "label": "Orders Calls",
+      "from": "run-web",
+      "to": "run-api",
+      "kind": "data",
+      "auth": "run-id-token",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "The storefront's service account presents an ID token; the API's IAM policy admits only that account."
+    },
+    {
+      "name": "f-api-connector",
+      "label": "VPC Access",
+      "from": "run-api",
+      "to": "vpc-connector",
+      "kind": "tunnel",
+      "auth": "sa-iam",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "internal",
+      "via": [],
+      "info": "Private-range egress from the API goes through the connector into the VPC."
+    },
+    {
+      "name": "f-connector-sql",
+      "label": "Orders Database",
+      "from": "vpc-connector",
+      "to": "cloud-sql",
+      "kind": "data",
+      "auth": "sql-iam",
+      "protocol": "PostgreSQL",
+      "port": "5432/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "info": "IAM database authentication over TLS on the private IP; the firewall admits only the connector range."
+    },
+    {
+      "name": "f-connector-redis",
+      "label": "Cache",
+      "from": "vpc-connector",
+      "to": "memorystore",
+      "kind": "data",
+      "auth": "redis-auth",
+      "protocol": "Redis",
+      "port": "6379/tcp",
+      "encrypted": true,
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "info": "Session and catalogue reads with the shared AUTH string over in-transit encryption."
+    },
+    {
+      "name": "f-api-secrets",
+      "label": "Secrets",
+      "from": "run-api",
+      "to": "secret-manager",
+      "kind": "control",
+      "auth": "sa-iam",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "via": [],
+      "info": "Reads API keys and the Redis AUTH string at start over Private Google Access, inside the perimeter."
+    },
+    {
+      "name": "f-customer-gcs",
+      "label": "Uploads (Signed URLs)",
+      "from": "customer",
+      "to": "gcs-assets",
+      "kind": "data",
+      "auth": "signed-url",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "via": [],
+      "info": "The storefront mints short-lived signed URLs; the browser uploads documents straight to the bucket with them."
+    },
+    {
+      "name": "f-lb-gcs",
+      "label": "Static Assets (Cloud CDN)",
+      "from": "ext-lb",
+      "to": "gcs-assets",
+      "kind": "data",
+      "auth": "anonymous",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "public",
+      "via": [],
+      "info": "A backend bucket serves the storefront assets through Cloud CDN; only the assets prefix is readable by the load balancer."
+    },
+    {
+      "name": "f-api-logging",
+      "label": "Logs and Metrics",
+      "from": "run-api",
+      "to": "logging",
+      "kind": "control",
+      "auth": "sa-iam",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "internal",
+      "via": [],
+      "info": "Request and application logs from every service; data-access audit logs from Cloud SQL and Secret Manager."
+    },
+    {
+      "name": "f-sre-sso",
+      "label": "SRE Sign-In",
+      "from": "sre",
+      "to": "google-identity",
+      "kind": "auth",
+      "auth": "google-sso",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials"
+      ],
+      "info": "Cloud Identity with a security key; context-aware access requires a managed device."
+    },
+    {
+      "name": "f-sre-iap",
+      "label": "Admin Console via IAP",
+      "from": "sre",
+      "to": "iap",
+      "kind": "data",
+      "auth": "iap-oidc",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "via": [],
+      "info": "IAP checks identity, access level and device, then forwards with a signed header."
+    },
+    {
+      "name": "f-iap-admin",
+      "label": "Forward with IAP JWT",
+      "from": "iap",
+      "to": "run-admin",
+      "kind": "data",
+      "auth": "iap-jwt",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "via": [],
+      "info": "The admin service verifies the IAP JWT on every request; nothing else may invoke it."
+    },
+    {
+      "name": "f-admin-api",
+      "label": "Admin Operations",
+      "from": "run-admin",
+      "to": "run-api",
+      "kind": "data",
+      "auth": "run-id-token",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ],
+      "info": "Refunds and order changes through the same API, with the admin console's service account."
+    },
+    {
+      "name": "f-attacker-lb",
+      "label": "Credential Stuffing / Scanning",
+      "from": "attacker",
+      "to": "ext-lb",
+      "kind": "data",
+      "auth": "anonymous",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "public",
+      "info": "Automated traffic hits the only public endpoint; Cloud Armor rate limiting and WAF rules absorb most of it."
+    },
+    {
+      "name": "f-attacker-api",
+      "label": "Direct to Run.app URL",
+      "from": "attacker",
+      "to": "run-api",
+      "kind": "blocked",
+      "auth": "anonymous",
+      "blocked_reason": "Ingress is internal; the run.app URL answers 403 to requests that do not come through the load balancer or the VPC"
+    },
+    {
+      "name": "f-attacker-gcs",
+      "label": "Public Bucket Access",
+      "from": "attacker",
+      "to": "gcs-assets",
+      "kind": "blocked",
+      "auth": "anonymous",
+      "blocked_reason": "Public access prevention is enforced by Org Policy; uniform bucket-level access, no legacy ACLs"
+    }
+  ],
+  "phases": [
+    {
+      "name": "connect",
+      "label": "Connect"
+    },
+    {
+      "name": "identity",
+      "label": "Identity"
+    },
+    {
+      "name": "access",
+      "label": "Access"
+    },
+    {
+      "name": "operate",
+      "label": "Operate"
+    }
+  ],
+  "steps": [
+    {
+      "name": "request",
+      "phase": "connect",
+      "short": "Request",
+      "title": "A customer reaches the storefront through the global load balancer",
+      "description": "The customer's browser resolves the storefront name to the load balancer's anycast IP. Cloud Armor applies preconfigured WAF rules and a rate limit before anything reaches a Cloud Run service; static assets come from Cloud CDN.",
+      "flows": [
+        "f-customer-lb"
+      ],
+      "highlight": [
+        "customer",
+        "ext-lb"
+      ],
+      "packets": [
+        {
+          "flow": "f-customer-lb"
+        }
+      ],
+      "details": [
+        "One public entry point for the whole application",
+        "Cloud Armor WAF rules and rate limiting",
+        "Managed TLS certificates, TLS 1.2 or later"
+      ]
+    },
+    {
+      "name": "signin",
+      "phase": "identity",
+      "short": "Sign-In",
+      "title": "The customer signs in through Identity Platform",
+      "description": "Identity Platform issues OIDC tokens after MFA; the storefront carries the token on every request and validates it.",
+      "flows": [
+        "f-customer-idp",
+        "f-customer-lb"
+      ],
+      "highlight": [
+        "customer",
+        "identity-platform"
+      ],
+      "packets": [
+        {
+          "flow": "f-customer-idp"
+        },
+        {
+          "flow": "f-customer-lb"
+        }
+      ],
+      "details": [
+        "MFA and reCAPTCHA Enterprise on sign-in",
+        "Tokens validated by the storefront service"
+      ],
+      "threats": [
+        "THR-0001"
+      ]
+    },
+    {
+      "name": "storefront",
+      "phase": "access",
+      "short": "Storefront",
+      "title": "The load balancer forwards to the storefront service",
+      "description": "A serverless network endpoint group routes to the storefront on Cloud Run. Ingress is restricted to the load balancer and the VPC, so the run.app URL answers 403 to anyone else.",
+      "flows": [
+        "f-lb-web"
+      ],
+      "highlight": [
+        "ext-lb",
+        "run-web"
+      ],
+      "packets": [
+        {
+          "flow": "f-lb-web"
+        }
+      ],
+      "details": [
+        "Ingress: internal and Cloud Load Balancing",
+        "No unauthenticated invocation"
+      ],
+      "threats": [
+        "THR-0002"
+      ]
+    },
+    {
+      "name": "orders",
+      "phase": "access",
+      "short": "Orders",
+      "title": "The storefront calls the Orders API, which reaches Cloud SQL through the VPC connector",
+      "description": "The storefront presents an ID token; the API, invoked only by that service account, reaches the database on its private IP through the Serverless VPC Access connector with IAM database authentication.",
+      "flows": [
+        "f-web-api",
+        "f-api-connector",
+        "f-connector-sql"
+      ],
+      "highlight": [
+        "run-web",
+        "run-api",
+        "vpc-connector",
+        "cloud-sql"
+      ],
+      "packets": [
+        {
+          "flow": "f-web-api"
+        },
+        {
+          "flow": "f-api-connector"
+        },
+        {
+          "flow": "f-connector-sql"
+        }
+      ],
+      "details": [
+        "ID tokens between services",
+        "Private IP, IAM authentication, TLS",
+        "Firewall: connector range only"
+      ],
+      "threats": [
+        "THR-0003"
+      ]
+    },
+    {
+      "name": "cache-secrets",
+      "phase": "access",
+      "short": "Cache",
+      "title": "The API reads the cache and its secrets",
+      "description": "Session and catalogue reads go to Memorystore with the shared AUTH string; API keys and the AUTH string itself come from Secret Manager inside the VPC Service Controls perimeter.",
+      "flows": [
+        "f-connector-redis",
+        "f-api-secrets"
+      ],
+      "highlight": [
+        "run-api",
+        "memorystore",
+        "secret-manager"
+      ],
+      "packets": [
+        {
+          "flow": "f-connector-redis"
+        },
+        {
+          "flow": "f-api-secrets"
+        }
+      ],
+      "details": [
+        "Memorystore: AUTH string, in-transit encryption",
+        "Secret Manager inside the perimeter"
+      ],
+      "threats": [
+        "THR-0004",
+        "THR-0005"
+      ]
+    },
+    {
+      "name": "assets",
+      "phase": "access",
+      "short": "Assets",
+      "title": "Static assets come from Cloud Storage through Cloud CDN; uploads use signed URLs",
+      "description": "The load balancer serves the assets prefix from a backend bucket; the storefront mints signed URLs so customers upload documents straight to the bucket. Public access prevention is enforced by Org Policy.",
+      "flows": [
+        "f-lb-gcs",
+        "f-customer-gcs"
+      ],
+      "highlight": [
+        "ext-lb",
+        "customer",
+        "gcs-assets"
+      ],
+      "packets": [
+        {
+          "flow": "f-lb-gcs"
+        },
+        {
+          "flow": "f-customer-gcs"
+        }
+      ],
+      "details": [
+        "Public access prevention, uniform bucket-level access",
+        "Customer-managed encryption key"
+      ],
+      "threats": [
+        "THR-0006"
+      ]
+    },
+    {
+      "name": "operate",
+      "phase": "operate",
+      "short": "Operate",
+      "title": "Every service logs to Cloud Logging; findings reach the on-call SRE",
+      "description": "Request logs, audit logs and data-access logs are collected with alerting; Security Command Center findings page the on-call rotation.",
+      "flows": [
+        "f-api-logging"
+      ],
+      "highlight": [
+        "run-api",
+        "logging"
+      ],
+      "packets": [
+        {
+          "flow": "f-api-logging"
+        }
+      ],
+      "details": [
+        "Data-access audit logs for Cloud SQL and Secret Manager",
+        "Security Command Center findings to on-call"
+      ]
+    },
+    {
+      "name": "admin",
+      "phase": "operate",
+      "short": "Admin",
+      "title": "An SRE opens the admin console through Identity-Aware Proxy",
+      "description": "The SRE signs in to Cloud Identity with a security key; IAP checks the identity, the access level and the device, then forwards the request with a signed header that the admin service verifies. Changes go through the same Orders API.",
+      "flows": [
+        "f-sre-sso",
+        "f-sre-iap",
+        "f-iap-admin",
+        "f-admin-api"
+      ],
+      "highlight": [
+        "sre",
+        "google-identity",
+        "iap",
+        "run-admin",
+        "run-api"
+      ],
+      "packets": [
+        {
+          "flow": "f-sre-sso"
+        },
+        {
+          "flow": "f-sre-iap"
+        },
+        {
+          "flow": "f-iap-admin"
+        },
+        {
+          "flow": "f-admin-api"
+        }
+      ],
+      "details": [
+        "Security key required",
+        "Context-aware access: managed devices only",
+        "IAP JWT verified in the service"
+      ]
+    },
+    {
+      "name": "denied",
+      "phase": "operate",
+      "short": "Denied",
+      "title": "What the attacker cannot do",
+      "description": "Direct calls to the run.app URLs and public reads of the bucket are refused before any application code runs; the admin console answers only to IAP, and Cloud SQL and Memorystore have no public IP at all.",
+      "flows": [
+        "f-attacker-api",
+        "f-attacker-gcs"
+      ],
+      "highlight": [
+        "attacker",
+        "run-admin",
+        "cloud-sql",
+        "memorystore"
+      ],
+      "packets": [
+        {
+          "flow": "f-attacker-api",
+          "kind": "blocked"
+        },
+        {
+          "flow": "f-attacker-gcs",
+          "kind": "blocked"
+        }
+      ],
+      "details": [
+        "Cloud Run: ingress restricted, no unauthenticated invocation",
+        "Admin console: IAP only",
+        "Cloud SQL and Memorystore: private IP only",
+        "Cloud Storage: public access prevention"
+      ],
+      "outcome": "The public surface is the load balancer and nothing else."
+    }
+  ],
+  "threats": [
+    {
+      "id": "THR-0001",
+      "number": 1,
+      "title": "Credential Stuffing Against Identity Platform Sign-In",
+      "description": "Password lists replayed against the hosted sign-in endpoint from rotating IP ranges.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "spoofing"
+        ],
+        "attack_tactics": [
+          "TA0006",
+          "TA0001"
+        ]
+      },
+      "vulnerability": {
+        "category": "broken-authentication",
+        "cwe": "CWE-307"
+      },
+      "targets": [
+        {
+          "kind": "flow",
+          "ref": "f-customer-idp"
+        },
+        {
+          "kind": "node",
+          "ref": "identity-platform",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "internet"
+      },
+      "assets_at_risk": [
+        "Customer accounts",
+        "Order history"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "credentials"
+      ],
+      "adversary": {
+        "type": "automated-bot",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "low",
+        "resources": "club",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Automated sign-in attempts; successful pairs are resold or used for fraudulent orders.",
+        "mitre_attack": [
+          "T1110.004"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "high",
+        "impact": "high",
+        "rationale": "Hosted sign-in is public; a taken-over account exposes PII and payment references.",
+        "consequence": "An attacker holds a valid customer session and can read and change that customer's orders.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "MFA and reCAPTCHA Enterprise (CTL-0001) stop matched passwords; Cloud Armor rate limiting (CTL-0002) throttles the campaign.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-307"
+        ],
+        "owasp": [
+          "A07:2025"
+        ],
+        "nist_800_53": [
+          "IA-2(1)",
+          "AC-7"
+        ],
+        "cis_controls": [
+          "CIS-6.3"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0001",
+          "CTL-0002"
+        ],
+        "current_controls": [
+          "CTL-0001",
+          "CTL-0002"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0002",
+      "number": 2,
+      "title": "Direct Calls to the Run.app URL Bypass Cloud Armor",
+      "description": "Every Cloud Run service has a run.app URL. If ingress allowed all traffic, an attacker could reach the storefront and the API without passing the load balancer, Cloud Armor or the rate limit.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "tampering",
+          "elevation-of-privilege"
+        ],
+        "attack_tactics": [
+          "TA0001"
+        ]
+      },
+      "vulnerability": {
+        "category": "security-misconfiguration",
+        "cwe": "CWE-284"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "run-web"
+        },
+        {
+          "kind": "node",
+          "ref": "run-api",
+          "marker": false
+        },
+        {
+          "kind": "flow",
+          "ref": "f-attacker-api",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "serverless"
+      },
+      "assets_at_risk": [
+        "Storefront",
+        "Orders API"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "The run.app URL is guessed or found in a client bundle; injection payloads go to it directly.",
+        "mitre_attack": [
+          "T1190",
+          "T1595.002"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "high",
+        "rationale": "run.app URLs are predictable; without the ingress setting every Cloud Armor rule is moot.",
+        "consequence": "Injection and brute-force traffic reaches the services unfiltered.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "high",
+          "rationale": "Ingress is internal-and-load-balancing and invocation requires IAM (CTL-0003); the URL answers 403.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "moderate",
+        "score": 5
+      },
+      "standards": {
+        "cwe": [
+          "CWE-284"
+        ],
+        "owasp": [
+          "A02:2025"
+        ],
+        "nist_800_53": [
+          "SC-7",
+          "AC-4"
+        ],
+        "cis_controls": [
+          "CIS-12.2"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0003"
+        ],
+        "current_controls": [
+          "CTL-0003"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0003",
+      "number": 3,
+      "title": "Compromised Dependency in the Orders API Runs with the Service Account",
+      "description": "A poisoned package in the API image runs at startup with the identity and the network reach of the service: Secret Manager, the VPC connector and unrestricted Internet egress.",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "elevation-of-privilege",
+          "tampering"
+        ],
+        "attack_tactics": [
+          "TA0001",
+          "TA0002"
+        ]
+      },
+      "vulnerability": {
+        "category": "supply-chain",
+        "cwe": "CWE-1357"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "run-api"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-web-api",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "third-party",
+        "from": "internet",
+        "to": "serverless"
+      },
+      "assets_at_risk": [
+        "API service account",
+        "Everything the account may read"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials",
+        "pii"
+      ],
+      "adversary": {
+        "type": "criminal",
+        "source_class": "group-established",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "high",
+        "resources": "team",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "A typosquatted or hijacked npm package is pulled into the API image; its postinstall script fetches a payload that runs with the service account.",
+        "mitre_attack": [
+          "T1195.001",
+          "T1059"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "Package compromises are regular news; the service identity opens the data layer.",
+        "consequence": "Code of an attacker's choosing runs with the API's identity and network reach.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "very-high",
+          "rationale": "Artifact Analysis scanning (CTL-0005) catches known vulnerable versions, not a fresh malicious release.",
+          "rating": "high",
+          "score": 8
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "very-high",
+          "rationale": "Binary Authorization (CTL-0004) admits only images attested by the pipeline from a pinned, reviewed lockfile.",
+          "rating": "moderate",
+          "score": 5
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-1357",
+          "CWE-829"
+        ],
+        "owasp": [
+          "A03:2025"
+        ],
+        "nist_800_53": [
+          "SA-12",
+          "SI-7"
+        ],
+        "cis_controls": [
+          "CIS-16.4",
+          "CIS-16.11"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0004",
+          "CTL-0005"
+        ],
+        "current_controls": [
+          "CTL-0005"
+        ],
+        "planned_controls": [
+          "CTL-0004"
+        ],
+        "suggested_mitigations": [
+          {
+            "text": "Set VPC egress to \"all traffic\" through the connector and Cloud NAT with a Cloud NGFW egress policy, so a compromised service cannot reach arbitrary Internet hosts.",
+            "source": "reviewer",
+            "status": "suggested"
+          }
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0004",
+      "number": 4,
+      "title": "Shared AUTH String Gives Any VPC Workload Full Access to the Cache",
+      "description": "Memorystore authenticates with one AUTH string held in Secret Manager and in every service that uses the cache. Anything that reaches the private IP with the string reads every session and cached record.",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "information-disclosure",
+          "spoofing"
+        ],
+        "attack_tactics": [
+          "TA0009"
+        ]
+      },
+      "vulnerability": {
+        "category": "credential-exposure",
+        "cwe": "CWE-798"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "memorystore"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-connector-redis",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "vpc-vnet",
+        "from": "snet-connector",
+        "to": "snet-services"
+      },
+      "assets_at_risk": [
+        "Customer sessions",
+        "Cached catalogue and order data"
+      ],
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "A workload compromised anywhere in the VPC reads the AUTH string from its environment or from Secret Manager and connects to the cache.",
+        "mitre_attack": [
+          "T1552.001",
+          "T1005"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "high",
+        "rationale": "Shared secrets spread; the cache holds live sessions.",
+        "consequence": "Session hijack and bulk read of cached customer data.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "high",
+          "rationale": "The firewall admits only the connector range (CTL-0009); the string itself still grants everything.",
+          "rating": "moderate",
+          "score": 5
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "IAM authentication for Memorystore with per-service identities and TLS (CTL-0006) replaces the shared string.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "moderate",
+        "score": 5
+      },
+      "standards": {
+        "cwe": [
+          "CWE-798"
+        ],
+        "owasp": [
+          "A07:2025"
+        ],
+        "nist_800_53": [
+          "IA-5",
+          "AC-3"
+        ],
+        "cis_controls": [
+          "CIS-3.3"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0009",
+          "CTL-0006"
+        ],
+        "current_controls": [
+          "CTL-0009"
+        ],
+        "planned_controls": [
+          "CTL-0006"
+        ],
+        "suggested_mitigations": [
+          {
+            "text": "Enable IAM authentication on the Memorystore instance, grant redis.dbConnectionUser per service account and remove the AUTH string from Secret Manager.",
+            "source": "reviewer",
+            "status": "suggested"
+          }
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0005",
+      "number": 5,
+      "title": "One Service Account for Every Service Reads Every Secret and Opens the Database",
+      "description": "The three Cloud Run services run as one service account with Secret Manager Accessor on the whole project and Cloud SQL Client. Any one of them, compromised, inherits the reach of all three.",
+      "status": "open",
+      "classification": {
+        "stride": [
+          "elevation-of-privilege",
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0006",
+          "TA0009"
+        ]
+      },
+      "vulnerability": {
+        "category": "privilege-escalation",
+        "cwe": "CWE-250"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "secret-manager"
+        },
+        {
+          "kind": "node",
+          "ref": "cloud-sql",
+          "marker": false
+        },
+        {
+          "kind": "flow",
+          "ref": "f-api-secrets",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "vpc-vnet",
+        "from": "serverless",
+        "to": "gcp-services"
+      },
+      "assets_at_risk": [
+        "Third-party API keys",
+        "Redis AUTH string",
+        "Orders database"
+      ],
+      "data_classification": "restricted",
+      "data_tags": [
+        "credentials",
+        "pii",
+        "financial"
+      ],
+      "adversary": {
+        "type": "hacker",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "moderate",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Code running in any service lists and reads every secret in the project and connects to Cloud SQL with the shared identity.",
+        "mitre_attack": [
+          "T1552.001",
+          "T1078.004",
+          "T1005"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "One shared identity turns any foothold into full data access.",
+        "consequence": "Any compromise of a service is a compromise of the whole data layer.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "very-high",
+          "rationale": "Data-access audit logs and Security Command Center (CTL-0011) show unusual secret reads after the fact; nothing prevents them.",
+          "rating": "high",
+          "score": 8
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "Per-service accounts with per-secret bindings and a least-privilege database role (CTL-0007) limit each service to what it uses.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "standards": {
+        "cwe": [
+          "CWE-250",
+          "CWE-732"
+        ],
+        "owasp": [
+          "A01:2025"
+        ],
+        "nist_800_53": [
+          "AC-6",
+          "AC-6(1)"
+        ],
+        "cis_controls": [
+          "CIS-3.3",
+          "CIS-6.8"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0011",
+          "CTL-0007"
+        ],
+        "current_controls": [
+          "CTL-0011"
+        ],
+        "planned_controls": [
+          "CTL-0007"
+        ],
+        "suggested_mitigations": [
+          {
+            "text": "Create one service account per Cloud Run service, bind Secret Manager Accessor on individual secrets only, and give the storefront no database role at all.",
+            "source": "reviewer",
+            "status": "suggested"
+          }
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "THR-0006",
+      "number": 6,
+      "title": "Bucket Misconfiguration Exposes Customer Uploads to the Internet",
+      "description": "An allUsers grant on the uploads prefix, added for a support case, would make customer documents readable by anyone with the URL.",
+      "status": "mitigated",
+      "classification": {
+        "stride": [
+          "information-disclosure"
+        ],
+        "attack_tactics": [
+          "TA0009"
+        ]
+      },
+      "vulnerability": {
+        "category": "security-misconfiguration",
+        "cwe": "CWE-284"
+      },
+      "targets": [
+        {
+          "kind": "node",
+          "ref": "gcs-assets"
+        },
+        {
+          "kind": "flow",
+          "ref": "f-attacker-gcs",
+          "marker": false
+        }
+      ],
+      "boundary_crossed": {
+        "type": "internet",
+        "from": "internet",
+        "to": "gcp-services"
+      },
+      "assets_at_risk": [
+        "Customer documents"
+      ],
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "adversary": {
+        "type": "automated-bot",
+        "source_class": "individual-outsider",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "low",
+        "resources": "individual",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "attack": {
+        "scenario": "Bucket scanners enumerate names and copy everything listable within hours of a public grant.",
+        "mitre_attack": [
+          "T1530"
+        ]
+      },
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "low",
+        "impact": "high",
+        "rationale": "Org Policy makes the grant impossible rather than merely unlikely.",
+        "consequence": "Customer documents readable by anyone with the URL.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "very-low",
+          "impact": "high",
+          "rationale": "Public access prevention is enforced at the organization and uniform bucket-level access removes object ACLs (CTL-0008).",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "low",
+        "score": 2
+      },
+      "standards": {
+        "cwe": [
+          "CWE-284"
+        ],
+        "owasp": [
+          "A02:2025"
+        ],
+        "nist_800_53": [
+          "AC-3",
+          "SC-7"
+        ],
+        "cis_controls": [
+          "CIS-3.3"
+        ]
+      },
+      "treatment": {
+        "decision": "mitigate",
+        "controls": [
+          "CTL-0008"
+        ],
+        "current_controls": [
+          "CTL-0008"
+        ]
+      },
+      "provenance": {
+        "discovered_by": "workshop",
+        "created": "2026-11-01",
+        "updated": "2026-11-01",
+        "notes": "Illustrative example for the reference architecture."
+      },
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "id": "CTL-0001",
+      "name": "Identity Platform: MFA Required and reCAPTCHA Enterprise on Sign-In",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "high",
+      "owner": "Identity team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "identity-platform"
+        }
+      ],
+      "nist_800_53": [
+        "IA-2(1)",
+        "AC-7"
+      ],
+      "cis_controls": [
+        "CIS-6.3"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0002",
+      "name": "Cloud Armor: Preconfigured WAF Rules and Rate Limiting on the Load Balancer",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "test",
+      "verified_on": "2026-10-15",
+      "effectiveness": "moderate",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "ext-lb"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7",
+        "SI-10"
+      ],
+      "cis_controls": [
+        "CIS-13.10"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0003",
+      "name": "Cloud Run Ingress Restricted to the Load Balancer and the VPC; Invocation Requires IAM",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "continuous-monitoring",
+      "verified_on": "2026-10-20",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "run-web"
+        },
+        {
+          "kind": "node",
+          "ref": "run-api"
+        },
+        {
+          "kind": "node",
+          "ref": "run-admin"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7",
+        "AC-4"
+      ],
+      "cis_controls": [
+        "CIS-12.2"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0004",
+      "name": "Binary Authorization Admits Only Pipeline-Attested Images",
+      "type": "preventive",
+      "status": "planned",
+      "effectiveness": "high",
+      "owner": "Platform team",
+      "due_date": "2026-12-15",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "run-api"
+        },
+        {
+          "kind": "node",
+          "ref": "run-web"
+        },
+        {
+          "kind": "node",
+          "ref": "run-admin"
+        }
+      ],
+      "nist_800_53": [
+        "SI-7",
+        "CM-14"
+      ],
+      "cis_controls": [
+        "CIS-16.11"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0005",
+      "name": "Artifact Analysis Vulnerability Scanning Gates Every Deployment",
+      "type": "detective",
+      "status": "implemented",
+      "verification": "not-yet-verified",
+      "effectiveness": "moderate",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "run-api"
+        }
+      ],
+      "nist_800_53": [
+        "RA-5",
+        "SI-2"
+      ],
+      "cis_controls": [
+        "CIS-16.4"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0006",
+      "name": "Memorystore IAM Authentication, TLS and Per-Service Identities Replace the AUTH String",
+      "type": "preventive",
+      "status": "planned",
+      "effectiveness": "high",
+      "owner": "Application team",
+      "due_date": "2027-01-31",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "memorystore"
+        }
+      ],
+      "nist_800_53": [
+        "IA-5",
+        "AC-3"
+      ],
+      "cis_controls": [
+        "CIS-3.3"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0007",
+      "name": "One Service Account per Service with Per-Secret Bindings and a Least-Privilege Database Role",
+      "type": "preventive",
+      "status": "planned",
+      "effectiveness": "high",
+      "owner": "Application team",
+      "due_date": "2026-12-15",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "secret-manager"
+        },
+        {
+          "kind": "node",
+          "ref": "run-api"
+        },
+        {
+          "kind": "node",
+          "ref": "cloud-sql"
+        }
+      ],
+      "nist_800_53": [
+        "AC-6",
+        "AC-6(1)"
+      ],
+      "cis_controls": [
+        "CIS-3.3",
+        "CIS-6.8"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0008",
+      "name": "Public Access Prevention Enforced by Org Policy; Uniform Bucket-Level Access; CMEK",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "gcs-assets"
+        }
+      ],
+      "nist_800_53": [
+        "AC-3",
+        "SC-7",
+        "SC-28"
+      ],
+      "cis_controls": [
+        "CIS-3.3"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0009",
+      "name": "VPC Firewall Admits Only the Connector Range to the Database and Cache Ports",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "continuous-monitoring",
+      "verified_on": "2026-10-20",
+      "effectiveness": "high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "appliance",
+          "ref": "fw-rules"
+        }
+      ],
+      "nist_800_53": [
+        "SC-7",
+        "AC-4"
+      ],
+      "cis_controls": [
+        "CIS-12.2"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0010",
+      "name": "Identity-Aware Proxy with Access Levels and Security Keys; IAP JWT Verified in the Admin Service",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Platform team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "iap"
+        },
+        {
+          "kind": "node",
+          "ref": "run-admin"
+        }
+      ],
+      "nist_800_53": [
+        "AC-17",
+        "IA-2(1)"
+      ],
+      "cis_controls": [
+        "CIS-6.3",
+        "CIS-12.2"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0011",
+      "name": "Data-Access Audit Logs and Security Command Center Findings to the SRE On-Call",
+      "type": "detective",
+      "status": "verified",
+      "verification": "continuous-monitoring",
+      "verified_on": "2026-10-20",
+      "effectiveness": "moderate",
+      "owner": "Security operations",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "logging"
+        }
+      ],
+      "nist_800_53": [
+        "AU-6",
+        "SI-4"
+      ],
+      "cis_controls": [
+        "CIS-8.2"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    },
+    {
+      "id": "CTL-0012",
+      "name": "Cloud SQL: Private IP Only, IAM Authentication, TLS Required, CMEK",
+      "type": "preventive",
+      "status": "verified",
+      "verification": "audit",
+      "verified_on": "2026-10-15",
+      "effectiveness": "very-high",
+      "owner": "Data team",
+      "implemented_on": [
+        {
+          "kind": "node",
+          "ref": "cloud-sql"
+        }
+      ],
+      "nist_800_53": [
+        "SC-8",
+        "SC-28",
+        "IA-2"
+      ],
+      "cis_controls": [
+        "CIS-3.11"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ],
+  "attack_paths": [
+    {
+      "id": "AP-0001",
+      "number": 1,
+      "title": "Dependency Compromise to Secrets to Customer Data",
+      "description": "A poisoned package runs in the Orders API with the shared service account; the account reads every secret; the database is read through the connector; the data leaves through the service's own Internet egress.",
+      "status": "open",
+      "adversary": {
+        "type": "criminal",
+        "source_class": "group-established",
+        "motivation": [
+          "personal-gain"
+        ],
+        "capability": "high",
+        "resources": "team",
+        "position": "external",
+        "required_privileges": "none",
+        "access_vector": "network",
+        "authentication_required": false,
+        "actor_node": "attacker"
+      },
+      "entry": "attacker",
+      "hops": [
+        {
+          "threat": "THR-0003",
+          "from": "attacker",
+          "to": "run-api",
+          "gain": "code-execution",
+          "note": "A hijacked npm package pulled into the Orders API image runs its payload at container start, with the API's service account and network reach.",
+          "bypasses": [
+            "CTL-0005"
+          ]
+        },
+        {
+          "threat": "THR-0005",
+          "from": "run-api",
+          "via": "f-api-secrets",
+          "to": "secret-manager",
+          "gain": "credentials",
+          "note": "The shared service account holds Secret Manager Accessor on the whole project: API keys, the Redis AUTH string and the Cloud SQL built-in user password are one call each."
+        },
+        {
+          "threat": "THR-0005",
+          "from": "secret-manager",
+          "via": "f-connector-sql",
+          "to": "cloud-sql",
+          "gain": "data-access",
+          "note": "With the built-in user password and Cloud SQL Client, the payload dumps the orders tables through the connector; the firewall sees the connector range as usual."
+        },
+        {
+          "threat": "THR-0003",
+          "from": "cloud-sql",
+          "to": "run-api",
+          "gain": "data-exfiltration",
+          "note": "Cloud Run egress for public ranges goes straight to the Internet; the dump is posted to an attacker-controlled host from inside the service."
+        }
+      ],
+      "impact": "Customer orders, PII and payment references copied out of the project: regulatory notification, card-brand exposure and a rotation of every secret in the project.",
+      "assets_at_risk": [
+        "Orders database",
+        "Customer PII",
+        "Third-party API keys"
+      ],
+      "risk": {
+        "method": "likelihood-impact",
+        "likelihood": "moderate",
+        "impact": "very-high",
+        "rationale": "Package compromises are regular; the shared identity and open egress let one of them run to completion.",
+        "residual": {
+          "method": "likelihood-impact",
+          "likelihood": "moderate",
+          "impact": "very-high",
+          "rationale": "Scanning (CTL-0005) and audit logs (CTL-0011) shorten the dwell time; nothing breaks the chain today.",
+          "rating": "high",
+          "score": 8
+        },
+        "projected": {
+          "method": "likelihood-impact",
+          "likelihood": "low",
+          "impact": "high",
+          "rationale": "Binary Authorization (CTL-0004) stops hop 1 and per-service accounts with per-secret bindings (CTL-0007) stop hop 2.",
+          "rating": "low",
+          "score": 2
+        },
+        "rating": "high",
+        "score": 8
+      },
+      "breaks_at": [
+        "CTL-0004",
+        "CTL-0007"
+      ],
+      "mitre_attack": [
+        "T1195.001",
+        "T1552.001",
+        "T1078.004",
+        "T1005",
+        "T1041"
+      ],
+      "layers": [
+        "illustrative-threats"
+      ]
+    }
+  ]
+}

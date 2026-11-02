@@ -2,11 +2,11 @@
 name: netblueprint-forge
 description: Build, update and render network flow and threat model diagrams as self-contained interactive HTML. Interviews the user to capture zones, firewalls and boundary appliances, servers and the services on them, users, devices and bad actors, flows with their authentication strength, a guided step-by-step story, threats with STRIDE / adversary / risk metadata and controls, and Visio-style layers. Use when the user asks for a network diagram, data flow diagram, threat model, architecture walkthrough, zero-trust or privileged access flow, or wants to update an existing NetBlueprint model by name.
 license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LLC; commercial licenses available. See LICENSE in this folder.
-compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card.
+compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.6.1"
-  renderer-version: "1.7.1"
+  version: "0.7.0"
+  renderer-version: "1.8.0"
 ---
 
 # NetBlueprint Forge
@@ -49,6 +49,8 @@ node scripts/normalize.mjs <field> "<typed text>"   # map an answer onto the opt
 node scripts/scenario.mjs <model.json> --tab <what-if tab>   # the delta of a what-if scenario against its baseline (Markdown; --json)
 node scripts/check.mjs <model-name>.html           # headless geometry check of every tab (needs Chrome / Chromium on the machine)
 node scripts/screenshot.mjs <model-name>.html --tab <name> --step <n>   # PNG of one view of a built page, whole page at natural size (same browser)
+node scripts/icons.mjs search "<service>"          # the vendor icon id for an `icon` value (azure/key-vaults, aws/lambda, gcp/cloud-sql); `check <model.json>` lists a model's icons
+node scripts/icons.mjs fetch dashboard/<name> --model <model.json>   # a product logo (a Fortinet or Palo Alto firewall, a Sophos agent …) from Dashboard Icons into icons.json beside the model; `search "<name>" --provider dashboard` finds the name
 ```
 
 Paths are relative to this skill's folder; use the absolute path of the skill when the working directory is the user's project.
@@ -72,15 +74,17 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 15. **Tabs.** Several diagrams of one system go on `tabs[]` (each its own zones, nodes, flows, steps, threats, controls, attack paths); say which tab in every edit. See the interview, Section 0b.
 16. **Classify every flow.** Every flow that is not `trust` or `blocked` carries `data_classification` and the `data_tags` that apply; the validator warns otherwise.
 17. **Chains and what-ifs.** Attack paths are `attack_paths[]` with permanent AP numbers (`references/threats.md`, "Attack paths"); a what-if is a scenario tab derived from a baseline tab with `scenario: { baseline, change }`, the only tab allowed to repeat another tab's ids (`references/what-if.md`). An open threat always has a control or a suggested mitigation written as an engineering action.
+18. **Vendor icons.** A cloud node with a `cloud.card` shows the vendor's official icon (Azure, AWS, Google Cloud) on the page; nothing to set. For any other element, `icon: "<provider>/<id>"` picks one (`node scripts/icons.mjs search "<service>"` finds the id; `azure/firewalls` on an Azure Firewall bar, `azure/virtual-networks` on a VNet zone, `azure/microsoft-entra-id` on the tenant). A built-in name keeps a line icon; `settings.icons.vendor: false` keeps line icons everywhere. Only use a vendor icon for the product it depicts; the icons belong to their vendors (`THIRD-PARTY-NOTICES.md`). A product that is not a cloud service (a Fortinet or Palo Alto firewall, a Sophos agent, a Check Point gateway) takes its logo as `dashboard/<name>` once `node scripts/icons.mjs fetch dashboard/<name> --model <model.json>` has put it in `icons.json` beside the model; search the name first, never guess it, and keep that file with the model.
 
 ## Files in this skill
 
 - `LICENSE`: PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms: noncommercial use is free, commercial use needs a written license from DigitalPrez, LLC (subscriptions@digitalprez.com), and everything the skill generates is free for anyone to use and share. The renderer repeats a short notice at the top of every generated HTML.
 - `assets/schema/netblueprint.schema.json`: the model schema (draft 2020-12).
+- `assets/icons/azure.json`, `aws.json`, `gcp.json`: the vendor icon library, one index per provider with the icons' markup, titles, aliases and the vendor's terms; `THIRD-PARTY-NOTICES.md` beside this file reproduces those terms. `references/icons.md` explains the names.
 - `assets/template/template.html`: the renderer. Never edit a generated HTML by hand; change the model and rebuild.
-- `assets/examples/entra-app-proxy.model.json`: the primary worked example (Entra Application Proxy publishing an internal portal over ExpressRoute; service profiles, flow detail, threats with as-is and future-state controls, out-of-scope elements). `assets/examples/azure-hub-spoke.model.json`: a busier hub-spoke example. `assets/examples/partner-portal-tabs.model.json`: the same portal on two tabs (Partner Access, Admin Access) with threats numbered across both. Show one when the user wants to see what a finished model looks like.
+- `assets/examples/entra-app-proxy.model.json`: the primary worked example (Entra Application Proxy publishing an internal portal over ExpressRoute; service profiles, flow detail, threats with as-is and future-state controls, out-of-scope elements). `assets/examples/azure-hub-spoke.model.json`: a busier hub-spoke example. `assets/examples/partner-portal-tabs.model.json`: the same portal on two tabs (Partner Access, Admin Access) with threats numbered across both. `assets/examples/aws-three-tier.model.json` (AnyCompany: CloudFront, ALB, EC2, RDS, Secrets Manager, S3 over VPC endpoints, Session Manager; an SSRF-to-exfiltration attack path) and `assets/examples/gcp-serverless-web.model.json` (Cymbal: Cloud Armor, Cloud Run, a VPC connector to Cloud SQL and Memorystore, Secret Manager, IAP; a dependency-compromise attack path) are the AWS and Google Cloud counterparts, with the vendors' icons. Show one when the user wants to see what a finished model looks like, matching their provider.
 - `scripts/validate.mjs`, `build.mjs`, `archive.mjs`, `normalize.mjs`, `scenario.mjs`, `model-reference.mjs`: Node 18+, no dependencies. `scripts/check.mjs`: the headless geometry check of a built page (Node 18+ plus any Chromium-based browser already on the machine; no install). `scripts/screenshot.mjs`: a PNG of one view of a built page (a tab, a step or an attack-path hop) for documents and decks, with the same browser.
 
 ## Output location
 
-In the user's project: `netblueprint/<model-name>/model.json`, `netblueprint/<model-name>/<model-name>.html`, `netblueprint/<model-name>/archive/`. Ask before using a different location.
+In the user's project: `netblueprint/<model-name>/model.json`, `netblueprint/<model-name>/<model-name>.html`, `netblueprint/<model-name>/archive/`, and `netblueprint/<model-name>/icons.json` once a product logo has been fetched (it stays with the model). Ask before using a different location.

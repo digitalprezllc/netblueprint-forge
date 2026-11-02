@@ -11,7 +11,7 @@ Loaded on demand by `SKILL.md`. Keep each file focused; the agent reads only wha
 | `layout-hints.md` | How the canvas is built and every hint by name | done |
 | `revise-and-archive.md` | Archive → edit by name → validate → build → log the diff; the rules | done |
 | `render.md` | Commands, reading validator output, what the diagram offers, the layout checklist, fixes | done |
-| `icons.md` | Icon names, what they depict, defaults by type | done |
+| `icons.md` | Icon names, what they depict, defaults by type; the vendor icon library (`provider/id`, cards, aliases, the vendors' rules); product logos fetched on demand (`dashboard/<name>`, `icons.json` beside the model) | done; vendor icons and product logos 2026-11-01 |
 | `what-if.md` | Mode B: derive a scenario tab from a baseline, apply the change, re-run threats and attack paths, print the delta with `scenario.mjs`, promote or drop it | done 2026-10-25 |
 | `ingest.md` | Mode A from files: map Terraform / Bicep / CloudFormation / Kubernetes / OpenAPI / design documents onto zones, appliances, nodes and flows, all `suggested` until confirmed | done 2026-10-25 |
 | `cloud/README.md` | How to use a service card | done |

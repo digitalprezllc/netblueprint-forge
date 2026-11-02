@@ -1455,6 +1455,18 @@
             }
           }
         },
+        "icons": {
+          "description": "Vendor icons on the page.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "vendor": {
+              "description": "Draw the official Azure, AWS and Google Cloud icons on cloud nodes that carry a card, and wherever an icon names one. false keeps the built-in line icons unless an element names a vendor icon itself.",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
         "severity_filter_default": {
           "description": "Minimum band shown when the diagram opens.",
           "$ref": "#/$defs/fiveLevel"
@@ -1573,6 +1585,10 @@
             "switch",
             "other"
           ]
+        },
+        "icon": {
+          "description": "Override the icon implied by type, for example azure/firewalls on an Azure Firewall bar.",
+          "$ref": "#/$defs/icon"
         },
         "edge": {
           "description": "Which edge of the zone it sits on. auto puts it on the edge facing the Internet side.",
@@ -1760,41 +1776,51 @@
       }
     },
     "icon": {
-      "type": "string",
-      "enum": [
-        "server",
-        "database",
-        "service",
-        "api",
-        "connector",
-        "cloud",
-        "shield",
-        "firewall",
-        "lock",
-        "key",
-        "user",
-        "remote-user",
-        "admin",
-        "bad-actor",
-        "laptop",
-        "workstation",
-        "mobile",
-        "iot",
-        "ot",
-        "storage",
-        "queue",
-        "cache",
-        "container",
-        "kubernetes",
-        "function",
-        "load-balancer",
-        "dns",
-        "mail",
-        "directory",
-        "monitor",
-        "globe",
-        "building",
-        "generic"
+      "description": "A built-in icon name (references/icons.md) or a vendor icon as provider/id from the icon library: azure/key-vaults, aws/lambda, gcp/cloud-sql (node scripts/icons.mjs search <text> finds the id; aliases such as aws/s3 or azure/key-vault resolve). A product logo fetched beside the model is dashboard/<name> (node scripts/icons.mjs fetch dashboard/<name> --model <model.json> puts it in icons.json next to the model).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "server",
+            "database",
+            "service",
+            "api",
+            "connector",
+            "cloud",
+            "shield",
+            "firewall",
+            "lock",
+            "key",
+            "user",
+            "remote-user",
+            "admin",
+            "bad-actor",
+            "laptop",
+            "workstation",
+            "mobile",
+            "iot",
+            "ot",
+            "storage",
+            "queue",
+            "cache",
+            "container",
+            "kubernetes",
+            "function",
+            "load-balancer",
+            "dns",
+            "mail",
+            "directory",
+            "monitor",
+            "globe",
+            "building",
+            "generic"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^(aws|azure|gcp|dashboard)/[a-z0-9][a-z0-9.-]*$",
+          "maxLength": 120
+        }
       ]
     },
     "component": {

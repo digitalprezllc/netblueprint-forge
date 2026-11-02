@@ -14,7 +14,7 @@ import { findBrowser, runReport, judge } from '../skills/netblueprint-forge/scri
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
-const examples = ['entra-app-proxy', 'azure-hub-spoke', 'partner-portal-tabs'];
+const examples = ['entra-app-proxy', 'azure-hub-spoke', 'partner-portal-tabs', 'aws-three-tier', 'gcp-serverless-web'];
 const baselinePath = path.join(root, 'tests', 'layout-baseline.json');
 const baseline = fs.existsSync(baselinePath) ? JSON.parse(fs.readFileSync(baselinePath, 'utf8')) : {};
 

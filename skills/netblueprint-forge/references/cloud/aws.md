@@ -5,6 +5,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 ---
 
 ## `aws-ec2` — Amazon EC2 (virtual machines)
+- **Icon:** `aws/ec2`
 - **What:** VMs in a VPC subnet with security groups.
 - **Attaches to:** VPC + subnet; public IP optional; security groups (stateful allow lists) and NACLs; private egress via NAT gateway or VPC endpoints.
 - **Default exposure:** no inbound allowed by a new security group; a public IP appears only if the subnet auto-assigns one or the launch asks for it. IMDSv1 is accepted unless IMDSv2 is required.
@@ -15,6 +16,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** SSRF to IMDSv1 steals the instance role credentials · Elevation of privilege · `ssrf` · CWE-918, T1552.005 · control: require IMDSv2 (preventive) ‖ Management port exposed to the Internet · Elevation of privilege · `security-misconfiguration` · T1133 · control: no inbound SG rule, SSM only ‖ Secrets in user data or on disk · Information disclosure · `credential-exposure` · CWE-798 · control: Secrets Manager + instance role ‖ Unpatched OS / agent · Elevation of privilege · `vulnerable-components` · CWE-1104 · control: SSM Patch Manager with SLA.
 
 ## `aws-s3` — Amazon S3 (object storage)
+- **Icon:** `aws/simple-storage-service`
 - **What:** Object storage with bucket policies.
 - **Attaches to:** Regional public endpoint by default; private via gateway or interface VPC endpoint with an endpoint policy.
 - **Default exposure:** new buckets are private: Block Public Access on and ACLs disabled (bucket owner enforced); default encryption SSE-S3. Buckets created before 2023 may differ.
@@ -25,6 +27,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Bucket or object made public · Information disclosure · `security-misconfiguration` · CWE-284, A01:2025 · control: Block Public Access + SCP/RCP deny ‖ Data read in transit over HTTP · Information disclosure · `missing-or-weak-encryption` · CWE-319 · control: bucket policy denies non-TLS ‖ Over-broad bucket policy / cross-account `*` · Information disclosure · `unauthorized-access` · CWE-284 · control: least-privilege policy, Access Analyzer ‖ Ransomware / deletion · Tampering, Denial of service · `insider-misuse` · T1485 · control: versioning + Object Lock + MFA delete.
 
 ## `aws-rds` — Amazon RDS / Aurora (managed relational database)
+- **Icon:** `aws/rds`
 - **What:** Managed PostgreSQL / MySQL / SQL Server / Oracle / Aurora.
 - **Attaches to:** VPC subnet group; optional public accessibility gives a public DNS/IP; security group on the instance.
 - **Default exposure:** private within the VPC unless "Publicly accessible" is set; security group controls the port.
@@ -35,6 +38,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Database reachable from the Internet · Information disclosure · `security-misconfiguration` · CWE-284 · control: public access off + SG from app subnet only ‖ Credentials in app config · Spoofing · `credential-exposure` · CWE-798 · control: Secrets Manager / IAM auth ‖ Unencrypted connections · Information disclosure · `missing-or-weak-encryption` · CWE-319 · control: force SSL ‖ SQL injection via the app · Tampering · `injection` · CWE-89, A05:2025 · control: parameterized queries, least-privilege DB user.
 
 ## `aws-lambda` — AWS Lambda (serverless functions)
+- **Icon:** `aws/lambda`
 - **What:** Event-driven functions.
 - **Attaches to:** Runs in the AWS service network by default; optional VPC attachment (ENIs in your subnets); invoked by triggers, API Gateway, ALB, or a function URL.
 - **Default exposure:** not reachable from the Internet unless a function URL (auth `NONE`) or an open API Gateway / ALB fronts it.
@@ -45,6 +49,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Open function URL / API · Spoofing, Information disclosure · `broken-authentication` · CWE-306 · control: IAM or JWT authorizer ‖ Secrets in environment variables · Information disclosure · `credential-exposure` · CWE-798 · control: Secrets Manager at runtime ‖ Over-permissive execution role · Elevation of privilege · `privilege-escalation` · CWE-250 · control: least-privilege role per function ‖ Event injection through untrusted payloads · Tampering · `improper-input-validation` · CWE-20 · control: schema validation.
 
 ## `aws-api-gateway` — Amazon API Gateway
+- **Icon:** `aws/api-gateway`
 - **What:** Managed REST / HTTP / WebSocket API front door.
 - **Attaches to:** Edge-optimized or regional public endpoint; private API via interface VPC endpoint with a resource policy.
 - **Default exposure:** public endpoint; methods without an authorizer are open.
@@ -55,6 +60,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Methods callable without authentication · Spoofing · `broken-authentication` · CWE-306, API2:2023 · control: authorizer on every method ‖ Broken object-level authorization in back ends · Information disclosure · `unauthorized-access` · CWE-639, API1:2023 · control: ownership checks ‖ Resource exhaustion · Denial of service · `resource-exhaustion` · API4:2023 · control: throttling + WAF rate rules ‖ API keys treated as authentication · Spoofing · `broken-authentication` · control: keys for metering only.
 
 ## `aws-alb` — Application Load Balancer (+ AWS WAF)
+- **Icon:** `aws/elastic-load-balancing`
 - **What:** Layer-7 load balancer for HTTP(S).
 - **Attaches to:** Internet-facing (public subnets, public IPs) or internal; security group on the ALB; targets in private subnets.
 - **Default exposure:** internet-facing ALBs listen publicly; HTTP listeners pass plaintext unless redirected.
@@ -65,6 +71,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Web attacks reach the application · Tampering, Information disclosure · `injection` · A05:2025 · control: WAF managed rules in block mode ‖ Plaintext HTTP accepted · Information disclosure · `missing-or-weak-encryption` · CWE-319 · control: HTTPS-only listeners ‖ Targets reachable around the ALB · Elevation of privilege · `security-misconfiguration` · control: target SG allows ALB SG only ‖ Volumetric / L7 DoS · Denial of service · `resource-exhaustion` · control: Shield + WAF rate-based rules.
 
 ## `aws-eks` — Amazon EKS (Kubernetes)
+- **Icon:** `aws/elastic-kubernetes-service`
 - **What:** Managed Kubernetes control plane with node groups or Fargate.
 - **Attaches to:** Cluster endpoint public and/or private; nodes in VPC subnets; pods via VPC CNI.
 - **Default exposure:** the API endpoint is public (authenticated) unless set to private or CIDR-restricted; Services of type LoadBalancer create public load balancers.
@@ -75,6 +82,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Exposed API server · Elevation of privilege · `security-misconfiguration` · T1190 · control: private endpoint / CIDR allow-list ‖ Pod steals node role via IMDS · Elevation of privilege · `ssrf` · T1552.005 · control: IMDSv2 hop limit 1 + IRSA ‖ Lateral movement between namespaces · Elevation of privilege · `excessive-trust-or-flat-network` · control: NetworkPolicy default deny ‖ Vulnerable images · Elevation of privilege · `supply-chain` · A03:2025 · control: ECR scanning, admission policy.
 
 ## `aws-dynamodb` — Amazon DynamoDB (NoSQL)
+- **Icon:** `aws/dynamodb`
 - **What:** Serverless key-value / document database.
 - **Attaches to:** Public regional endpoint; private via gateway VPC endpoint with endpoint policy.
 - **Default exposure:** reachable only with IAM credentials; no network allow-list unless a VPC endpoint policy is used.
@@ -85,6 +93,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Over-broad IAM on tables · Information disclosure · `unauthorized-access` · CWE-284 · control: least privilege, condition keys ‖ Credential leak gives full access from anywhere · Spoofing · `credential-exposure` · CWE-522 · control: roles only, VPC endpoint policy ‖ Table deletion / corruption · Denial of service · `insider-misuse` · control: PITR, deletion protection.
 
 ## `aws-secrets-kms` — AWS Secrets Manager and KMS
+- **Icon:** `aws/secrets-manager`
 - **What:** Secret storage with rotation; key management.
 - **Attaches to:** Public regional endpoints; interface VPC endpoints for private access.
 - **Default exposure:** IAM-controlled; KMS key policies decide who can use a key.
@@ -95,6 +104,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Secret readable by too many roles · Information disclosure · `unauthorized-access` · CWE-284 · control: resource policy + least privilege ‖ Static credentials never rotated · Spoofing · `credential-exposure` · control: automatic rotation ‖ Key policy lets a compromised role decrypt everything · Information disclosure · `privilege-escalation` · control: key policy scoped per workload.
 
 ## `aws-cloudfront` — Amazon CloudFront (CDN) with WAF and Shield
+- **Icon:** `aws/cloudfront`
 - **What:** Global CDN and TLS termination in front of S3, ALB, API Gateway, custom origins.
 - **Attaches to:** Internet edge; origins can be made private (S3 Origin Access Control, ALB restricted to CloudFront prefix list / custom header).
 - **Default exposure:** public; origins stay reachable directly unless locked to CloudFront.
@@ -105,6 +115,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** Origin bypass · Information disclosure · `security-misconfiguration` · control: OAC / origin header checks ‖ Cache poisoning / header manipulation · Tampering · `improper-input-validation` · CWE-444 · control: cache key policy, WAF ‖ Volumetric DoS · Denial of service · `resource-exhaustion` · control: Shield Advanced, rate rules.
 
 ## `aws-sqs-sns` — Amazon SQS / SNS (messaging)
+- **Icon:** `aws/simple-queue-service`
 - **What:** Queues and pub/sub topics.
 - **Attaches to:** Public regional endpoints; interface VPC endpoints for private access.
 - **Default exposure:** IAM-controlled; a resource policy with `Principal: *` makes a queue/topic world-writable or readable.
@@ -115,6 +126,7 @@ Format per card: What · Attaches to · Default exposure · Disable unless neede
 - **Threats:** World-writable queue lets anyone inject messages · Tampering · `unauthorized-access` · CWE-284 · control: resource policy by principal ‖ Sensitive payloads unencrypted · Information disclosure · `missing-or-weak-encryption` · control: SSE-KMS, HTTPS subscriptions ‖ Poison messages exhaust consumers · Denial of service · `improper-input-validation` · control: validation + DLQ.
 
 ## `aws-elasticache` — Amazon ElastiCache (Redis / Valkey / Memcached)
+- **Icon:** `aws/elasticache`
 - **What:** In-memory cache.
 - **Attaches to:** VPC subnets only (no public endpoint); security groups.
 - **Default exposure:** private; but a permissive security group or a peered network exposes an unauthenticated cache.

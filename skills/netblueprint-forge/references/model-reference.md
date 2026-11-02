@@ -1,6 +1,6 @@
 # Model reference
 
-Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-10-25. Do not edit by hand; change the schema and regenerate.
+Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-02. Do not edit by hand; change the schema and regenerate.
 
 A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.
 
@@ -50,7 +50,7 @@ A network / application flow and threat model. The renderer computes layout from
 | `riskAssessment` | riskAssessment: [riskAssessmentCore](#riskassessmentcore) |
 | `attackPathId` | attackPathId: string matching `^AP-[0-9]{4}$` |
 | `hopGain` | hopGain: `foothold`, `credentials`, `token`, `session`, `network-access`, `code-execution`, `data-access`, `data-exfiltration`, `privilege`, `persistence`, `lateral-movement`, `denial-of-service`, `impact` |
-| `icon` | `server`, `database`, `service`, `api`, `connector`, `cloud`, `shield`, `firewall`, `lock`, `key`, `user`, `remote-user`, `admin`, `bad-actor`, `laptop`, `workstation`, `mobile`, `iot`, `ot`, `storage`, `queue`, `cache`, `container`, `kubernetes`, `function`, `load-balancer`, `dns`, `mail`, `directory`, `monitor`, `globe`, `building`, `generic` |
+| `icon` | `server`, `database`, `service`, `api`, `connector`, `cloud`, `shield`, `firewall`, `lock`, `key`, `user`, `remote-user`, `admin`, `bad-actor`, `laptop`, `workstation`, `mobile`, `iot`, `ot`, `storage`, `queue`, `cache`, `container`, `kubernetes`, `function`, `load-balancer`, `dns`, `mail`, `directory`, `monitor`, `globe`, `building`, `generic`, or a vendor icon as `provider/id` from the icon library (`azure/key-vaults`, `aws/lambda`, `gcp/cloud-sql`; see icons.md) |
 
 ## meta (signature block)
 
@@ -94,6 +94,7 @@ Signature block and document metadata. Title, subtitle and organization are Titl
 | `layout` | object |  |  |
 | `layers_hidden` | list of names (unique) |  | Layer names (built-in or custom) that start hidden. |
 | `show` | object |  |  |
+| `icons` | object |  | Vendor icons on the page. |
 | `severity_filter_default` | `very-low` · `low` · `moderate` · `high` · `very-high` |  | Minimum band shown when the diagram opens. |
 | `theme` | object |  |  |
 
@@ -159,7 +160,7 @@ One diagram of a multi-tab document. `name` is the stable id (used in the URL ha
 | `trust_boundary` | boolean |  | Draw as a trust boundary (dashed) regardless of kind. |
 | `color` | hex colour or palette name (blue, teal, green, slate, red, grey, purple, gold, orange, navy) |  |  |
 | `dashed` | boolean |  |  |
-| `icon` | icon name (see icons.md) |  |  |
+| `icon` | icon name or `provider/id` vendor icon (see icons.md) |  |  |
 | `info` | text ≤4000 |  |  |
 | `data_classification` | `public` · `internal` · `confidential` · `restricted` |  |  |
 | `data_tags` | list of `pii` `phi` `pci` `financial` `credentials` `intellectual-property` `mission-critical` `export-controlled` `other` |  |  |
@@ -184,6 +185,7 @@ A filtering device on a zone boundary. Drawn as a narrow bar on the zone edge; f
 | `label` | text ≤200 | yes |  |
 | `sub` | text ≤200 |  |  |
 | `type` | `firewall`, `ngfw`, `waf`, `gateway`, `api-gateway`, `proxy`, `reverse-proxy`, `load-balancer`, `nat`, `bastion`, `vpn`, `ids-ips`, `zero-trust-broker`, `sd-wan`, `router`, `switch`, `other` | yes |  |
+| `icon` | icon name or `provider/id` vendor icon (see icons.md) |  | Override the icon implied by type, for example azure/firewalls on an Azure Firewall bar. |
 | `edge` | `auto`, `left`, `right`, `top`, `bottom` |  | Which edge of the zone it sits on. auto puts it on the edge facing the Internet side. Default `"auto"`. |
 | `filters` | `inbound`, `outbound`, `both` |  | Which crossings route through it automatically: inbound (flows entering the zone), outbound (flows leaving), or both. A flow's explicit via list overrides this. Default `"both"`. |
 | `serves` | list of names (unique) |  | Only flows whose far endpoint is inside one of these zones (or 'internet') route through this appliance automatically, e.g. a VPN gateway that serves ['onprem']. Omit for all crossings. |
@@ -208,7 +210,7 @@ A filtering device on a zone boundary. Drawn as a narrow bar on the zone edge; f
 | `label` | text ≤200 | yes |  |
 | `sub` | text ≤200 |  |  |
 | `type` | `server`, `host`, `service`, `database`, `storage`, `api`, `connector`, `saas`, `public-endpoint`, `user`, `remote-user`, `admin`, `bad-actor`, `laptop`, `workstation`, `mobile`, `iot`, `ot`, `identity-provider`, `generic` | yes | What the node is; sets the default icon and some lint rules (a bad-actor cannot be a flow destination for data, a database should not sit on the Internet side unmarked). |
-| `icon` | icon name (see icons.md) |  | Override the icon implied by type. |
+| `icon` | icon name or `provider/id` vendor icon (see icons.md) |  | Override the icon implied by type. |
 | `zone` | name: letters, digits, `_ . -`, ≤64, unique | yes | Zone name, or the reserved name 'internet' for SaaS, public endpoints, remote users and external actors. |
 | `color` | hex colour or palette name (blue, teal, green, slate, red, grey, purple, gold, orange, navy) |  |  |
 | `stack` | integer 1–9 |  | Draw as a stack of this many instances. |
@@ -236,7 +238,7 @@ A service or process running on a host node.
 | `name` | name: letters, digits, `_ . -`, ≤64, unique | yes |  |
 | `label` | text ≤200 | yes |  |
 | `type` | `web-server`, `app-server`, `api`, `database`, `sql-server`, `cache`, `queue`, `file-share`, `directory`, `dns`, `mail`, `container`, `function`, `agent`, `scheduler`, `process`, `storage`, `secrets`, `monitoring`, `identity`, `custom` | yes |  |
-| `icon` | icon name (see icons.md) |  |  |
+| `icon` | icon name or `provider/id` vendor icon (see icons.md) |  |  |
 | `ports` | array of string matching `^[0-9]{1,5}(-[0-9]{1,5})?(/(tcp\|udp\|sctp))?$` (unique) |  |  |
 | `info` | text ≤4000 |  |  |
 | `data_classification` | `public` · `internal` · `confidential` · `restricted` |  |  |
