@@ -33,7 +33,7 @@
   },
   "gcp-serverless-web": {
     "main": {
-      "crossings": 15,
+      "crossings": 17,
       "maxBends": 4
     }
   }

@@ -193,7 +193,7 @@
     {
       "name": "snet-connector",
       "label": "Connector Subnet",
-      "sub": "10.60.1.0/28 · Serverless VPC Access",
+      "sub": "10.60.1.0/28",
       "parent": "vpc-prod",
       "kind": "subnet",
       "layout": {
@@ -205,7 +205,7 @@
     {
       "name": "snet-services",
       "label": "Private Services Range",
-      "sub": "10.60.16.0/20 · Private Service Access · No Public IPs",
+      "sub": "10.60.16.0/20 · Private Service Access",
       "parent": "vpc-prod",
       "kind": "subnet",
       "layout": {
