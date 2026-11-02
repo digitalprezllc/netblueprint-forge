@@ -2,9 +2,9 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally.
 
-## Unreleased
+## 0.7.0 (2026-11-01)
 
-Skill 0.7.0, renderer 1.8.0.
+Skill 0.7.0, renderer 1.8.0. Download: [netblueprint-forge-0.7.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.7.0.zip), sha256 `faf8cca44c8cc85c0dda4a575875efc3b2eaf3fcfef618d76fa9c87747831af6`.
 
 - Vendor icons: the official Microsoft Azure (with Microsoft Entra), AWS and Google Cloud architecture icons ship with the skill as one index per provider (`assets/icons/`), imported unmodified from the vendors' packages by the new `scripts/icons.mjs`. A cloud node with a card shows its vendor icon automatically; `icon: "<provider>/<id>"` puts one on any zone, appliance, node or component; `settings.icons.vendor: false` keeps line icons. `build.mjs` embeds only the icons a page uses; the legend names the vendors; the validator and `tests/check_icons.mjs` check the references. Terms in `THIRD-PARTY-NOTICES.md`.
 - The Azure examples show Azure icons on their services, VNets, subnets, firewalls, gateways and the Entra tenant.
