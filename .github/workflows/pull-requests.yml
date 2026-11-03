@@ -1,0 +1,27 @@
+# NetBlueprint Forge takes bug reports and feature requests, not code (CONTRIBUTING.md): a pull request opened from
+# outside the organization is closed on arrival with a note that points at the issue forms. Pull requests from the
+# owner, members and collaborators are left alone. pull_request_target runs with the repository's own token on the
+# base branch, and this job checks nothing out, so nothing from the pull request itself ever runs here.
+name: pull requests
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    name: Close an outside pull request
+    if: ${{ !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comment and close
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr comment "$NUMBER" --repo "$REPO" --body "Thank you for taking the time. NetBlueprint Forge does not accept pull requests: the software is written by DigitalPrez, LLC alone so that its commercial licence stays simple, and this one is closed without review (CONTRIBUTING.md says more). If you ran into a problem, a bug report or a feature request that describes it is welcome: https://github.com/$REPO/issues/new/choose"
+          gh pr close "$NUMBER" --repo "$REPO"

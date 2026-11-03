@@ -72,6 +72,8 @@ Regenerates `docs/images/*.png`, the pictures the README shows, from the built e
 
 `.github/workflows/release.yml` is the second workflow: on every push to `master` it runs the validator suite, builds `netblueprint-forge-<version>.zip` with `platforms/package.mjs`, tests the archive with Python's `zipfile`, keeps it as a workflow artifact, and publishes a GitHub Release tagged `v<version>` when that tag does not exist yet. The archive was checked locally with Python's `zipfile -t` and with PowerShell's `Expand-Archive`, whose extraction matched the skill folder file for file by SHA-256.
 
+`.github/workflows/pull-requests.yml` is the third: on `pull_request_target` it closes a pull request opened from outside the organization with a note, because the repository takes bug reports and feature requests and not code (`CONTRIBUTING.md`). It runs with the repository's own token on the base branch and checks nothing out, so nothing from the pull request runs. Pull requests from the owner, members and collaborators are left alone, and `checks.yml` still runs on those.
+
 ## Icon library check
 
 ```bash

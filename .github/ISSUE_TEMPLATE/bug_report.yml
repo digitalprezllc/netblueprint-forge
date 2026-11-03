@@ -1,0 +1,51 @@
+# Bug report form. Blank issues are off (config.yml); pull requests are not accepted (CONTRIBUTING.md).
+name: Bug report
+description: Something the skill, a script or a rendered page does wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Describe what happened; the fix is ours to write, so there is no need to send code, and a patch pasted here will not be merged. Keep real names, addresses and anything else from a real model out of the report (the models in `examples/` make a fine stand-in): an issue is visible to everyone who can see the repository.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The skill version (`metadata.version` in SKILL.md, or the release zip name) and, for a page, the renderer version from its footer.
+      placeholder: "skill 0.7.0, renderer 1.8.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - The interview (SKILL.md and its references)
+        - validate.mjs (schema or lint)
+        - build.mjs or the rendered page (layout, routing, interaction, register)
+        - icons.mjs or the icon library
+        - Another script (archive, normalize, scenario, check, screenshot, model-reference)
+        - Install, plugin, packaging or a release
+        - Documentation or an example
+        - Somewhere else
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Tool and platform
+      description: The AI tool that runs the skill, the operating system, the Node.js version and, for a page problem, the browser.
+      placeholder: "Claude Code on Windows 11, Node 22, Edge"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected and what you saw. Put a command and its output, or the validator's messages, in a code block.
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model excerpt
+      description: The smallest piece of a model that shows the problem, real names replaced. For a layout problem, the page's `?nbcheck=1` report or the output of `scripts/check.mjs` helps.
+      render: json

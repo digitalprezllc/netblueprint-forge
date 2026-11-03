@@ -1,0 +1,45 @@
+# Feature request form. Blank issues are off (config.yml); pull requests are not accepted (CONTRIBUTING.md).
+name: Feature request
+description: Something you wish the skill, the validator or the renderer did.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the need rather than a design or code: what gets built, and how, is decided here, and a patch pasted into an issue will not be merged. An excerpt of the model or the page you have in mind is welcome; keep real names out of it.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - The interview (SKILL.md and its references)
+        - The model and the validator (schema, lint, --fix)
+        - The rendered page (layout, routing, interaction, register)
+        - Icons and logos
+        - Threats, risk scoring, controls, attack paths, what-if
+        - Cloud service cards
+        - Scripts, install, packaging
+        - Documentation or an example
+        - Somewhere else
+    validations:
+      required: true
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: The diagram, the model or the workflow this would serve, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: help
+    attributes:
+      label: What would help
+      description: In words. If a model or a page would show it better, an excerpt here, real names replaced.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The skill version you use, so that a feature a newer release already has can be pointed at.
+      placeholder: "0.7.0"

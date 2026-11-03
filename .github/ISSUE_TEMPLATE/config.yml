@@ -1,0 +1,12 @@
+# The issue chooser: the two forms beside this file, no blank issues, and where the other kinds of message go.
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/digitalprezllc/netblueprint-forge/security/policy
+    about: Not as an issue. The security policy says how to report one privately.
+  - name: Commercial licence
+    url: https://github.com/digitalprezllc/netblueprint-forge#license
+    about: Using NetBlueprint Forge for a business needs a written licence from DigitalPrez, LLC. The README says how to ask for one.
+  - name: Pull requests
+    url: https://github.com/digitalprezllc/netblueprint-forge/blob/develop/CONTRIBUTING.md
+    about: Not accepted, and closed on arrival; CONTRIBUTING.md says why. Describe the problem in a bug report instead.
