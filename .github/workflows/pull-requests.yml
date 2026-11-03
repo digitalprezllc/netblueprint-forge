@@ -15,7 +15,7 @@ jobs:
   close:
     name: Close an outside pull request
     if: ${{ !contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Comment and close
         env:

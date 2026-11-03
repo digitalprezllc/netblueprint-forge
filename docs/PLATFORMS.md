@@ -28,7 +28,7 @@ Checked 2026-10-23 against each vendor's documentation. Every tool below reads t
 
 ## Release archive
 
-Every release on the repository's Releases page carries `netblueprint-forge-<version>.zip`, built by `platforms/package.mjs`: one top-level folder, `netblueprint-forge/`, with `SKILL.md`, `LICENSE`, `references/`, `scripts/`, `assets/` and `agents/` inside. That is the shape claude.ai accepts when a custom skill is uploaded in its Skills settings and the shape the Claude API takes for a skill; for the tools above it is the offline alternative to the install scripts: unzip it into the folder the table names. The release number is the skill version from `SKILL.md`. Releases of a private repository are visible to its collaborators only, so every archive is also published at https://bifrost.digitalprez.com/download/netblueprint-forge/releases/ beside the live example pages.
+Every release on the repository's Releases page carries `netblueprint-forge-<version>.zip`, built by `platforms/package.mjs`: one top-level folder, `netblueprint-forge/`, with `SKILL.md`, `LICENSE`, `references/`, `scripts/`, `assets/` and `agents/` inside. That is the shape claude.ai accepts when a custom skill is uploaded in its Skills settings and the shape the Claude API takes for a skill; for the tools above it is the offline alternative to the install scripts: unzip it into the folder the table names. The release number is the skill version from `SKILL.md`. Every archive is also published at https://bifrost.digitalprez.com/download/netblueprint-forge/releases/ beside the live example pages.
 
 ## Other tools
 

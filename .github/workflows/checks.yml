@@ -1,6 +1,8 @@
 # NetBlueprint Forge checks: the validator suite, the schema check and the headless layout check,
 # on every push and pull request to develop and master. No npm install: the scripts have no dependencies;
-# the layout check needs a Chromium-based browser, which setup-chrome provides.
+# the layout check needs a Chromium-based browser, which setup-chrome provides (v2 installs Chrome for Testing).
+# The jobs run on a pinned image, ubuntu-24.04, not ubuntu-latest: the layout check measures text with the fonts the
+# image substitutes for "Segoe UI", so the image moves on purpose, with a run of check_layout --font first, never by itself.
 name: checks
 
 on:
@@ -20,10 +22,10 @@ concurrency:
 jobs:
   validate:
     name: Validator suite
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - name: Fixtures and examples through validate.mjs
@@ -33,10 +35,10 @@ jobs:
 
   schema:
     name: Schema check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install jsonschema
@@ -46,13 +48,13 @@ jobs:
 
   layout:
     name: Headless layout check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: chrome
       - name: Build the examples and check every diagram tab
         # Hard checks only: the runner's fonts are not the ones the crossings/bends baseline was taken with,
@@ -62,7 +64,7 @@ jobs:
         run: node tests/check_layout.mjs --hard-only
       - name: Keep the rendered pages
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rendered-examples
           path: examples/*/*.html
