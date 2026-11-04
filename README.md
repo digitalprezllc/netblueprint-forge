@@ -164,7 +164,7 @@ cd netblueprint-forge
 /plugin install netblueprint-forge@netblueprint
 ```
 
-**From a release zip.** `netblueprint-forge-<version>.zip` is one folder, `netblueprint-forge/`, with SKILL.md, LICENSE, references, scripts and assets inside. Download it from [bifrost.digitalprez.com/download/netblueprint-forge/releases/](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/) (current: [netblueprint-forge-0.7.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.7.0.zip)), or from the repository's [Releases page](https://github.com/digitalprezllc/netblueprint-forge/releases). Upload it as a custom skill in claude.ai or through the Claude API, or unzip it into the folder your tool reads. The release number is the skill version; [CHANGELOG.md](CHANGELOG.md) says what each one holds, and `node platforms/package.mjs` builds the same archive from a checkout.
+**From a release zip.** `netblueprint-forge-<version>.zip` is one folder, `netblueprint-forge/`, with SKILL.md, LICENSE, references, scripts and assets inside. Download it from [bifrost.digitalprez.com/download/netblueprint-forge/releases/](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/) (current: [netblueprint-forge-0.7.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.7.0.zip)), or from the repository's [Releases page](https://github.com/digitalprezllc/netblueprint-forge/releases). Upload it as a custom skill in claude.ai or through the Claude API, or unzip it into the folder your tool reads. The release number is the skill version; [CHANGELOG.md](CHANGELOG.md) says what each one holds, and `node platforms/package.mjs` builds the same archive, byte for byte, from any checkout of that version.
 
 ## Use it
 
@@ -257,7 +257,7 @@ Skill:  Deriving the scenario tab whatif-public-db from main (archived v1.4.0 ->
 
 ## Quality checks
 
-Four checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
+Five checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
 
 | Check | Command | Covers |
 | - | - | - |
@@ -265,6 +265,7 @@ Four checks, each one command, all run by CI on every push and pull request to `
 | Schema check | `python -I tests/check_schema.py` | The fixtures against the JSON Schema itself (needs `pip install jsonschema`). |
 | Layout check | `node tests/check_layout.mjs` | Builds the examples, opens every diagram tab headless and fails when a line passes through or hugs a box it does not touch, runs over text, clashes with a glyph, jogs, shares a lane or could not be routed; compares crossings and bends with `tests/layout-baseline.json`. CI runs it with `--hard-only` because the baseline depends on the machine's fonts; `--font "DejaVu Sans"` previews what the Linux runner sees. |
 | Icon check | `node tests/check_icons.mjs` | The vendor icon library and its use, without a browser: the index files, every cloud card's icon, every example's icons and the symbols in its built page, the normalizer, and the fetch path for product logos (offline, from a folder). |
+| Packaging check | `node tests/check_package.mjs` | Builds the release zip twice, from the skill folder and from a copy with other file times, and requires the same bytes; then reads the archive back and compares every entry with the folder: names, order, one fixed time, CRC, content. |
 
 The Actions tab of the repository shows each run. Two more workflows: [release.yml](.github/workflows/release.yml) packages the skill and publishes a GitHub Release when a merge to `master` raises the skill version; [pull-requests.yml](.github/workflows/pull-requests.yml) closes a pull request from outside the organization on arrival with a note, since the repository takes reports and not code ([CONTRIBUTING.md](CONTRIBUTING.md)). `node tests/readme_screenshots.mjs` regenerates the pictures in this README from the built examples. All of it is described in [tests/README.md](tests/README.md).
 
@@ -297,11 +298,11 @@ netblueprint-forge/
 ├── examples/                      The example models, their rendered pages and a README each
 ├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README
 ├── platforms/                     Install scripts for Windows (install.ps1) and macOS / Linux (install.sh); package.mjs builds the release zip
-├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, README pictures
+├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, README pictures
 ├── blueprints/                    Working models produced with the skill in this repository
 ├── .claude-plugin/                Plugin and marketplace manifests for Claude Code
 ├── .github/ISSUE_TEMPLATE/        Bug report and feature request forms; blank issues are off; the pull request notice sits beside them
-├── .github/workflows/             checks.yml runs the four checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
+├── .github/workflows/             checks.yml runs the five checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
 ├── CHANGELOG.md                   What each release holds
 ├── CONTRIBUTING.md                Bug reports and feature requests are welcome; pull requests are not accepted
 ├── LICENSE                        PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms

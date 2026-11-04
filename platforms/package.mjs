@@ -7,9 +7,13 @@
 //   node platforms/package.mjs [--out <dir | file.zip>] [--quiet]   build the archive (default: dist/ at the repository root)
 //   node platforms/package.mjs --version                            print the skill version and exit
 //   node platforms/package.mjs --notes                              print this version's section of CHANGELOG.md and exit
+//   SOURCE_DATE_EPOCH=<seconds> node platforms/package.mjs          stamp the entries with that instant instead (see below)
 //
-// Node 18+, no dependencies: the ZIP container is written here (deflate from node:zlib, CRC-32 computed below), entries sorted by
-// path so the same tree gives the same archive apart from file times. Exit 0 written, 1 bad arguments or a missing version, 2 I/O.
+// Node 18+, no dependencies: the ZIP container is written here (deflate from node:zlib, CRC-32 computed below). Entries are sorted
+// by path and every one carries the same fixed time, the date of the version's heading in CHANGELOG.md (SOURCE_DATE_EPOCH when
+// set, 1980-01-01 when neither exists), never the files' own times, so the same tree gives the same bytes on any machine and in
+// any time zone: a version has one sha256. tests/check_package.mjs proves it. Exit 0 written, 1 bad arguments or a missing
+// version, 2 I/O.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -44,9 +48,25 @@ export function changelogNotes(version) {
   return lines.slice(start + 1, end).join('\n').trim() + '\n';
 }
 
+/** The time every entry carries, so that a version's archive is the same bytes wherever it is built: SOURCE_DATE_EPOCH (seconds since
+ *  1970, the reproducible-builds convention) when set, else the date of the version's CHANGELOG.md heading ("## 0.7.0 (2026-11-01)"),
+ *  else 1980-01-01, the earliest a ZIP can hold. Returns {date, source} with source 'SOURCE_DATE_EPOCH', 'CHANGELOG.md' or 'default'. */
+export function entryDate(version) {
+  const epoch = process.env.SOURCE_DATE_EPOCH;
+  if (epoch !== undefined && /^\d+$/.test(epoch)) return { date: new Date(Number(epoch) * 1000), source: 'SOURCE_DATE_EPOCH' };
+  const file = path.join(ROOT, 'CHANGELOG.md');
+  if (fs.existsSync(file)) {
+    const head = new RegExp('^## \\[?' + version.replace(/[.+-]/g, '\\$&') + '\\]?\\s*\\((\\d{4})-(\\d{2})-(\\d{2})\\)', 'm');
+    const m = head.exec(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+    if (m) return { date: new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])), source: 'CHANGELOG.md' };
+  }
+  return { date: new Date(Date.UTC(1980, 0, 1)), source: 'default' };
+}
+
 const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-const crc32 = (buf) => { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
-const dosDateTime = (d) => ({ time: (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2), date: (((Math.max(1980, d.getFullYear()) - 1980) & 0x7F) << 9) | ((d.getMonth() + 1) << 5) | d.getDate() });
+export const crc32 = (buf) => { let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+/** MS-DOS time and date fields for an instant, taken in UTC so that the same instant gives the same fields in every time zone. */
+export const dosDateTime = (d) => ({ time: (d.getUTCHours() << 11) | (d.getUTCMinutes() << 5) | Math.floor(d.getUTCSeconds() / 2), date: (((Math.max(1980, d.getUTCFullYear()) - 1980) & 0x7F) << 9) | ((d.getUTCMonth() + 1) << 5) | d.getUTCDate() });
 
 /** Every regular file under dir, as {abs, rel} with forward slashes, sorted by rel. */
 export function listFiles(dir) {
@@ -62,9 +82,10 @@ export function listFiles(dir) {
   return out.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
 }
 
-/** Writes a ZIP of dir, every entry under topName/, and returns {out, files, bytes, sha256}. */
-export function zipDirectory(dir, topName, outFile) {
+/** Writes a ZIP of dir, every entry under topName/ and dated `stamp` (an instant, read in UTC), and returns {out, files, bytes, sha256}. */
+export function zipDirectory(dir, topName, outFile, stamp = new Date(Date.UTC(1980, 0, 1))) {
   const files = listFiles(dir);
+  const { time, date } = dosDateTime(stamp);
   const parts = [], central = [];
   let offset = 0;
   for (const f of files) {
@@ -73,7 +94,6 @@ export function zipDirectory(dir, topName, outFile) {
     const crc = crc32(data);
     let method = 8, body = zlib.deflateRawSync(data, { level: 9 });
     if (body.length >= data.length) { method = 0; body = data; }
-    const { time, date } = dosDateTime(fs.statSync(f.abs).mtime);
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6); local.writeUInt16LE(method, 8);
     local.writeUInt16LE(time, 10); local.writeUInt16LE(date, 12); local.writeUInt32LE(crc, 14); local.writeUInt32LE(body.length, 18);
@@ -96,13 +116,14 @@ export function zipDirectory(dir, topName, outFile) {
   return { out: outFile, files: files.length, bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
 }
 
-/** Builds dist/netblueprint-forge-<version>.zip (or the --out target) and returns the result with the versions. */
+/** Builds dist/netblueprint-forge-<version>.zip (or the --out target) and returns the result with the versions and the stamp. */
 export function packageSkill(out) {
   const { version, renderer } = skillVersion();
+  const stamp = entryDate(version);
   const fileName = `${SKILL_NAME}-${version}.zip`;
   let target = out ? path.resolve(out) : path.join(ROOT, 'dist', fileName);
   if (!/\.zip$/i.test(target)) target = path.join(target, fileName);
-  return { version, renderer, ...zipDirectory(SKILL_DIR, SKILL_NAME, target) };
+  return { version, renderer, stamp, ...zipDirectory(SKILL_DIR, SKILL_NAME, target, stamp.date) };
 }
 
 function main() {
@@ -113,7 +134,9 @@ function main() {
     if (args.includes('--version')) { console.log(skillVersion().version); return; }
     if (args.includes('--notes')) { process.stdout.write(changelogNotes(skillVersion().version)); return; }
     const r = packageSkill(opt('--out'));
-    if (!args.includes('--quiet')) console.log(`wrote ${path.relative(process.cwd(), r.out) || r.out} (skill ${r.version}, renderer ${r.renderer || '?'}; ${r.files} files, ${(r.bytes / 1024).toFixed(0)} KB, sha256 ${r.sha256})`);
+    const dated = r.stamp.date.toISOString().replace(/T00:00:00\.000Z$/, '').replace(/\.000Z$/, 'Z')
+      + (r.stamp.source === 'default' ? ' (no dated CHANGELOG.md heading for this version)' : ` from ${r.stamp.source}`);
+    if (!args.includes('--quiet')) console.log(`wrote ${path.relative(process.cwd(), r.out) || r.out} (skill ${r.version}, renderer ${r.renderer || '?'}; ${r.files} files, ${(r.bytes / 1024).toFixed(0)} KB, sha256 ${r.sha256}; entries dated ${dated})`);
   } catch (e) {
     console.error(`package: ${e.message}`);
     process.exit(/not found in SKILL\.md/.test(e.message) ? 1 : 2);

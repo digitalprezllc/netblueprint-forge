@@ -1,6 +1,11 @@
 # Changelog
 
-Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally.
+Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
+
+## Unreleased
+
+- The release archive is deterministic: `platforms/package.mjs` stamps every entry with the date of the version's section in this file (`SOURCE_DATE_EPOCH` overrides it) instead of the files' own times, so the same version gives the same bytes and the same sha256 on a developer machine and in CI. `tests/check_package.mjs` builds it twice and reads it back against the skill folder; CI runs it.
+- The repository takes bug reports and feature requests through issue forms and declines pull requests; `CONTRIBUTING.md` and `SECURITY.md` say how. The workflows run on the Node 24 generation of the actions and a pinned `ubuntu-24.04` image.
 
 ## 0.7.0 (2026-11-01)
 

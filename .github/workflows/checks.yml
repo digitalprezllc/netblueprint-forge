@@ -32,6 +32,8 @@ jobs:
         run: node tests/check_validate.mjs
       - name: Vendor icon library, card icons and the examples' symbols
         run: node tests/check_icons.mjs
+      - name: The release archive, built twice and read back
+        run: node tests/check_package.mjs
 
   schema:
     name: Schema check

@@ -27,6 +27,8 @@ jobs:
           node-version: 22
       - name: Validator suite
         run: node tests/check_validate.mjs
+      - name: Packaging check
+        run: node tests/check_package.mjs
       - name: Package the skill
         id: pkg
         run: |
