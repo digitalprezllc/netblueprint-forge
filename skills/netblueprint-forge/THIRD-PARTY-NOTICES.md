@@ -39,3 +39,7 @@ The skill can also fetch, one at a time and only when asked, product logos from 
 - The service name appears beside every icon, because it is the element's label; a cloud card attaches its icon only to the product the card describes.
 - The legend of a page that uses vendor icons names the vendors and states that the icons belong to them.
 - A fetched logo is checked before it is stored: an SVG that carries a script, an event handler, a foreign object or an external reference is refused.
+
+## Framework clause numbers in the crosswalk
+
+`assets/frameworks/crosswalk.json` names clauses of ISO/IEC 27001:2022 Annex A (ISO/IEC), PCI DSS v4.0 (PCI Security Standards Council), the AICPA Trust Services Criteria (AICPA), the HIPAA Security Rule (45 CFR Part 164, a US federal regulation in the public domain) and NIST SP 800-53 Rev. 5 and the NIST Cybersecurity Framework 2.0 (US government works in the public domain). It carries clause numbers and short descriptive titles written by DigitalPrez for navigation, and DigitalPrez's own working mapping between them; it reproduces no text of the standards, which remain their publishers' and are not licensed by DigitalPrez. The CIS Controls are not included because their licence does not permit redistribution in a commercially licensed product.

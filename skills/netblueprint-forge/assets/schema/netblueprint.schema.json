@@ -1724,6 +1724,8 @@
             "cloud",
             "tenant",
             "provider",
+            "cluster",
+            "namespace",
             "ot",
             "other"
           ],
@@ -1732,6 +1734,12 @@
         "trust_boundary": {
           "description": "Draw as a trust boundary (dashed) regardless of kind.",
           "type": "boolean"
+        },
+        "security_level": {
+          "description": "IEC 62443 target security level of the zone (SL-T 1 to 4) for OT models; a flow between two OT zones is a conduit, and the validator warns when it crosses into a higher level without an appliance.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
         },
         "color": {
           "$ref": "#/$defs/color"
@@ -1899,6 +1907,10 @@
             "secrets",
             "monitoring",
             "identity",
+            "llm",
+            "vector-store",
+            "ai-agent",
+            "tool-server",
             "custom"
           ]
         },
@@ -3054,6 +3066,15 @@
               "items": {
                 "type": "string",
                 "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
+              }
+            },
+            "atlas": {
+              "description": "MITRE ATLAS technique ids for AI and ML systems (AML.T0051 LLM Prompt Injection, AML.T0054 LLM Jailbreak, AML.T0020 Poison Training Data …).",
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^AML\\.T[0-9]{4}(\\.[0-9]{3})?$"
               }
             },
             "capec": {

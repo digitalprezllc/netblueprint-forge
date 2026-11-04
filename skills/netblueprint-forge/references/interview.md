@@ -8,7 +8,7 @@ You are building `model.json` section by section. The user answers in their own 
 - **Offer defaults and accept "skip".** Only the fields marked **must** below are mandatory. Everything else gets a sensible default or stays empty.
 - **Names are ids.** Propose a short `name` for each element (`web-01`, `snet-data`, `f-api-sql`) and confirm it once; the user refers to it later. Labels carry the human wording. Names are unique across their kind; never rename one silently.
 - **Write after every section.** Save `model.json`, run `node scripts/validate.mjs model.json --fix`, fix what it reports before moving on. From section 5 onward, build and show the diagram whenever something meaningful changed (`render.md`).
-- **Cloud services trigger the card workflow.** The moment a node is "an App Service", "an S3 bucket", "Cloud SQL", open `cloud/README.md` and run that card's questions before continuing the section. A common self-managed component (IIS, Postgres, AD DS, Okta, a FortiGate, a jump host) has a card in `components.md`; use it the same way.
+- **Cloud services trigger the card workflow.** The moment a node is "an App Service", "an S3 bucket", "Cloud SQL", open `cloud/README.md` and run that card's questions before continuing the section. A common self-managed component (IIS, Postgres, AD DS, Okta, a FortiGate, a jump host) has a card in `components.md`; Kubernetes parts, AI building blocks and OT systems have theirs in `kubernetes.md`, `ai.md` and `ot.md`; use them the same way.
 - **Never invent facts.** If the user does not know how something authenticates, leave `auth` out; the diagram shows "?" and the register will prompt for it later.
 
 ## Where the files go
@@ -51,7 +51,7 @@ Ask:
 3. Which boundaries exist, from the outside in? Sites, data centres, cloud subscriptions, VPC/VNets, subnets, enclaves, DMZs, OT networks. Nesting is natural: "the spoke VNet is inside the Azure subscription".
 4. Anything that is out of scope but should still be drawn for context?
 
-Write: one `zones[]` entry per boundary with `name`, `label`, `sub` (one line: CIDR, purpose), `kind`, `parent` (omit for top level; `"internet"` for a provider cloud that sits on the Internet side), `out_of_scope`, `data_classification` when the zone as a whole is restricted. `color` only if the user asks; kinds have defaults.
+Write: one `zones[]` entry per boundary with `name`, `label`, `sub` (one line: CIDR, purpose), `kind`, `parent` (omit for top level; `"internet"` for a provider cloud that sits on the Internet side), `out_of_scope`, `data_classification` when the zone as a whole is restricted. A plant network is `kind: ot` with `security_level` (IEC 62443 SL-T 1 to 4; `ot.md`); a Kubernetes cluster is `kind: cluster` with `namespace` zones inside (`kubernetes.md`). `color` only if the user asks; kinds have defaults.
 
 Checkpoint: `zones` must have no parent loops and every `parent` must exist; the validator tells you.
 
@@ -154,4 +154,4 @@ Organisation metadata that fits no field (a CMDB id, a cost code, a register lin
 1. `node scripts/validate.mjs model.json --fix` with zero errors; read the warnings aloud and resolve what the user wants resolved. If the model carries a policy, run `--strict` too and report what it would fail on in CI.
 2. `node scripts/build.mjs model.json`, open the HTML, run the layout checklist in `render.md`.
 3. Tell the user what the model contains (counts), where the files are, and what is still open (flows without auth, suggested elements, threats to add).
-4. Offer the reports: `node scripts/report.mjs model.json --kind exec` for the executive summary, `--kind developer` for the to-do list by owner, `--kind audit` for the evidence view (`-o report.md` writes the file); and `node scripts/portfolio.mjs <folder>` when the user keeps several models.
+4. Offer the reports: `node scripts/report.mjs model.json --kind exec` for the executive summary, `--kind developer` for the to-do list by owner, `--kind audit` for the evidence view (`-o report.md` writes the file); and `node scripts/portfolio.mjs <folder>` when the user keeps several models. For an audit, `node scripts/coverage.mjs model.json --framework <id>` lists which controls and requirements touch which clause (say that the crosswalk-derived rows are DigitalPrez's working aid, not the publisher's mapping).

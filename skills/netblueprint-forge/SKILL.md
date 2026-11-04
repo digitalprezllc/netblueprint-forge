@@ -5,8 +5,8 @@ license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LL
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.9.0"
-  renderer-version: "1.9.0"
+  version: "0.10.0"
+  renderer-version: "1.10.0"
 ---
 
 # NetBlueprint Forge
@@ -38,6 +38,10 @@ You are a Principal Security Architect and systems-visualization expert speciali
 | "What else could go wrong?", a second opinion on the threats, STRIDE per interaction | `node scripts/suggest.mjs model.json` (see [references/threats.md](references/threats.md) "Suggested threats from cards and rules") | 23 rules propose threats with STRIDE, CWE, ATT&CK, a rating and a mitigation; `--apply` writes them as suggested; the user confirms or retires each |
 | A node that is a common on-premises or self-managed component (IIS, Postgres, AD DS, Okta, a FortiGate, a jump host, a SIEM) | [references/components.md](references/components.md) | The card's questions, dependencies, proposals and threats, like a cloud card's |
 | A report for a reader: an executive summary, the developer's to-do list, audit evidence; one table across many models | `node scripts/report.mjs model.json --kind exec\|developer\|audit\|all`, `node scripts/portfolio.mjs <folder>` | Markdown generated from the model; paste it into the document or the ticket |
+| A Kubernetes cluster, namespace, ingress, registry, service mesh, workload identity | [references/kubernetes.md](references/kubernetes.md) | The cluster is a `cluster` zone, namespaces `namespace` zones; the card's questions, dependencies and threats |
+| A model endpoint, an agent with tools, a tool server, a vector store, a RAG pipeline, training data | [references/ai.md](references/ai.md) | Component types `llm`, `vector-store`, `ai-agent`, `tool-server`; OWASP LLM and ATLAS references (`attack.atlas`) |
+| A PLC, an HMI, a historian, an engineering workstation, a safety system, vendor remote access, a plant network | [references/ot.md](references/ot.md) | OT zones carry an IEC 62443 `security_level`; flows between them are conduits; ATT&CK for ICS references |
+| "Which controls satisfy PCI DSS 8.4.2 here?", ISO coverage, the clause list for an audit | `node scripts/coverage.mjs model.json --framework pci-dss-4.0` | Direct clause references plus what the crosswalk derives from NIST SP 800-53 ids; say it is DigitalPrez's working crosswalk, not the publisher's mapping |
 | How threats chain: "and from there the attacker …", attack paths, kill chains | [references/threats.md](references/threats.md) "Attack paths" | `attack_paths[]` with hops, gains and the control that breaks the chain |
 | Terraform / Bicep / CloudFormation / Kubernetes / OpenAPI / a design document as the input | [references/ingest.md](references/ingest.md) | Map sources to elements marked `suggested`; then the interview for what files cannot say |
 | What a field means or allows | [references/model-reference.md](references/model-reference.md) | Answer from the generated reference |
@@ -51,6 +55,7 @@ node scripts/validate.mjs <model.json> --strict  # the lint plus settings.policy
 node scripts/suggest.mjs <model.json>            # threats the rules propose (STRIDE per interaction); --apply writes them as suggested; --rules lists the rules
 node scripts/report.mjs <model.json> --kind exec # executive summary; developer (the to-do list by owner); audit (verified controls with evidence, requirements by clause); all
 node scripts/portfolio.mjs <folder>              # one table across every model under a folder: threats by band, open high threats, overdue controls, policy
+node scripts/coverage.mjs <model.json> --framework iso-27001-2022   # which controls and requirements touch which clause; --gaps lists untouched clauses; --frameworks lists the frameworks
 node scripts/build.mjs <model.json>              # -> <model-name>.html (validates first; refuses errors)
 node scripts/archive.mjs <model.json> --note "what is about to change"   # snapshot + version bump; run BEFORE editing
 node scripts/archive.mjs <model.json> --diff     # append element-level changes AFTER editing
@@ -89,7 +94,9 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 21. **Policy lives in the model.** `settings.policy` says what `validate --strict` fails on (open threats at a band with no planned control on track, missing treatment decisions, overdue controls, requirements without controls, suggested elements, accepted risks past review); CI runs `--strict` and needs no configuration of its own. Offer a policy at the summary step.
 22. **Custom metadata has one home.** Organisation fields that fit no field (a CMDB id, a cost code, a register link) go in `custom` on the element, never in a free-text field meant for something else.
 23. **Rules propose, the user confirms.** After the flows are in, and again after the threats, run `node scripts/suggest.mjs model.json` and walk the user through what the rules found; `--apply` writes the ones they want as `suggested: true` with `suggested_from: "rule:Rnnn"`, to confirm or retire like a card's proposals. Never present a rule's suggestion as a finding the user made, and never apply without asking.
-24. **Component cards work like cloud cards.** A node that is a common self-managed component (`references/components.md`) gets its card's questions, dependencies and threats, marked `suggested` until confirmed; a product with no card gets `cloud/generic.md`'s questions.
+24. **Component cards work like cloud cards.** A node that is a common self-managed component (`references/components.md`), a Kubernetes part (`references/kubernetes.md`), an AI building block (`references/ai.md`) or an OT system (`references/ot.md`) gets its card's questions, dependencies and threats, marked `suggested` until confirmed; a product with no card gets `cloud/generic.md`'s questions.
+25. **OT zones carry a security level.** A plant network zone has `kind: ot` and `security_level` (IEC 62443 SL-T 1 to 4); a flow between two zones is a conduit, and the validator warns when one enters a higher level through a zone with no appliance. Kubernetes clusters are `cluster` zones with `namespace` zones inside.
+26. **Frameworks by clause, honestly.** Controls and requirements cite the clauses they serve in `frameworks[]` (and ISO ids in `iso_27001`); `coverage.mjs` adds what the crosswalk derives from NIST SP 800-53 ids and marks it "via crosswalk". The crosswalk is DigitalPrez's working aid, not a publisher's mapping, and a control that touches a clause does not by itself satisfy it: say so whenever you report coverage. No CIS Controls mapping ships (its licence); an organisation's own mappings go in `frameworks.json` beside the model.
 
 ## Files in this skill
 
@@ -97,8 +104,9 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 - `assets/schema/netblueprint.schema.json`: the model schema (draft 2020-12).
 - `assets/icons/azure.json`, `aws.json`, `gcp.json`: the vendor icon library, one index per provider with the icons' markup, titles, aliases and the vendor's terms; `THIRD-PARTY-NOTICES.md` beside this file reproduces those terms. `references/icons.md` explains the names.
 - `assets/template/template.html`: the renderer. Never edit a generated HTML by hand; change the model and rebuild.
+- `assets/frameworks/crosswalk.json`: DigitalPrez's working crosswalk from NIST SP 800-53 Rev. 5 controls to ISO/IEC 27001:2022, PCI DSS 4.0, SOC 2, HIPAA Security Rule and NIST CSF 2.0 clauses, read by `scripts/coverage.mjs`; clause numbers and short titles only, extensible by a `frameworks.json` beside the model.
 - `assets/examples/entra-app-proxy.model.json`: the primary worked example (Entra Application Proxy publishing an internal portal over ExpressRoute; service profiles, flow detail, threats with as-is and future-state controls, out-of-scope elements). `assets/examples/azure-hub-spoke.model.json`: a busier hub-spoke example. `assets/examples/partner-portal-tabs.model.json`: the same portal on two tabs (Partner Access, Admin Access) with threats numbered across both. `assets/examples/aws-three-tier.model.json` (AnyCompany: CloudFront, ALB, EC2, RDS, Secrets Manager, S3 over VPC endpoints, Session Manager; an SSRF-to-exfiltration attack path) and `assets/examples/gcp-serverless-web.model.json` (Cymbal: Cloud Armor, Cloud Run, a VPC connector to Cloud SQL and Memorystore, Secret Manager, IAP; a dependency-compromise attack path) are the AWS and Google Cloud counterparts, with the vendors' icons. Show one when the user wants to see what a finished model looks like, matching their provider.
-- `scripts/validate.mjs`, `build.mjs`, `archive.mjs`, `normalize.mjs`, `scenario.mjs`, `suggest.mjs` (with `rules.mjs`, the 23 threat rules), `report.mjs`, `portfolio.mjs`, `model-reference.mjs`: Node 18+, no dependencies. `scripts/check.mjs`: the headless geometry check of a built page (Node 18+ plus any Chromium-based browser already on the machine; no install). `scripts/screenshot.mjs`: a PNG of one view of a built page (a tab, a step or an attack-path hop) for documents and decks, with the same browser.
+- `scripts/validate.mjs`, `build.mjs`, `archive.mjs`, `normalize.mjs`, `scenario.mjs`, `suggest.mjs` (with `rules.mjs`, the 23 threat rules), `report.mjs`, `portfolio.mjs`, `coverage.mjs`, `model-reference.mjs`: Node 18+, no dependencies. `scripts/check.mjs`: the headless geometry check of a built page (Node 18+ plus any Chromium-based browser already on the machine; no install). `scripts/screenshot.mjs`: a PNG of one view of a built page (a tab, a step or an attack-path hop) for documents and decks, with the same browser.
 
 ## Output location
 

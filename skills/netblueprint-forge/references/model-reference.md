@@ -163,8 +163,9 @@ One diagram of a multi-tab document. `name` is the stable id (used in the URL ha
 | `label` | text ≤200 | yes |  |
 | `sub` | text ≤200 |  |  |
 | `parent` | name: letters, digits, `_ . -`, ≤64, unique or null |  | Name of the enclosing zone. Omit (or null) for a top-level zone on the private side. Use the reserved name 'internet' to nest a boundary on the Internet side (e.g. a provider cloud). |
-| `kind` | `network`, `site`, `enclave`, `segment`, `dmz`, `vpc`, `subnet`, `cloud`, `tenant`, `provider`, `ot`, `other` |  | Default `"network"`. |
+| `kind` | `network`, `site`, `enclave`, `segment`, `dmz`, `vpc`, `subnet`, `cloud`, `tenant`, `provider`, `cluster`, `namespace`, `ot`, `other` |  | Default `"network"`. |
 | `trust_boundary` | boolean |  | Draw as a trust boundary (dashed) regardless of kind. |
+| `security_level` | integer 1–4 |  | IEC 62443 target security level of the zone (SL-T 1 to 4) for OT models; a flow between two OT zones is a conduit, and the validator warns when it crosses into a higher level without an appliance. |
 | `color` | hex colour or palette name (blue, teal, green, slate, red, grey, purple, gold, orange, navy) |  |  |
 | `dashed` | boolean |  |  |
 | `icon` | icon name or `provider/id` vendor icon (see icons.md) |  |  |
@@ -249,7 +250,7 @@ A service or process running on a host node.
 | - | - | - | - |
 | `name` | name: letters, digits, `_ . -`, ≤64, unique | yes |  |
 | `label` | text ≤200 | yes |  |
-| `type` | `web-server`, `app-server`, `api`, `database`, `sql-server`, `cache`, `queue`, `file-share`, `directory`, `dns`, `mail`, `container`, `function`, `agent`, `scheduler`, `process`, `storage`, `secrets`, `monitoring`, `identity`, `custom` | yes |  |
+| `type` | `web-server`, `app-server`, `api`, `database`, `sql-server`, `cache`, `queue`, `file-share`, `directory`, `dns`, `mail`, `container`, `function`, `agent`, `scheduler`, `process`, `storage`, `secrets`, `monitoring`, `identity`, `llm`, `vector-store`, `ai-agent`, `tool-server`, `custom` | yes |  |
 | `icon` | icon name or `provider/id` vendor icon (see icons.md) |  |  |
 | `ports` | array of string matching `^[0-9]{1,5}(-[0-9]{1,5})?(/(tcp\|udp\|sctp))?$` (unique) |  |  |
 | `info` | text ≤4000 |  |  |

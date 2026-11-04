@@ -139,6 +139,10 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 ### 2.27 Reports and portfolio
 - `scripts/report.mjs` writes Markdown from the model for three readers: executive (risk at a glance by band for inherent, current and projected; open threats in order; attack paths; accepted risks with review dates; requirements and controls by status; the policy result), developer (planned and in-progress controls by owner with due date, ticket, the threats they close and the requirements they satisfy; suggested mitigations not converted; open threats with no plan; validator warnings) and audit (verified controls with verification and evidence; implemented-but-unverified controls; requirements and controls by framework clause; accepted risks; every threat with status and controls; policy). `scripts/portfolio.mjs` finds every model under a folder and tabulates threats by band, open threats at high or above, attack paths, planned and overdue controls, requirements verified, policy and validator results, with totals.
 
+### 2.28 Frameworks and coverage
+- Controls and requirements cite framework clauses directly (`frameworks[]`, `iso_27001`, `nist_800_53`). `assets/frameworks/crosswalk.json` is DigitalPrez's working crosswalk from NIST SP 800-53 Rev. 5 control ids to ISO/IEC 27001:2022, PCI DSS 4.0, SOC 2 (2017), HIPAA Security Rule and NIST CSF 2.0 clauses, with short clause titles for navigation; it carries no CIS Controls mapping (licence) and a `frameworks.json` beside a model extends or overrides it. `scripts/coverage.mjs` lists, per framework, the clauses the model touches, the controls (direct or "via crosswalk") and requirements behind each, and the best control status; `--gaps` lists the clauses the crosswalk knows that nothing touches. A control that touches a clause contributes to it; satisfaction is the assessor's call, and every output says so.
+- OT: a zone carries `security_level` (IEC 62443 SL-T 1 to 4); the validator warns when a flow enters a higher level through a zone with no appliance. Kubernetes: zone kinds `cluster` and `namespace`. AI: component types `llm`, `vector-store`, `ai-agent`, `tool-server`; `attack.atlas[]` for MITRE ATLAS ids.
+
 ## 3. Renderer
 
 ### 3.1 Output
@@ -245,6 +249,9 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 - The Attributes card of a node, component or appliance lists Depends on (each entry with a link to its provider, its criticality and note) and Depended on by; `custom` fields appear under Custom on every element and threat. A threat's card lists the requirements that answer it.
 - The Threat Register gains a Requirements table under the attack paths (kind, status, the threats answered, the controls that satisfy it, framework clauses); a row opens the requirement's record in the Attributes card; the band counts requirements with the threats and paths; a what-if tab repeats its baseline's requirements like its threats.
 
+### 3.17 Framework coverage on the page
+- The Threat Register gains a Framework Coverage table under the requirements: every clause a control or requirement cites directly, with what cites it and the best control status (verified, implemented, planned, none). Crosswalk-derived coverage stays in the script, so the page shows only what the model states.
+
 ## 4. Skill (interview)
 
 - Steers a structured interview in roughly this order: network and zones → boundaries and appliances → nodes and services → users, devices and actors → flows and auth → story steps → threats and controls → layers → signature details.
@@ -272,6 +279,9 @@ Many users know they are deploying "an App Service" or "an S3 bucket" without kn
 
 ### 4.3 Component cards
 - `references/components.md` holds cards for the common self-managed components (web server, reverse proxy, application server, API gateway, relational database, cache, message broker, file share, identity provider, directory, VPN gateway, jump host, mail, DNS, CI/CD runner, secrets vault, backup, workstation, SIEM, firewall, WAF) in the cloud-card format: icon, what, attaches to, default exposure, disable unless needed, depends on (as `depends_on` proposals), ask, propose, threats with STRIDE, category, CWE, ATT&CK and a control. The skill routes to them as it routes to cloud cards; everything proposed stays `suggested` until confirmed.
+
+### 4.4 Kubernetes, AI and OT cards
+- `references/kubernetes.md` (control plane, node pool, namespace, ingress, service mesh, registry, secrets, workload identity), `references/ai.md` (model endpoint, agent with tools, tool server, vector store, RAG pipeline, training data; OWASP LLM Top 10 and MITRE ATLAS references) and `references/ot.md` (controller, HMI and SCADA, historian, engineering workstation, OT DMZ and jump host, safety system, vendor remote access, protocol gateway; IEC 62443 zones, conduits and security levels, ATT&CK for ICS) in the card format of 4.1 and 4.3.
 
 ## 5. Revisions and archive
 

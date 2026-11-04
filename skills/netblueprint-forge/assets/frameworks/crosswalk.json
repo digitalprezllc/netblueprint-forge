@@ -1,0 +1,1225 @@
+{
+  "netblueprint_crosswalk": 1,
+  "note": "DigitalPrez's working crosswalk from NIST SP 800-53 Rev. 5 controls to the clauses of other frameworks, used by scripts/coverage.mjs to answer which controls of a model touch which clause. It is a working aid written by DigitalPrez, LLC, not an official mapping by any of the publishers: a control listed under a clause contributes to it, it does not by itself satisfy it. Clause numbers and the short titles beside them are given for navigation; the standards themselves are the publishers'. The CIS Controls are deliberately absent because their licence does not permit redistribution in a commercially licensed product. A model can extend or override this file with a frameworks.json of the same shape beside it (merged by control id and by clause); an organisation that holds the publishers' own mapping tables puts them there.",
+  "frameworks": {
+    "nist-800-53-r5": {
+      "title": "NIST SP 800-53 Revision 5, Security and Privacy Controls",
+      "publisher": "NIST",
+      "terms": "US government work, public domain"
+    },
+    "nist-csf-2.0": {
+      "title": "NIST Cybersecurity Framework 2.0",
+      "publisher": "NIST",
+      "terms": "US government work, public domain"
+    },
+    "iso-27001-2022": {
+      "title": "ISO/IEC 27001:2022 Annex A",
+      "publisher": "ISO/IEC",
+      "terms": "clause numbers and short titles only; the standard is the publisher's"
+    },
+    "pci-dss-4.0": {
+      "title": "PCI DSS v4.0",
+      "publisher": "PCI Security Standards Council",
+      "terms": "requirement numbers and short titles only; the standard is the publisher's"
+    },
+    "soc2-2017": {
+      "title": "AICPA Trust Services Criteria (2017, revised 2022)",
+      "publisher": "AICPA",
+      "terms": "criteria numbers and short titles only; the criteria are the publisher's"
+    },
+    "hipaa-security-rule": {
+      "title": "HIPAA Security Rule, 45 CFR Part 164 Subpart C",
+      "publisher": "US Department of Health and Human Services",
+      "terms": "US federal regulation, public domain"
+    }
+  },
+  "clauses": {
+    "iso-27001-2022": {
+      "A.5.3": "Segregation of duties",
+      "A.5.7": "Threat intelligence",
+      "A.5.9": "Inventory of information and other associated assets",
+      "A.5.14": "Information transfer",
+      "A.5.15": "Access control",
+      "A.5.16": "Identity management",
+      "A.5.17": "Authentication information",
+      "A.5.18": "Access rights",
+      "A.5.19": "Information security in supplier relationships",
+      "A.5.20": "Addressing information security within supplier agreements",
+      "A.5.21": "Managing information security in the ICT supply chain",
+      "A.5.23": "Information security for use of cloud services",
+      "A.5.24": "Information security incident management planning and preparation",
+      "A.5.26": "Response to information security incidents",
+      "A.5.28": "Collection of evidence",
+      "A.5.29": "Information security during disruption",
+      "A.5.30": "ICT readiness for business continuity",
+      "A.5.33": "Protection of records",
+      "A.5.34": "Privacy and protection of PII",
+      "A.6.3": "Information security awareness, education and training",
+      "A.6.7": "Remote working",
+      "A.6.8": "Information security event reporting",
+      "A.7.2": "Physical entry",
+      "A.7.4": "Physical security monitoring",
+      "A.8.1": "User endpoint devices",
+      "A.8.2": "Privileged access rights",
+      "A.8.3": "Information access restriction",
+      "A.8.4": "Access to source code",
+      "A.8.5": "Secure authentication",
+      "A.8.6": "Capacity management",
+      "A.8.7": "Protection against malware",
+      "A.8.8": "Management of technical vulnerabilities",
+      "A.8.9": "Configuration management",
+      "A.8.10": "Information deletion",
+      "A.8.11": "Data masking",
+      "A.8.12": "Data leakage prevention",
+      "A.8.13": "Information backup",
+      "A.8.14": "Redundancy of information processing facilities",
+      "A.8.15": "Logging",
+      "A.8.16": "Monitoring activities",
+      "A.8.17": "Clock synchronization",
+      "A.8.18": "Use of privileged utility programs",
+      "A.8.19": "Installation of software on operational systems",
+      "A.8.20": "Networks security",
+      "A.8.21": "Security of network services",
+      "A.8.22": "Segregation of networks",
+      "A.8.23": "Web filtering",
+      "A.8.24": "Use of cryptography",
+      "A.8.25": "Secure development life cycle",
+      "A.8.26": "Application security requirements",
+      "A.8.27": "Secure system architecture and engineering principles",
+      "A.8.28": "Secure coding",
+      "A.8.29": "Security testing in development and acceptance",
+      "A.8.31": "Separation of development, test and production environments",
+      "A.8.32": "Change management"
+    },
+    "pci-dss-4.0": {
+      "1.2.1": "Configuration standards for network security controls",
+      "1.3.1": "Inbound traffic to the CDE restricted",
+      "1.3.2": "Outbound traffic from the CDE restricted",
+      "1.4.1": "Network security controls between trusted and untrusted networks",
+      "1.4.2": "Inbound traffic from untrusted networks restricted",
+      "2.2.1": "Configuration standards for system components",
+      "2.2.4": "Only necessary services, protocols and functions enabled",
+      "2.2.7": "Non-console administrative access encrypted",
+      "3.5.1": "PAN rendered unreadable where stored",
+      "3.6.1": "Procedures to protect cryptographic keys",
+      "3.7.1": "Key management policies and procedures",
+      "4.2.1": "Strong cryptography for PAN in transit over open networks",
+      "5.2.1": "Anti-malware deployed",
+      "6.2.4": "Software engineering techniques against common attacks",
+      "6.3.1": "Security vulnerabilities identified and managed",
+      "6.3.2": "Inventory of bespoke and custom software",
+      "6.3.3": "Patches installed",
+      "6.4.1": "Public-facing web applications protected",
+      "6.4.2": "Automated technical solution for public-facing web applications",
+      "6.5.1": "Changes to system components managed",
+      "7.2.1": "Access control model defined",
+      "7.2.2": "Access assigned by job classification and least privilege",
+      "7.3.1": "Access control system in place",
+      "8.2.1": "Unique user IDs",
+      "8.2.2": "Shared accounts only by exception",
+      "8.3.1": "Authentication factor for all users",
+      "8.3.4": "Invalid authentication attempts limited",
+      "8.3.6": "Password complexity",
+      "8.4.2": "MFA for all access into the CDE",
+      "8.4.3": "MFA for remote network access",
+      "8.6.1": "System and application accounts with interactive login managed",
+      "8.6.2": "Application and system account passwords not hard-coded",
+      "8.6.3": "Passwords of system and application accounts protected",
+      "9.2.1": "Physical access controls for facilities",
+      "10.2.1": "Audit logs enabled",
+      "10.3.1": "Read access to audit logs limited",
+      "10.3.2": "Audit log files protected from modification",
+      "10.4.1": "Audit logs reviewed",
+      "10.6.1": "Time synchronisation",
+      "10.7.2": "Failures of critical security control systems detected",
+      "11.3.1": "Internal vulnerability scans",
+      "11.3.2": "External vulnerability scans",
+      "11.5.1": "Intrusion detection or prevention",
+      "11.5.2": "Change-detection mechanism deployed",
+      "12.3.1": "Targeted risk analysis",
+      "12.5.1": "Inventory of system components in scope",
+      "12.6.1": "Security awareness program",
+      "12.8.1": "Third-party service providers inventoried",
+      "12.8.4": "TPSP compliance monitored",
+      "12.10.1": "Incident response plan"
+    },
+    "soc2-2017": {
+      "A1.2": "Backup and recovery infrastructure",
+      "CC2.2": "Internal communication of objectives and responsibilities",
+      "CC3.2": "Risks identified and analysed",
+      "CC5.2": "General controls over technology",
+      "CC6.1": "Logical access security software, infrastructure and architectures",
+      "CC6.2": "User registration and authorisation",
+      "CC6.3": "Access modification and removal, least privilege",
+      "CC6.4": "Physical access restricted",
+      "CC6.5": "Disposal of physical assets",
+      "CC6.6": "Logical access from outside the boundaries",
+      "CC6.7": "Transmission, movement and removal of information",
+      "CC6.8": "Unauthorised or malicious software",
+      "CC7.1": "Detection of configuration changes and vulnerabilities",
+      "CC7.2": "Monitoring for anomalies",
+      "CC7.3": "Evaluation of security events",
+      "CC7.4": "Incident response",
+      "CC7.5": "Recovery from incidents",
+      "CC8.1": "Change management",
+      "CC9.2": "Vendor and business partner risk"
+    },
+    "hipaa-security-rule": {
+      "164.308(a)(1)(ii)(A)": "Risk analysis",
+      "164.308(a)(1)(ii)(B)": "Risk management",
+      "164.308(a)(1)(ii)(D)": "Information system activity review",
+      "164.308(a)(3)": "Workforce security",
+      "164.308(a)(4)": "Information access management",
+      "164.308(a)(5)": "Security awareness and training",
+      "164.308(a)(5)(ii)(B)": "Protection from malicious software",
+      "164.308(a)(5)(ii)(C)": "Log-in monitoring",
+      "164.308(a)(5)(ii)(D)": "Password management",
+      "164.308(a)(6)": "Security incident procedures",
+      "164.308(a)(7)": "Contingency plan",
+      "164.308(a)(7)(ii)(A)": "Data backup plan",
+      "164.308(b)(1)": "Business associate contracts",
+      "164.310(a)(1)": "Facility access controls",
+      "164.310(c)": "Workstation security",
+      "164.310(d)(1)": "Device and media controls",
+      "164.312(a)(1)": "Access control",
+      "164.312(a)(2)(i)": "Unique user identification",
+      "164.312(a)(2)(iv)": "Encryption and decryption",
+      "164.312(b)": "Audit controls",
+      "164.312(c)(1)": "Integrity",
+      "164.312(d)": "Person or entity authentication",
+      "164.312(e)(1)": "Transmission security",
+      "164.312(e)(2)(ii)": "Encryption in transit"
+    },
+    "nist-csf-2.0": {
+      "DE.AE-02": "Potentially adverse events analysed",
+      "DE.CM-01": "Networks and network services monitored",
+      "DE.CM-09": "Hardware, software and services monitored",
+      "GV.SC-06": "Due diligence on suppliers before engagement",
+      "GV.SC-07": "Supplier risks understood and managed",
+      "ID.AM-01": "Inventories of hardware",
+      "ID.AM-02": "Inventories of software and services",
+      "ID.RA-01": "Vulnerabilities identified and recorded",
+      "PR.AA-01": "Identities and credentials managed",
+      "PR.AA-03": "Users, services and hardware authenticated",
+      "PR.AA-05": "Access permissions follow least privilege and separation of duties",
+      "PR.AA-06": "Physical access managed",
+      "PR.AT-01": "Personnel provided with awareness and training",
+      "PR.DS-01": "Data at rest protected",
+      "PR.DS-02": "Data in transit protected",
+      "PR.DS-11": "Backups created and tested",
+      "PR.IR-01": "Networks and environments protected from unauthorised access",
+      "PR.PS-01": "Configuration management practices applied",
+      "PR.PS-02": "Software maintained, replaced and removed",
+      "PR.PS-06": "Secure software development practices",
+      "RC.RP-01": "Recovery plan executed",
+      "RS.MA-01": "Incident response plan executed"
+    }
+  },
+  "controls": {
+    "AC-2": {
+      "title": "Account Management",
+      "iso-27001-2022": [
+        "A.5.16",
+        "A.5.18"
+      ],
+      "pci-dss-4.0": [
+        "7.2.1",
+        "8.2.1",
+        "8.6.1"
+      ],
+      "soc2-2017": [
+        "CC6.1",
+        "CC6.2",
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(3)",
+        "164.308(a)(4)",
+        "164.312(a)(2)(i)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "AC-2(7)": {
+      "title": "Account Management: Privileged User Accounts",
+      "iso-27001-2022": [
+        "A.8.2"
+      ],
+      "pci-dss-4.0": [
+        "7.2.2",
+        "8.2.2"
+      ],
+      "soc2-2017": [
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(4)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-3": {
+      "title": "Access Enforcement",
+      "iso-27001-2022": [
+        "A.5.15",
+        "A.8.3"
+      ],
+      "pci-dss-4.0": [
+        "7.3.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-4": {
+      "title": "Information Flow Enforcement",
+      "iso-27001-2022": [
+        "A.8.22",
+        "A.5.14"
+      ],
+      "pci-dss-4.0": [
+        "1.3.1",
+        "1.3.2"
+      ],
+      "soc2-2017": [
+        "CC6.6",
+        "CC6.7"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.IR-01"
+      ]
+    },
+    "AC-5": {
+      "title": "Separation of Duties",
+      "iso-27001-2022": [
+        "A.5.3"
+      ],
+      "pci-dss-4.0": [
+        "7.2.2"
+      ],
+      "soc2-2017": [
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(3)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-6": {
+      "title": "Least Privilege",
+      "iso-27001-2022": [
+        "A.5.15",
+        "A.8.2"
+      ],
+      "pci-dss-4.0": [
+        "7.2.2"
+      ],
+      "soc2-2017": [
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(4)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-6(1)": {
+      "title": "Least Privilege: Authorize Access to Security Functions",
+      "iso-27001-2022": [
+        "A.8.2",
+        "A.8.18"
+      ],
+      "pci-dss-4.0": [
+        "7.2.2"
+      ],
+      "soc2-2017": [
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(4)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-6(5)": {
+      "title": "Least Privilege: Privileged Accounts",
+      "iso-27001-2022": [
+        "A.8.2"
+      ],
+      "pci-dss-4.0": [
+        "7.2.2",
+        "8.2.2"
+      ],
+      "soc2-2017": [
+        "CC6.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(4)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-05"
+      ]
+    },
+    "AC-7": {
+      "title": "Unsuccessful Logon Attempts",
+      "iso-27001-2022": [
+        "A.8.5"
+      ],
+      "pci-dss-4.0": [
+        "8.3.4"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(5)(ii)(C)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-03"
+      ]
+    },
+    "AC-17": {
+      "title": "Remote Access",
+      "iso-27001-2022": [
+        "A.6.7",
+        "A.8.20"
+      ],
+      "pci-dss-4.0": [
+        "8.4.3",
+        "2.2.7"
+      ],
+      "soc2-2017": [
+        "CC6.6"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(1)",
+        "164.312(d)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-03",
+        "PR.IR-01"
+      ]
+    },
+    "AC-19": {
+      "title": "Access Control for Mobile Devices",
+      "iso-27001-2022": [
+        "A.8.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.310(c)",
+        "164.310(d)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "AT-2": {
+      "title": "Literacy Training and Awareness",
+      "iso-27001-2022": [
+        "A.6.3"
+      ],
+      "pci-dss-4.0": [
+        "12.6.1"
+      ],
+      "soc2-2017": [
+        "CC2.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(5)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AT-01"
+      ]
+    },
+    "AU-2": {
+      "title": "Event Logging",
+      "iso-27001-2022": [
+        "A.8.15"
+      ],
+      "pci-dss-4.0": [
+        "10.2.1"
+      ],
+      "soc2-2017": [
+        "CC7.2"
+      ],
+      "hipaa-security-rule": [
+        "164.312(b)"
+      ],
+      "nist-csf-2.0": [
+        "DE.CM-01",
+        "DE.CM-09"
+      ]
+    },
+    "AU-6": {
+      "title": "Audit Record Review, Analysis, and Reporting",
+      "iso-27001-2022": [
+        "A.8.15",
+        "A.8.16"
+      ],
+      "pci-dss-4.0": [
+        "10.4.1"
+      ],
+      "soc2-2017": [
+        "CC7.2",
+        "CC7.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(1)(ii)(D)"
+      ],
+      "nist-csf-2.0": [
+        "DE.AE-02"
+      ]
+    },
+    "AU-9": {
+      "title": "Protection of Audit Information",
+      "iso-27001-2022": [
+        "A.8.15",
+        "A.5.33"
+      ],
+      "pci-dss-4.0": [
+        "10.3.1",
+        "10.3.2"
+      ],
+      "soc2-2017": [
+        "CC7.2"
+      ],
+      "hipaa-security-rule": [
+        "164.312(b)",
+        "164.312(c)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-01"
+      ]
+    },
+    "AU-12": {
+      "title": "Audit Record Generation",
+      "iso-27001-2022": [
+        "A.8.15"
+      ],
+      "pci-dss-4.0": [
+        "10.2.1"
+      ],
+      "soc2-2017": [
+        "CC7.2"
+      ],
+      "hipaa-security-rule": [
+        "164.312(b)"
+      ],
+      "nist-csf-2.0": [
+        "DE.CM-01",
+        "DE.CM-09"
+      ]
+    },
+    "CA-7": {
+      "title": "Continuous Monitoring",
+      "iso-27001-2022": [
+        "A.8.16"
+      ],
+      "pci-dss-4.0": [
+        "10.7.2"
+      ],
+      "soc2-2017": [
+        "CC7.1",
+        "CC7.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(1)(ii)(D)"
+      ],
+      "nist-csf-2.0": [
+        "DE.CM-01",
+        "DE.CM-09"
+      ]
+    },
+    "CM-2": {
+      "title": "Baseline Configuration",
+      "iso-27001-2022": [
+        "A.8.9"
+      ],
+      "pci-dss-4.0": [
+        "2.2.1"
+      ],
+      "soc2-2017": [
+        "CC7.1",
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-01"
+      ]
+    },
+    "CM-3": {
+      "title": "Configuration Change Control",
+      "iso-27001-2022": [
+        "A.8.32"
+      ],
+      "pci-dss-4.0": [
+        "6.5.1"
+      ],
+      "soc2-2017": [
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-01"
+      ]
+    },
+    "CM-6": {
+      "title": "Configuration Settings",
+      "iso-27001-2022": [
+        "A.8.9"
+      ],
+      "pci-dss-4.0": [
+        "2.2.1"
+      ],
+      "soc2-2017": [
+        "CC7.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-01"
+      ]
+    },
+    "CM-7": {
+      "title": "Least Functionality",
+      "iso-27001-2022": [
+        "A.8.9",
+        "A.8.19"
+      ],
+      "pci-dss-4.0": [
+        "2.2.4"
+      ],
+      "soc2-2017": [
+        "CC6.8",
+        "CC7.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-01"
+      ]
+    },
+    "CM-8": {
+      "title": "System Component Inventory",
+      "iso-27001-2022": [
+        "A.5.9"
+      ],
+      "pci-dss-4.0": [
+        "12.5.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.310(d)(1)"
+      ],
+      "nist-csf-2.0": [
+        "ID.AM-01",
+        "ID.AM-02"
+      ]
+    },
+    "CM-14": {
+      "title": "Signed Components",
+      "iso-27001-2022": [
+        "A.8.19",
+        "A.5.21"
+      ],
+      "pci-dss-4.0": [
+        "6.3.2"
+      ],
+      "soc2-2017": [
+        "CC6.8",
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-02",
+        "GV.SC-07"
+      ]
+    },
+    "CP-9": {
+      "title": "System Backup",
+      "iso-27001-2022": [
+        "A.8.13"
+      ],
+      "pci-dss-4.0": [
+        "12.10.1"
+      ],
+      "soc2-2017": [
+        "A1.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(7)(ii)(A)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-11"
+      ]
+    },
+    "CP-10": {
+      "title": "System Recovery and Reconstitution",
+      "iso-27001-2022": [
+        "A.5.30",
+        "A.8.14"
+      ],
+      "soc2-2017": [
+        "A1.2",
+        "CC7.5"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(7)"
+      ],
+      "nist-csf-2.0": [
+        "RC.RP-01"
+      ]
+    },
+    "IA-2": {
+      "title": "Identification and Authentication (Organizational Users)",
+      "iso-27001-2022": [
+        "A.5.16",
+        "A.8.5"
+      ],
+      "pci-dss-4.0": [
+        "8.2.1",
+        "8.3.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(2)(i)",
+        "164.312(d)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01",
+        "PR.AA-03"
+      ]
+    },
+    "IA-2(1)": {
+      "title": "Identification and Authentication: Multi-factor Authentication to Privileged Accounts",
+      "iso-27001-2022": [
+        "A.8.5"
+      ],
+      "pci-dss-4.0": [
+        "8.4.2",
+        "8.4.3"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(d)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-03"
+      ]
+    },
+    "IA-4": {
+      "title": "Identifier Management",
+      "iso-27001-2022": [
+        "A.5.16"
+      ],
+      "pci-dss-4.0": [
+        "8.2.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(2)(i)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "IA-5": {
+      "title": "Authenticator Management",
+      "iso-27001-2022": [
+        "A.5.17"
+      ],
+      "pci-dss-4.0": [
+        "8.3.6",
+        "8.6.3"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(5)(ii)(D)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "IA-5(1)": {
+      "title": "Authenticator Management: Password-based Authentication",
+      "iso-27001-2022": [
+        "A.5.17"
+      ],
+      "pci-dss-4.0": [
+        "8.3.6"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(5)(ii)(D)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "IA-5(7)": {
+      "title": "Authenticator Management: No Embedded Unencrypted Static Authenticators",
+      "iso-27001-2022": [
+        "A.5.17",
+        "A.8.4"
+      ],
+      "pci-dss-4.0": [
+        "8.6.2",
+        "8.6.3"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-01"
+      ]
+    },
+    "IR-4": {
+      "title": "Incident Handling",
+      "iso-27001-2022": [
+        "A.5.24",
+        "A.5.26"
+      ],
+      "pci-dss-4.0": [
+        "12.10.1"
+      ],
+      "soc2-2017": [
+        "CC7.4"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(6)"
+      ],
+      "nist-csf-2.0": [
+        "RS.MA-01"
+      ]
+    },
+    "IR-6": {
+      "title": "Incident Reporting",
+      "iso-27001-2022": [
+        "A.6.8"
+      ],
+      "pci-dss-4.0": [
+        "12.10.1"
+      ],
+      "soc2-2017": [
+        "CC7.3"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(6)"
+      ],
+      "nist-csf-2.0": [
+        "RS.MA-01"
+      ]
+    },
+    "PE-3": {
+      "title": "Physical Access Control",
+      "iso-27001-2022": [
+        "A.7.2",
+        "A.7.4"
+      ],
+      "pci-dss-4.0": [
+        "9.2.1"
+      ],
+      "soc2-2017": [
+        "CC6.4"
+      ],
+      "hipaa-security-rule": [
+        "164.310(a)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.AA-06"
+      ]
+    },
+    "PL-8": {
+      "title": "Security and Privacy Architectures",
+      "iso-27001-2022": [
+        "A.8.27"
+      ],
+      "soc2-2017": [
+        "CC5.2"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-06"
+      ]
+    },
+    "RA-5": {
+      "title": "Vulnerability Monitoring and Scanning",
+      "iso-27001-2022": [
+        "A.8.8"
+      ],
+      "pci-dss-4.0": [
+        "6.3.1",
+        "11.3.1",
+        "11.3.2"
+      ],
+      "soc2-2017": [
+        "CC7.1"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(1)(ii)(A)"
+      ],
+      "nist-csf-2.0": [
+        "ID.RA-01"
+      ]
+    },
+    "SA-8": {
+      "title": "Security and Privacy Engineering Principles",
+      "iso-27001-2022": [
+        "A.8.27",
+        "A.8.26"
+      ],
+      "pci-dss-4.0": [
+        "6.2.4"
+      ],
+      "soc2-2017": [
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-06"
+      ]
+    },
+    "SA-10": {
+      "title": "Developer Configuration Management",
+      "iso-27001-2022": [
+        "A.8.25",
+        "A.8.32",
+        "A.8.31"
+      ],
+      "pci-dss-4.0": [
+        "6.5.1"
+      ],
+      "soc2-2017": [
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-06"
+      ]
+    },
+    "SA-11": {
+      "title": "Developer Testing and Evaluation",
+      "iso-27001-2022": [
+        "A.8.29"
+      ],
+      "pci-dss-4.0": [
+        "6.2.4",
+        "6.4.1"
+      ],
+      "soc2-2017": [
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-06"
+      ]
+    },
+    "SA-12": {
+      "title": "Supply Chain Protection (Rev. 4; Rev. 5 moved it to SR-3)",
+      "iso-27001-2022": [
+        "A.5.19",
+        "A.5.21"
+      ],
+      "pci-dss-4.0": [
+        "12.8.1",
+        "12.8.4"
+      ],
+      "soc2-2017": [
+        "CC9.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(b)(1)"
+      ],
+      "nist-csf-2.0": [
+        "GV.SC-06",
+        "GV.SC-07"
+      ]
+    },
+    "SC-7": {
+      "title": "Boundary Protection",
+      "iso-27001-2022": [
+        "A.8.20",
+        "A.8.22"
+      ],
+      "pci-dss-4.0": [
+        "1.2.1",
+        "1.3.1",
+        "1.4.1",
+        "1.4.2"
+      ],
+      "soc2-2017": [
+        "CC6.6"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.IR-01"
+      ]
+    },
+    "SC-7(5)": {
+      "title": "Boundary Protection: Deny by Default, Allow by Exception",
+      "iso-27001-2022": [
+        "A.8.20",
+        "A.8.22"
+      ],
+      "pci-dss-4.0": [
+        "1.3.1",
+        "1.3.2",
+        "1.4.2"
+      ],
+      "soc2-2017": [
+        "CC6.6"
+      ],
+      "nist-csf-2.0": [
+        "PR.IR-01"
+      ]
+    },
+    "SC-7(11)": {
+      "title": "Boundary Protection: Restrict Incoming Communications Traffic",
+      "iso-27001-2022": [
+        "A.8.20",
+        "A.8.22"
+      ],
+      "pci-dss-4.0": [
+        "1.3.1",
+        "1.4.2"
+      ],
+      "soc2-2017": [
+        "CC6.6"
+      ],
+      "nist-csf-2.0": [
+        "PR.IR-01"
+      ]
+    },
+    "SC-8": {
+      "title": "Transmission Confidentiality and Integrity",
+      "iso-27001-2022": [
+        "A.8.24",
+        "A.5.14"
+      ],
+      "pci-dss-4.0": [
+        "4.2.1",
+        "2.2.7"
+      ],
+      "soc2-2017": [
+        "CC6.7"
+      ],
+      "hipaa-security-rule": [
+        "164.312(e)(1)",
+        "164.312(e)(2)(ii)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-02"
+      ]
+    },
+    "SC-12": {
+      "title": "Cryptographic Key Establishment and Management",
+      "iso-27001-2022": [
+        "A.8.24"
+      ],
+      "pci-dss-4.0": [
+        "3.6.1",
+        "3.7.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(2)(iv)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-01"
+      ]
+    },
+    "SC-13": {
+      "title": "Cryptographic Protection",
+      "iso-27001-2022": [
+        "A.8.24"
+      ],
+      "pci-dss-4.0": [
+        "3.5.1",
+        "4.2.1"
+      ],
+      "soc2-2017": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(2)(iv)",
+        "164.312(e)(2)(ii)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-01",
+        "PR.DS-02"
+      ]
+    },
+    "SC-28": {
+      "title": "Protection of Information at Rest",
+      "iso-27001-2022": [
+        "A.8.24",
+        "A.8.11"
+      ],
+      "pci-dss-4.0": [
+        "3.5.1"
+      ],
+      "soc2-2017": [
+        "CC6.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(a)(2)(iv)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-01"
+      ]
+    },
+    "SI-2": {
+      "title": "Flaw Remediation",
+      "iso-27001-2022": [
+        "A.8.8"
+      ],
+      "pci-dss-4.0": [
+        "6.3.3"
+      ],
+      "soc2-2017": [
+        "CC7.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-02"
+      ]
+    },
+    "SI-3": {
+      "title": "Malicious Code Protection",
+      "iso-27001-2022": [
+        "A.8.7"
+      ],
+      "pci-dss-4.0": [
+        "5.2.1"
+      ],
+      "soc2-2017": [
+        "CC6.8"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(5)(ii)(B)"
+      ],
+      "nist-csf-2.0": [
+        "DE.CM-09"
+      ]
+    },
+    "SI-4": {
+      "title": "System Monitoring",
+      "iso-27001-2022": [
+        "A.8.16"
+      ],
+      "pci-dss-4.0": [
+        "11.5.1",
+        "10.4.1"
+      ],
+      "soc2-2017": [
+        "CC7.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(a)(1)(ii)(D)"
+      ],
+      "nist-csf-2.0": [
+        "DE.CM-01",
+        "DE.CM-09"
+      ]
+    },
+    "SI-7": {
+      "title": "Software, Firmware, and Information Integrity",
+      "iso-27001-2022": [
+        "A.8.9",
+        "A.8.19"
+      ],
+      "pci-dss-4.0": [
+        "11.5.2"
+      ],
+      "soc2-2017": [
+        "CC7.1"
+      ],
+      "hipaa-security-rule": [
+        "164.312(c)(1)"
+      ],
+      "nist-csf-2.0": [
+        "PR.DS-01",
+        "PR.PS-02"
+      ]
+    },
+    "SI-10": {
+      "title": "Information Input Validation",
+      "iso-27001-2022": [
+        "A.8.28",
+        "A.8.26"
+      ],
+      "pci-dss-4.0": [
+        "6.2.4",
+        "6.4.1"
+      ],
+      "soc2-2017": [
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "PR.PS-06"
+      ]
+    },
+    "SR-3": {
+      "title": "Supply Chain Controls and Processes",
+      "iso-27001-2022": [
+        "A.5.19",
+        "A.5.21"
+      ],
+      "pci-dss-4.0": [
+        "12.8.1",
+        "12.8.4"
+      ],
+      "soc2-2017": [
+        "CC9.2"
+      ],
+      "hipaa-security-rule": [
+        "164.308(b)(1)"
+      ],
+      "nist-csf-2.0": [
+        "GV.SC-06",
+        "GV.SC-07"
+      ]
+    },
+    "SR-4": {
+      "title": "Provenance",
+      "iso-27001-2022": [
+        "A.5.21",
+        "A.8.19"
+      ],
+      "pci-dss-4.0": [
+        "6.3.2"
+      ],
+      "soc2-2017": [
+        "CC9.2",
+        "CC8.1"
+      ],
+      "nist-csf-2.0": [
+        "GV.SC-07",
+        "PR.PS-02"
+      ]
+    }
+  }
+}

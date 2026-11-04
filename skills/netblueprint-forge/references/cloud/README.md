@@ -1,6 +1,6 @@
 # Cloud service cards
 
-When the user names a cloud service for a node, component or appliance, find its card: `aws.md`, `azure.md`, `gcp.md` (12 services each), or fall back to `generic.md`. A component that is not a cloud service (a web server, a database, a directory, a VPN gateway, a jump host, a firewall …) has its card in `../components.md`, in the same format. Card ids (`aws-s3`, `azure-app-service`, `gcp-cloud-run` …) go into `cloud.card`.
+When the user names a cloud service for a node, component or appliance, find its card: `aws.md`, `azure.md`, `gcp.md` (12 services each), or fall back to `generic.md`. A component that is not a cloud service (a web server, a database, a directory, a VPN gateway, a jump host, a firewall …) has its card in `../components.md`, in the same format; Kubernetes parts, AI building blocks and OT systems have theirs in `../kubernetes.md`, `../ai.md` and `../ot.md`. Card ids (`aws-s3`, `azure-app-service`, `gcp-cloud-run` …) go into `cloud.card`.
 
 Each card has the same sections:
 

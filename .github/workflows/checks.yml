@@ -38,6 +38,8 @@ jobs:
         run: node tests/check_suggest.mjs
       - name: Reports and the portfolio on the examples
         run: node tests/check_reports.mjs
+      - name: The framework crosswalk and coverage
+        run: node tests/check_coverage.mjs
 
   schema:
     name: Schema check

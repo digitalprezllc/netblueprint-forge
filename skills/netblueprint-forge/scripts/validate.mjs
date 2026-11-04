@@ -278,6 +278,9 @@ function lintScope(model, { fix = false } = {}) {
     const declares = (ref, other) => at(ref).some(([, , x]) => (x.depends_on || []).some((d) => d.ref && own(d.ref) === own(other)));
     if (!declares(f.from, f.to) && !declares(f.to, f.from)) warn(`flow "${f.name}" is a dependency flow but neither "${f.from}" nor "${f.to}" has a depends_on entry naming the other; add one with the kind (identity, dns, kms, secrets, logging …)`);
   });
+  // OT conduits: a flow into a zone with a higher IEC 62443 security level should pass an appliance of that zone
+  const slOf = (ref) => { const o = own(ref); const n = nodes.find((x) => x.name === o); const zn = n ? n.zone : (APP.get(o) || {}).zone; const z = zn && zones.find((x) => x.name === zn); return z && z.security_level ? { zone: z, level: z.security_level } : null; };
+  flows.filter((f) => f.kind !== 'blocked' && f.kind !== 'trust').forEach((f) => { const a = slOf(f.from), b = slOf(f.to); if (b && (!a || a.level < b.level) && !(b.zone.appliances || []).length) warn(`flow "${f.name}" enters "${b.zone.name}" (security level ${b.level}) from ${a ? `level ${a.level}` : 'an unrated zone'} and the zone has no appliance: a conduit into a higher security level needs a firewall or gateway on its edge (IEC 62443)`); });
   const phaseNames = new Set(phases.map((p) => p.name));
   steps.forEach((s) => {
     if (s.phase && phases.length && !phaseNames.has(s.phase)) err(`step "${s.name}": phase "${s.phase}" is not in phases[]`);
