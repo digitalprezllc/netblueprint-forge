@@ -6,7 +6,7 @@
 node tests/check_validate.mjs
 ```
 
-Runs `scripts/validate.mjs` on every fixture and on the shipped examples (`invalid-*` must fail, the rest must pass), then spot-checks `computeAssessment` against the matrices in `docs/research/threat-attributes.md`. `invalid-refs.model.json` covers the cross-reference lint: duplicate names, dangling zone/node/flow/step/threat/control references, unknown auth types and layers, a mitigated threat without an implemented control, and a rating that contradicts its inputs.
+Runs `scripts/validate.mjs` on every fixture and on the shipped examples (`invalid-*` must fail, the rest must pass), checks that `policy.model.json` is valid on its own and fails `validate --strict` with exactly its seven expected policy failures, then spot-checks `computeAssessment` against the matrices in `docs/research/threat-attributes.md`. `invalid-refs.model.json` covers the cross-reference lint: duplicate names, dangling zone/node/flow/step/threat/control references, unknown auth types and layers, a mitigated threat without an implemented control, and a rating that contradicts its inputs.
 
 ## Schema fixtures
 
@@ -14,7 +14,9 @@ Runs `scripts/validate.mjs` on every fixture and on the shipped examples (`inval
 
 - `tabs-minimal.model.json`: two diagram tabs plus a what-if scenario tab (`front-cache`, derived from `front`) that repeats the baseline's threat and attack path ids, which the lint allows only for a scenario; `front` carries attack path `AP-0001`.
 - `invalid-lint-attack-path.model.json`: a hop whose threat does not exist, a hop whose flow does not exist, a hop with neither flow nor destination, a mitigated path whose breaking control does not exist, a duplicate path id. Expected: 7 errors.
-- `minimal.model.json`: exercises every top-level section once: nested zones with boundary appliances, a host with components, Internet-side actors and SaaS, flows of several kinds and auth strengths, two phases and steps, a mitigated threat with both inherent and residual Likelihood × Impact plus CVSS, an open threat scored with OWASP RR, a shared control, a custom layer.
+- `invalid-lint-requirements.model.json`: a requirement with a dangling threat, control and attack path, an implemented requirement with no implemented control, a duplicate requirement id and number, a dependency on a missing element and one on itself. Expected: 8 errors.
+- `policy.model.json`: valid, with a `settings.policy` that asks for evidence on verified controls; under `--strict` it fails seven rules: an open high threat with no planned control on track (twice), an open threat without a treatment decision (twice), a planned control past its due date, a verified control without evidence, an approved requirement with no control.
+- `minimal.model.json`: exercises every top-level section once (a requirement with framework clauses, a control with evidence and mitigation taxonomies, a dependency flow to a resolver, `depends_on` with a provider on and off the diagram, `custom` metadata, a policy): nested zones with boundary appliances, a host with components, Internet-side actors and SaaS, flows of several kinds and auth strengths, two phases and steps, a mitigated threat with both inherent and residual Likelihood × Impact plus CVSS, an open threat scored with OWASP RR, a shared control, a custom layer.
 - `invalid-enums.model.json`: bad names, unknown enums, empty required arrays, conditional rules (retired without reason, override without reason, verified control without verification). Expected: 13 errors (12 real ones plus one `unevaluatedProperties` cascade on the already-invalid `risk` object; `validate.mjs` must report only root causes).
 
 ```bash

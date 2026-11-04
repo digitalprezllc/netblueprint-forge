@@ -1,19 +1,19 @@
 # Model reference
 
-Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-02. Do not edit by hand; change the schema and regenerate.
+Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-04. Do not edit by hand; change the schema and regenerate.
 
-A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.
+A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, requirement ids, dependency providers, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.
 
 ## Top level
 
 | Field | Type / allowed values | Required | Notes |
 | - | - | - | - |
-| `tabs` | array of [tab](#tab), min 1 |  | Several diagrams in one document, shown as tabs under the canvas (left to right in this order). Each tab holds its own zones, nodes, flows, phases, steps, threats and controls; meta, settings, auth_types and layers are shared. With tabs[] the top-level collections stay empty (validate.mjs enforces this). Threat ids and numbers, control ids and attack path ids and numbers are unique across all tabs (a scenario tab may repeat those of its baseline tab); other names are unique within a tab. |
+| `tabs` | array of [tab](#tab), min 1 |  | Several diagrams in one document, shown as tabs under the canvas (left to right in this order). Each tab holds its own zones, nodes, flows, phases, steps, threats, controls and requirements; meta, settings, auth_types and layers are shared. With tabs[] the top-level collections stay empty (validate.mjs enforces this). Threat ids and numbers, control ids, requirement ids and numbers and attack path ids and numbers are unique across all tabs (a scenario tab may repeat those of its baseline tab); other names are unique within a tab. |
 | `netblueprint` | string matching `^1(\.[0-9]+)?$` | yes | Model format version. The build script refuses a major version it does not know. |
 | `meta` | [meta](#meta) | yes |  |
 | `settings` | [settings](#settings) |  |  |
 | `auth_types` | array of [authType](#authtype) |  | Authentication types a flow may use. Omit to get the built-in set (anonymous, password, basic, api-key, oauth2, saml, oidc, kerberos, mfa, mtls, certificate, fido2, managed-identity, ssh-key). Listing any replaces the built-in set entirely. |
-| `layers` | array of [layer](#layer) |  | Custom layers. Built-in layers (zones, appliances, nodes, components, internet, flows-weak, flows-moderate, flows-strong, flows-blocked, threats, controls, labels) exist without being declared and can be hidden by default through settings.layers_hidden. |
+| `layers` | array of [layer](#layer) |  | Custom layers. Built-in layers (zones, appliances, nodes, components, internet, flows-weak, flows-moderate, flows-strong, flows-blocked, flows-trust, flows-dependency, threats, controls, labels) exist without being declared and can be hidden by default through settings.layers_hidden. |
 | `zones` | array of [zone](#zone) |  |  |
 | `nodes` | array of [node](#node), min 1 |  |  |
 | `flows` | array of [flow](#flow) |  |  |
@@ -21,6 +21,7 @@ A network / application flow and threat model. The renderer computes layout from
 | `steps` | array of [step](#step) |  |  |
 | `threats` | array of [threat](#threat) |  |  |
 | `controls` | array of [control](#control) |  |  |
+| `requirements` | array of [requirement](#requirement) |  | Security requirements: what must hold, mapped to the threats they answer, the controls that satisfy them and the framework clauses they serve. Ids and numbers are unique across the document, like threats. |
 | `attack_paths` | array of [attackPath](#attackpath) |  | Attack paths (multi-hop chains) of this diagram. |
 
 ## Shared types
@@ -50,6 +51,8 @@ A network / application flow and threat model. The renderer computes layout from
 | `riskAssessment` | riskAssessment: [riskAssessmentCore](#riskassessmentcore) |
 | `attackPathId` | attackPathId: string matching `^AP-[0-9]{4}$` |
 | `hopGain` | hopGain: `foothold`, `credentials`, `token`, `session`, `network-access`, `code-execution`, `data-access`, `data-exfiltration`, `privilege`, `persistence`, `lateral-movement`, `denial-of-service`, `impact` |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |
+| `requirementId` | `REQ-0000` to `REQ-9999` |
 | `icon` | `server`, `database`, `service`, `api`, `connector`, `cloud`, `shield`, `firewall`, `lock`, `key`, `user`, `remote-user`, `admin`, `bad-actor`, `laptop`, `workstation`, `mobile`, `iot`, `ot`, `storage`, `queue`, `cache`, `container`, `kubernetes`, `function`, `load-balancer`, `dns`, `mail`, `directory`, `monitor`, `globe`, `building`, `generic`, or a vendor icon as `provider/id` from the icon library (`azure/key-vaults`, `aws/lambda`, `gcp/cloud-sql`; see icons.md) |
 
 ## meta (signature block)
@@ -81,6 +84,7 @@ Signature block and document metadata. Title, subtitle and organization are Titl
 | `assumptions` | array of text ≤4000 |  |  |
 | `out_of_scope` | array of text ≤4000 |  |  |
 | `tags` | array of string ≤40 chars (unique) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 
 ## settings
 
@@ -96,6 +100,7 @@ Signature block and document metadata. Title, subtitle and organization are Titl
 | `show` | object |  |  |
 | `icons` | object |  | Vendor icons on the page. |
 | `severity_filter_default` | `very-low` · `low` · `moderate` · `high` · `very-high` |  | Minimum band shown when the diagram opens. |
+| `policy` | [policy](#policy) |  |  |
 | `theme` | object |  |  |
 
 ## auth_types[] entry
@@ -143,8 +148,10 @@ One diagram of a multi-tab document. `name` is the stable id (used in the URL ha
 | `steps` | array of [step](#step) |  |  |
 | `threats` | array of [threat](#threat) |  |  |
 | `controls` | array of [control](#control) |  |  |
+| `requirements` | array of [requirement](#requirement) |  | Security requirements: what must hold, mapped to the threats they answer, the controls that satisfy them and the framework clauses they serve. Ids and numbers are unique across the document, like threats. |
 | `attack_paths` | array of [attackPath](#attackpath) |  | Attack paths (multi-hop chains) of this diagram. |
 | `scenario` | [scenario](#scenario) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 
 ## zones[] entry
 
@@ -167,6 +174,7 @@ One diagram of a multi-tab document. `name` is the stable id (used in the URL ha
 | `appliances` | array of [appliance](#appliance) |  |  |
 | `layout` | object |  |  |
 | `cloud` | [cloud](#cloud) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `layers` | list of names (unique) |  |  |
 | `out_of_scope` | boolean |  | Still drawn and documented, but greyed out. |
 | `scope_reason` | text ≤4000 |  |  |
@@ -194,6 +202,8 @@ A filtering device on a zone boundary. Drawn as a narrow bar on the zone edge; f
 | `data_classification` | `public` · `internal` · `confidential` · `restricted` |  |  |
 | `cloud` | [cloud](#cloud) |  |  |
 | `profile` | [profile](#profile) |  |  |
+| `depends_on` | array of [dependency](#dependency) |  | What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here. |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `out_of_scope` | boolean |  | Still drawn and documented, but greyed out. |
 | `scope_reason` | text ≤4000 |  |  |
 | `layers` | list of names (unique) |  |  |
@@ -220,7 +230,9 @@ A filtering device on a zone boundary. Drawn as a narrow bar on the zone edge; f
 | `data_tags` | list of `pii` `phi` `pci` `financial` `credentials` `intellectual-property` `mission-critical` `export-controlled` `other` |  |  |
 | `cloud` | [cloud](#cloud) |  |  |
 | `profile` | [profile](#profile) |  |  |
+| `depends_on` | array of [dependency](#dependency) |  | What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here. |
 | `layout` | [layoutHints](#layouthints) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `layers` | list of names (unique) |  |  |
 | `out_of_scope` | boolean |  | Still drawn and documented, but greyed out. |
 | `scope_reason` | text ≤4000 |  |  |
@@ -245,6 +257,8 @@ A service or process running on a host node.
 | `data_tags` | list of `pii` `phi` `pci` `financial` `credentials` `intellectual-property` `mission-critical` `export-controlled` `other` |  |  |
 | `cloud` | [cloud](#cloud) |  |  |
 | `profile` | [profile](#profile) |  |  |
+| `depends_on` | array of [dependency](#dependency) |  | What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here. |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `out_of_scope` | boolean |  | Still drawn and documented, but greyed out. |
 | `scope_reason` | text ≤4000 |  |  |
 | `layers` | list of names (unique) |  |  |
@@ -262,7 +276,7 @@ A service or process running on a host node.
 | `from` | ref: `node` or `node/component` | yes |  |
 | `to` | ref: `node` or `node/component` | yes |  |
 | `direction` | `one-way`, `two-way` |  | one-way: from → to. two-way: request and response both drawn; packets may run either way. Default `"one-way"`. |
-| `kind` | `data`, `control`, `auth`, `token`, `trust`, `blocked`, `tunnel` |  | data: application traffic. control: policy / control plane. auth: authentication exchange. token: credential or token issuance. trust: a standing trust relationship (dotted). blocked: denied by policy (red ✕). tunnel: an established encrypted tunnel. Default `"data"`. |
+| `kind` | `data`, `control`, `auth`, `token`, `trust`, `blocked`, `tunnel`, `dependency` |  | data: application traffic. control: policy / control plane. auth: authentication exchange. token: credential or token issuance. trust: a standing trust relationship (dotted). blocked: denied by policy (red ✕). tunnel: an established encrypted tunnel. dependency: a standing dependency between the two ends (identity, DNS, keys, secrets, logging, directory synchronisation); one of them declares it in depends_on. Drawn thin and dashed on its own layer; `from` is still the initiator and the flow carries its authentication like any other. Default `"data"`. |
 | `auth` | name: letters, digits, `_ . -`, ≤64, unique |  | Id of an auth type. Sets the strength styling and legend entry. |
 | `protocol` | text ≤200 |  | HTTPS, TLS 1.3, SSH, RDP, SMB, SQL/TDS … |
 | `port` | string matching `^[0-9]{1,5}(-[0-9]{1,5})?(/(tcp\|udp\|sctp))?$` |  |  |
@@ -278,6 +292,7 @@ A service or process running on a host node.
 | `authentication` | [flowAuthentication](#flowauthentication) |  | Detail behind `auth`: how each end authenticates and where its credentials live. |
 | `path_controls` | [pathControls](#pathcontrols) |  |  |
 | `availability` | [flowAvailability](#flowavailability) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `out_of_scope` | boolean |  | Still drawn and documented, but greyed out. |
 | `scope_reason` | text ≤4000 |  |  |
 | `layers` | list of names (unique) |  |  |
@@ -317,6 +332,7 @@ One step of the guided story.
 | `annotation` | text ≤200 |  |  |
 | `threats` | array of `THR-0000` to `THR-9999` (unique) |  | Threat ids relevant to this step; their circles are emphasised while the step is active. |
 | `layers` | list of names (unique) |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 
 ## step.packets[] entry
 
@@ -356,6 +372,7 @@ One step of the guided story.
 | `standards` | object |  |  |
 | `treatment` | object |  |  |
 | `provenance` | object |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `layers` | list of names (unique) |  |  |
 | `suggested` | boolean (proposed by the skill, not yet confirmed) |  |  |
 | `suggested_from` | text: card id or source |  |  |
@@ -476,11 +493,105 @@ Rules: at least one of: `loss_of_confidentiality` + `loss_of_integrity` + `loss_
 | `implemented_on` | array of [target](#target) |  | Where the control lives on the diagram (an appliance, node, component or flow), if anywhere. |
 | `nist_800_53` | array of string matching `^(AC\|AT\|AU\|CA\|CM\|CP\|IA\|IR\|MA\|MP\|PE\|PL\|PM\|PS\|PT\|RA\|SA\|SC\|SI\|SR)-[0-9]+(\([0-9]+\))?$` (unique) |  |  |
 | `cis_controls` | array of string matching `^CIS-([1-9]\|1[0-8])(\.[0-9]{1,2})?$` (unique) |  |  |
+| `iso_27001` | array of string matching `^A\.[5-8]\.[0-9]{1,2}$` (unique) |  | ISO/IEC 27001:2022 Annex A controls, e.g. A.8.5. |
+| `mitre_mitigations` | array of string matching `^M[0-9]{4}$` (unique) |  | ATT&CK mitigation ids (M1032 Multi-factor Authentication, M1030 Network Segmentation …). |
+| `d3fend` | array of string matching `^D3-[A-Z0-9]{1,8}$` (unique) |  | D3FEND technique ids (D3-MFA, D3-NTF, D3-UAP …). |
+| `frameworks` | array of [frameworkRef](#frameworkref) |  | Clauses of other standards and regulations this control satisfies (PCI DSS, SOC 2, HIPAA, GDPR …). |
+| `evidence` | array of [evidence](#evidence) |  | How the control was shown to work: one record per artefact. |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `layers` | list of names (unique) |  |  |
 | `suggested` | boolean (proposed by the skill, not yet confirmed) |  |  |
 | `suggested_from` | text: card id or source |  |  |
 
 Rules: when `status` is `verified` then `verification` is not `not-yet-verified` and `verification` is required.
+
+## control.evidence[] entry
+
+<a id="evidence"></a>
+
+A record that a control was verified: what kind of artefact, where it is, when, by whom. The Attributes card and the audit report list it; `validate --strict` can require one on every verified control.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `kind` | `test-report`, `scan-result`, `penetration-test`, `audit-finding`, `configuration-export`, `screenshot`, `log-sample`, `ticket`, `attestation`, `design-document`, `other` | yes |  |
+| `reference` | string ≤300 chars |  | A URL, a document id, a ticket key or a file name. |
+| `date` | date YYYY-MM-DD |  |  |
+| `by` | text ≤200 |  |  |
+| `note` | text ≤4000 |  |  |
+
+## control.frameworks[] and requirement.frameworks[] entry
+
+<a id="frameworkref"></a>
+
+A clause of a standard, regulation or framework that a control or requirement satisfies. `framework` is a short id (`pci-dss-4.0`, `iso-27001-2022`, `soc2-2017`, `hipaa-security-rule`, `nist-csf-2.0`, `nist-800-171-r3`, `gdpr`, `dora`, `iec-62443`, or your own); `clause` is the clause as the framework numbers it.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `framework` | string matching `^[a-z0-9][a-z0-9.-]{1,40}$` | yes |  |
+| `clause` | string ≤60 chars | yes |  |
+| `note` | text ≤200 |  |  |
+
+## requirements[] entry
+
+<a id="requirement"></a>
+
+A security requirement: what must hold, which threats it answers, which controls satisfy it, which framework clauses it serves. Numbered like threats (`REQ-0001`, permanent; retire, never delete). A requirement is the bridge between a threat and the audit: a threat says what could go wrong, a requirement says what must be true, a control says what was built, and the control's evidence says it was checked.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `id` | `REQ-0000` to `REQ-9999` | yes |  |
+| `number` | integer 1–9999 | yes | Permanent number; equals the id's digits. |
+| `title` | text ≤200 | yes |  |
+| `statement` | text ≤4000 | yes | The requirement as a testable sentence: "Administrative sessions to the jump host authenticate with phishing-resistant MFA". |
+| `kind` | `security`, `privacy`, `resilience`, `compliance`, `operational`, `safety` |  | Default `"security"`. |
+| `priority` | `must`, `should`, `could` |  | Default `"must"`. |
+| `status` | `proposed`, `approved`, `implemented`, `verified`, `waived`, `retired` | yes | proposed → approved → implemented → verified; `waived` and `retired` need a `status_reason`. |
+| `status_reason` | text ≤4000 |  |  |
+| `source` | `threat-model`, `policy`, `standard`, `regulation`, `contract`, `customer`, `architecture`, `incident`, `other` |  | Where the requirement comes from. |
+| `source_ref` | text ≤200 |  | The policy, standard, contract or ticket it comes from. |
+| `threats` | array of `THR-0000` to `THR-9999` (unique) |  | Threats this requirement answers. |
+| `controls` | array of `CTL-0000` to `CTL-9999` (unique) |  | Controls that satisfy it; `implemented` and `verified` need at least one implemented or verified control. |
+| `attack_paths` | array of attackPathId: string matching `^AP-[0-9]{4}$` (unique) |  |  |
+| `frameworks` | array of [frameworkRef](#frameworkref) |  |  |
+| `owner` | text ≤200 |  |  |
+| `due_date` | date YYYY-MM-DD |  |  |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
+| `layers` | list of names (unique) |  |  |
+| `suggested` | boolean (proposed by the skill, not yet confirmed) |  |  |
+| `suggested_from` | text: card id or source |  |  |
+
+Rules: when `status` is `waived` or `retired` then `status_reason` is required.
+
+## depends_on[] entry (nodes, components, appliances)
+
+<a id="dependency"></a>
+
+Something the element needs in order to work: an identity provider, a directory, DNS, a certificate authority, key management, a secrets service, logging, monitoring, time, a package registry, a backup target. `ref` names the node, component or appliance that provides it when it is on the diagram; a flow between the two (kind `dependency`, or the real auth or data flow) draws the relationship, and the validator asks for one when it is missing. An off-diagram provider gets a `label` instead.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `kind` | `identity`, `directory`, `dns`, `pki`, `kms`, `secrets`, `logging`, `monitoring`, `time`, `package-registry`, `update-service`, `backup`, `licensing`, `messaging`, `storage`, `database`, `api`, `network`, `other` | yes |  |
+| `ref` | ref: `node` or `node/component` |  | The provider on the diagram: a node, `node/component` or appliance name. |
+| `label` | text ≤200 |  | The provider when it is not on the diagram ("Let's Encrypt", "corporate NTP"). |
+| `criticality` | `required`, `degraded`, `optional` |  | What happens to the element when the dependency is unavailable: `required` stops it, `degraded` limits it, `optional` is barely noticed. Default `"required"`. |
+| `note` | text ≤4000 |  |  |
+
+## settings.policy (what validate --strict enforces)
+
+<a id="policy"></a>
+
+What `validate --strict` enforces on top of the schema and the lint, so CI can fail a build on security grounds. Every rule is optional; the defaults below apply to a rule that is not set. A policy travels with the model, so it needs no CI configuration.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `open_threats` | object |  | An open threat (identified, investigating, open) whose current rating is at `band` or above fails, unless `allow_with_plan` is true and the threat has a planned control that is not overdue. |
+| `require_treatment_decision` | boolean |  | Every open threat needs a `treatment.decision` other than undecided. Default `true`. |
+| `overdue_controls` | boolean |  | A proposed, planned or in-progress control past its due date fails. Default `true`. |
+| `verified_needs_evidence` | boolean |  | A verified control needs at least one evidence record. Default `false`. |
+| `requirements_need_controls` | boolean |  | An approved, implemented or verified requirement needs at least one control. Default `true`. |
+| `no_suggested` | boolean |  | Any element still marked suggested fails. Default `true`. |
+| `classify_every_flow` | boolean |  | A flow without a data classification fails (the lint only warns). Default `false`. |
+| `risk_reviews` | boolean |  | An accepted threat whose acceptance review date has passed fails. Default `true`. |
 
 ## cloud block (zones, nodes, components, appliances)
 
@@ -664,6 +775,7 @@ A multi-hop attack path (cascade): how a failure at one place lets the adversary
 | `risk` | [riskAssessmentCore](#riskassessmentcore) + `residual`, `projected` |  | The path's own rating: likelihood that the whole chain succeeds × impact of the end state. Residual = with the controls in place, projected = after the planned ones. Computed fields are written back by validate --fix like a threat's. |
 | `breaks_at` | array of `CTL-0000` to `CTL-9999` (unique) |  | Controls that cut the chain (current or planned), by id. A mitigated path needs one that is implemented or verified. |
 | `mitre_attack` | array of string matching `^T[0-9]{4}(\.[0-9]{3})?$` (unique) |  | ATT&CK technique ids used along the chain. |
+| `custom` | object of your own keys (up to 40; letters, digits, space, _ . -), listed in the Attributes card under Custom and left alone by the validator |  |  |
 | `layers` | list of names (unique) |  |  |
 | `suggested` | boolean (proposed by the skill, not yet confirmed) |  |  |
 | `suggested_from` | text: card id or source |  |  |
@@ -688,5 +800,7 @@ Marks a tab as a what-if scenario of another tab: the same diagram with one chan
 - Components are referenced as `node/component` in flows, steps, targets and `implemented_on`.
 - Threat numbers and ids are permanent. Retire a threat (`status: "retired"`, `retired: true`, `status_reason`) instead of deleting it.
 - `validate.mjs --fix` writes `risk.rating`, `risk.score` and the OWASP averages/levels from the inputs; do not hand-edit them.
-- Built-in layers that need no declaration: zones, appliances, nodes, components, internet, flows-strong, flows-moderate, flows-weak, flows-unspecified, flows-blocked, flows-trust, threats, controls, labels. An element is visible when its kind layer is on and (it has no custom layers or any of them is on).
+- Built-in layers that need no declaration: zones, appliances, nodes, components, internet, flows-strong, flows-moderate, flows-weak, flows-unspecified, flows-blocked, flows-trust, flows-dependency, threats, controls, labels. An element is visible when its kind layer is on and (it has no custom layers or any of them is on).
+- Requirement ids and numbers (`REQ-0001`) are permanent like threat numbers; `waived` and `retired` need a `status_reason`. A `depends_on` entry with a `ref` expects a flow between the two elements (kind `dependency`, or the real auth or data flow).
+- `validate.mjs --strict` applies `settings.policy` over its defaults (an open threat at high or above with no planned control on track, an open threat without a treatment decision, an overdue control, an approved requirement without a control, a suggested element, an accepted risk past its review date) and exits 1 on any failure.
 - Built-in auth types when `auth_types` is omitted: anonymous (none), password, basic, api-key (weak), ssh-key, oauth2, saml, oidc (moderate), kerberos, mfa, mtls, certificate, fido2 (phishing-resistant), managed-identity (strong). Declaring `auth_types` replaces this list.

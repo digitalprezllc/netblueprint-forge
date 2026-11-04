@@ -6,7 +6,7 @@ Loaded on demand by `SKILL.md`. Keep each file focused; the agent reads only wha
 | - | - | - |
 | `interview.md` | The guided interview, section by section: what to ask, what to write, when to validate and render | done |
 | `model-reference.md` | Every model field, allowed values, rules. **Generated** from the schema by `scripts/model-reference.mjs`; regenerate after any schema change | generated |
-| `threats.md` | Threat questions in order, option lists, ids and numbers, controls, adversary prompts, how threats appear | done |
+| `threats.md` | Threat questions in order, option lists, ids and numbers, controls with evidence and mitigation taxonomies, requirements, adversary prompts, how threats appear | done |
 | `risk-scoring.md` | The method comparison to read to the user, both methods' tables, the band mapping, residual risk and overrides | done |
 | `layout-hints.md` | How the canvas is built and every hint by name | done |
 | `revise-and-archive.md` | Archive → edit by name → validate → build → log the diff; the rules | done |

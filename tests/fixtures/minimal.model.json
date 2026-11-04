@@ -18,6 +18,13 @@
     "layout": {
       "min_width": 1280,
       "min_height": 640
+    },
+    "policy": {
+      "open_threats": {
+        "band": "high",
+        "allow_with_plan": true
+      },
+      "verified_needs_evidence": true
     }
   },
   "layers": [
@@ -99,6 +106,17 @@
         "provider": "azure",
         "service": "Virtual Machines",
         "card": "azure-vm"
+      },
+      "depends_on": [
+        {
+          "kind": "dns",
+          "ref": "dns-01",
+          "criticality": "required"
+        }
+      ],
+      "custom": {
+        "cmdb_id": "CI-00123",
+        "owner_team": "Web Platform"
       }
     },
     {
@@ -134,7 +152,20 @@
       ],
       "layout": {
         "order": 1
-      }
+      },
+      "depends_on": [
+        {
+          "kind": "api",
+          "ref": "crm-saas",
+          "criticality": "degraded",
+          "note": "CRM lookups fail closed"
+        },
+        {
+          "kind": "directory",
+          "label": "Fabrikam AD DS",
+          "note": "Kerberos tickets for the SQL sign-in"
+        }
+      ]
     },
     {
       "name": "crm-saas",
@@ -150,6 +181,13 @@
         "exposure": "internet",
         "endpoint": "public"
       }
+    },
+    {
+      "name": "dns-01",
+      "label": "DNS-01",
+      "sub": "Internal resolver",
+      "type": "server",
+      "zone": "corp"
     }
   ],
   "flows": [
@@ -199,6 +237,17 @@
       "layers": [
         "phase-2"
       ]
+    },
+    {
+      "name": "f-web-dns",
+      "from": "web-01",
+      "to": "dns-01",
+      "kind": "dependency",
+      "auth": "anonymous",
+      "protocol": "DNS",
+      "port": "53/udp",
+      "encrypted": false,
+      "data_classification": "internal"
     }
   ],
   "phases": [
@@ -293,7 +342,73 @@
       "nist_800_53": [
         "AC-3",
         "AC-6"
+      ],
+      "mitre_mitigations": [
+        "M1018"
+      ],
+      "d3fend": [
+        "D3-UAP"
+      ],
+      "iso_27001": [
+        "A.5.15"
+      ],
+      "frameworks": [
+        {
+          "framework": "pci-dss-4.0",
+          "clause": "7.2.1"
+        }
       ]
+    },
+    {
+      "id": "CTL-0002",
+      "name": "Automated authorization tests on every API build",
+      "type": "detective",
+      "status": "verified",
+      "verification": "test",
+      "owner": "QA",
+      "implemented_on": [
+        {
+          "kind": "component",
+          "ref": "app-01/profile-api"
+        }
+      ],
+      "evidence": [
+        {
+          "kind": "test-report",
+          "reference": "QA-2026-118",
+          "by": "QA",
+          "note": "Cross-customer read attempts refused in the authorization suite"
+        }
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-0001",
+      "number": 1,
+      "title": "Customers Read Only Their Own Profiles",
+      "statement": "The Profile API authorises every object read against the signed-in customer; a request for another customer's id is refused and logged.",
+      "kind": "security",
+      "priority": "must",
+      "status": "verified",
+      "source": "threat-model",
+      "threats": [
+        "THR-0001"
+      ],
+      "controls": [
+        "CTL-0001",
+        "CTL-0002"
+      ],
+      "frameworks": [
+        {
+          "framework": "pci-dss-4.0",
+          "clause": "7.2.1"
+        }
+      ],
+      "owner": "Identity Team",
+      "custom": {
+        "jira": "SEC-1234"
+      }
     }
   ],
   "threats": [

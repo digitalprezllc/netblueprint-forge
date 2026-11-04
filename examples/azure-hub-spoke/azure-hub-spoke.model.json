@@ -304,7 +304,14 @@
           "zone": "internet",
           "color": "purple",
           "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies.",
-          "icon": "azure/microsoft-entra-id"
+          "icon": "azure/microsoft-entra-id",
+          "depends_on": [
+            {
+              "kind": "directory",
+              "ref": "ad-ds",
+              "note": "Hybrid identity: users and password hashes synchronised by Entra Connect"
+            }
+          ]
         },
         {
           "name": "customer",
@@ -412,7 +419,28 @@
               ],
               "info": "Validates the bearer token, reads and writes orders in Azure SQL, fetches configuration secrets from Key Vault."
             }
-          ]
+          ],
+          "depends_on": [
+            {
+              "kind": "identity",
+              "ref": "entra-id",
+              "note": "Customer sign-in and token validation"
+            },
+            {
+              "kind": "secrets",
+              "ref": "key-vault",
+              "note": "Database credentials and the signing key, read with the managed identity"
+            },
+            {
+              "kind": "logging",
+              "ref": "log-analytics",
+              "criticality": "degraded"
+            }
+          ],
+          "custom": {
+            "cmdb_id": "CI-004821",
+            "service_tier": "Tier 1"
+          }
         },
         {
           "name": "sql",
@@ -441,7 +469,15 @@
           "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
           "layout": {
             "order": 0
-          }
+          },
+          "depends_on": [
+            {
+              "kind": "logging",
+              "ref": "log-analytics",
+              "criticality": "degraded",
+              "note": "Auditing to Log Analytics"
+            }
+          ]
         },
         {
           "name": "key-vault",
@@ -637,7 +673,7 @@
           "from": "app-service/api",
           "to": "key-vault",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -719,7 +755,7 @@
           "from": "ad-ds",
           "to": "entra-id",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "mtls",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -763,7 +799,7 @@
           "from": "app-service",
           "to": "log-analytics",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -780,7 +816,7 @@
           "from": "sql",
           "to": "log-analytics",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -1812,6 +1848,12 @@
           "cis_controls": [
             "CIS-6.3"
           ],
+          "mitre_mitigations": [
+            "M1032"
+          ],
+          "d3fend": [
+            "D3-MFA"
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -1837,6 +1879,13 @@
           ],
           "cis_controls": [
             "CIS-6.3"
+          ],
+          "mitre_mitigations": [
+            "M1032",
+            "M1017"
+          ],
+          "d3fend": [
+            "D3-MFA"
           ],
           "layers": [
             "illustrative-threats"
@@ -1864,6 +1913,21 @@
           "cis_controls": [
             "CIS-13.10"
           ],
+          "mitre_mitigations": [
+            "M1050",
+            "M1037"
+          ],
+          "d3fend": [
+            "D3-NTF"
+          ],
+          "evidence": [
+            {
+              "kind": "penetration-test",
+              "reference": "Annual application penetration test report, Contoso portal",
+              "by": "External tester",
+              "note": "The OWASP CRS rule set blocked the injection payloads and the scanner traffic used in the test"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -1887,6 +1951,12 @@
           ],
           "cis_controls": [
             "CIS-16.1"
+          ],
+          "mitre_mitigations": [
+            "M1038"
+          ],
+          "d3fend": [
+            "D3-ACH"
           ],
           "layers": [
             "illustrative-threats"
@@ -1912,6 +1982,10 @@
           "cis_controls": [
             "CIS-8.11"
           ],
+          "mitre_mitigations": [
+            "M1036",
+            "M1047"
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -1935,6 +2009,13 @@
           ],
           "cis_controls": [
             "CIS-3.3"
+          ],
+          "mitre_mitigations": [
+            "M1026",
+            "M1018"
+          ],
+          "d3fend": [
+            "D3-UAP"
           ],
           "layers": [
             "illustrative-threats"
@@ -1960,6 +2041,9 @@
           "cis_controls": [
             "CIS-8.11",
             "CIS-13.1"
+          ],
+          "mitre_mitigations": [
+            "M1047"
           ],
           "layers": [
             "illustrative-threats"
@@ -1992,6 +2076,22 @@
             "CIS-12.2",
             "CIS-4.4"
           ],
+          "mitre_mitigations": [
+            "M1030",
+            "M1035"
+          ],
+          "d3fend": [
+            "D3-ITF",
+            "D3-NTF"
+          ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "NSG rule set of snet-mgmt and the Azure Policy compliance view",
+              "by": "Platform team",
+              "note": "Inbound 3389 and 22 denied from every source but AzureBastionSubnet; policy compliance 100 percent"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -2015,6 +2115,12 @@
           ],
           "cis_controls": [
             "CIS-4.1"
+          ],
+          "mitre_mitigations": [
+            "M1054"
+          ],
+          "d3fend": [
+            "D3-PH"
           ],
           "layers": [
             "illustrative-threats"
@@ -2047,9 +2153,96 @@
             "CIS-6.5",
             "CIS-5.6"
           ],
+          "mitre_mitigations": [
+            "M1032",
+            "M1027"
+          ],
+          "d3fend": [
+            "D3-MFA"
+          ],
           "layers": [
             "illustrative-threats"
           ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "REQ-0001",
+          "number": 1,
+          "title": "Administrative Access Only Through Bastion",
+          "statement": "Administrators reach the jump VM only through Azure Bastion after an Entra sign-in with MFA; no network path from the Internet or the corporate network reaches RDP or SSH on the VM.",
+          "kind": "security",
+          "priority": "must",
+          "status": "verified",
+          "source": "policy",
+          "source_ref": "Contoso privileged access standard",
+          "threats": [
+            "THR-0004"
+          ],
+          "controls": [
+            "CTL-0008",
+            "CTL-0009"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "AC-17"
+            },
+            {
+              "framework": "iso-27001-2022",
+              "clause": "A.8.5"
+            }
+          ],
+          "owner": "Platform team"
+        },
+        {
+          "id": "REQ-0002",
+          "number": 2,
+          "title": "Customer Sign-In Resists Credential Stuffing",
+          "statement": "Every customer sign-in requires MFA and is evaluated for sign-in risk; number matching and passkeys replace push approval.",
+          "kind": "security",
+          "priority": "must",
+          "status": "implemented",
+          "source": "threat-model",
+          "threats": [
+            "THR-0001"
+          ],
+          "controls": [
+            "CTL-0001",
+            "CTL-0002",
+            "CTL-0005"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "IA-2(1)"
+            }
+          ],
+          "owner": "Identity team"
+        },
+        {
+          "id": "REQ-0003",
+          "number": 3,
+          "title": "Secrets Never Live in App Settings",
+          "statement": "The API reads database credentials and keys from Key Vault through its managed identity; no secret is stored in application settings, code or pipelines.",
+          "kind": "security",
+          "priority": "must",
+          "status": "implemented",
+          "source": "standard",
+          "source_ref": "CIS Microsoft Azure Foundations Benchmark",
+          "threats": [
+            "THR-0003"
+          ],
+          "controls": [
+            "CTL-0006"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "SC-12"
+            }
+          ],
+          "owner": "Application team"
         }
       ],
       "attack_paths": [
@@ -2323,7 +2516,14 @@
           "zone": "internet",
           "color": "purple",
           "info": "Contoso's Entra ID tenant. Issues tokens for customers and administrators, enforces Conditional Access (MFA, device compliance) and risk-based policies.",
-          "icon": "azure/microsoft-entra-id"
+          "icon": "azure/microsoft-entra-id",
+          "depends_on": [
+            {
+              "kind": "directory",
+              "ref": "ad-ds",
+              "note": "Hybrid identity: users and password hashes synchronised by Entra Connect"
+            }
+          ]
         },
         {
           "name": "customer",
@@ -2431,7 +2631,28 @@
               ],
               "info": "Validates the bearer token, reads and writes orders in Azure SQL, fetches configuration secrets from Key Vault."
             }
-          ]
+          ],
+          "depends_on": [
+            {
+              "kind": "identity",
+              "ref": "entra-id",
+              "note": "Customer sign-in and token validation"
+            },
+            {
+              "kind": "secrets",
+              "ref": "key-vault",
+              "note": "Database credentials and the signing key, read with the managed identity"
+            },
+            {
+              "kind": "logging",
+              "ref": "log-analytics",
+              "criticality": "degraded"
+            }
+          ],
+          "custom": {
+            "cmdb_id": "CI-004821",
+            "service_tier": "Tier 1"
+          }
         },
         {
           "name": "sql",
@@ -2460,7 +2681,15 @@
           "info": "Customer and order data. Public network access disabled; Entra ID authentication only; transparent data encryption; auditing to Log Analytics.",
           "layout": {
             "order": 0
-          }
+          },
+          "depends_on": [
+            {
+              "kind": "logging",
+              "ref": "log-analytics",
+              "criticality": "degraded",
+              "note": "Auditing to Log Analytics"
+            }
+          ]
         },
         {
           "name": "key-vault",
@@ -2678,7 +2907,7 @@
           "from": "app-service/api",
           "to": "key-vault",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -2760,7 +2989,7 @@
           "from": "ad-ds",
           "to": "entra-id",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "mtls",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -2804,7 +3033,7 @@
           "from": "app-service",
           "to": "log-analytics",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -2821,7 +3050,7 @@
           "from": "sql",
           "to": "log-analytics",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "managed-identity",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -4112,6 +4341,12 @@
           "cis_controls": [
             "CIS-6.3"
           ],
+          "mitre_mitigations": [
+            "M1032"
+          ],
+          "d3fend": [
+            "D3-MFA"
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -4137,6 +4372,13 @@
           ],
           "cis_controls": [
             "CIS-6.3"
+          ],
+          "mitre_mitigations": [
+            "M1032",
+            "M1017"
+          ],
+          "d3fend": [
+            "D3-MFA"
           ],
           "layers": [
             "illustrative-threats"
@@ -4164,6 +4406,21 @@
           "cis_controls": [
             "CIS-13.10"
           ],
+          "mitre_mitigations": [
+            "M1050",
+            "M1037"
+          ],
+          "d3fend": [
+            "D3-NTF"
+          ],
+          "evidence": [
+            {
+              "kind": "penetration-test",
+              "reference": "Annual application penetration test report, Contoso portal",
+              "by": "External tester",
+              "note": "The OWASP CRS rule set blocked the injection payloads and the scanner traffic used in the test"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -4187,6 +4444,12 @@
           ],
           "cis_controls": [
             "CIS-16.1"
+          ],
+          "mitre_mitigations": [
+            "M1038"
+          ],
+          "d3fend": [
+            "D3-ACH"
           ],
           "layers": [
             "illustrative-threats"
@@ -4212,6 +4475,10 @@
           "cis_controls": [
             "CIS-8.11"
           ],
+          "mitre_mitigations": [
+            "M1036",
+            "M1047"
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -4235,6 +4502,13 @@
           ],
           "cis_controls": [
             "CIS-3.3"
+          ],
+          "mitre_mitigations": [
+            "M1026",
+            "M1018"
+          ],
+          "d3fend": [
+            "D3-UAP"
           ],
           "layers": [
             "illustrative-threats"
@@ -4260,6 +4534,9 @@
           "cis_controls": [
             "CIS-8.11",
             "CIS-13.1"
+          ],
+          "mitre_mitigations": [
+            "M1047"
           ],
           "layers": [
             "illustrative-threats"
@@ -4292,6 +4569,22 @@
             "CIS-12.2",
             "CIS-4.4"
           ],
+          "mitre_mitigations": [
+            "M1030",
+            "M1035"
+          ],
+          "d3fend": [
+            "D3-ITF",
+            "D3-NTF"
+          ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "NSG rule set of snet-mgmt and the Azure Policy compliance view",
+              "by": "Platform team",
+              "note": "Inbound 3389 and 22 denied from every source but AzureBastionSubnet; policy compliance 100 percent"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -4315,6 +4608,12 @@
           ],
           "cis_controls": [
             "CIS-4.1"
+          ],
+          "mitre_mitigations": [
+            "M1054"
+          ],
+          "d3fend": [
+            "D3-PH"
           ],
           "layers": [
             "illustrative-threats"
@@ -4346,6 +4645,13 @@
           "cis_controls": [
             "CIS-6.5",
             "CIS-5.6"
+          ],
+          "mitre_mitigations": [
+            "M1032",
+            "M1027"
+          ],
+          "d3fend": [
+            "D3-MFA"
           ],
           "layers": [
             "illustrative-threats"
@@ -4432,6 +4738,86 @@
           "layers": [
             "illustrative-threats"
           ]
+        }
+      ],
+      "requirements": [
+        {
+          "id": "REQ-0001",
+          "number": 1,
+          "title": "Administrative Access Only Through Bastion",
+          "statement": "Administrators reach the jump VM only through Azure Bastion after an Entra sign-in with MFA; no network path from the Internet or the corporate network reaches RDP or SSH on the VM.",
+          "kind": "security",
+          "priority": "must",
+          "status": "verified",
+          "source": "policy",
+          "source_ref": "Contoso privileged access standard",
+          "threats": [
+            "THR-0004"
+          ],
+          "controls": [
+            "CTL-0008",
+            "CTL-0009"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "AC-17"
+            },
+            {
+              "framework": "iso-27001-2022",
+              "clause": "A.8.5"
+            }
+          ],
+          "owner": "Platform team"
+        },
+        {
+          "id": "REQ-0002",
+          "number": 2,
+          "title": "Customer Sign-In Resists Credential Stuffing",
+          "statement": "Every customer sign-in requires MFA and is evaluated for sign-in risk; number matching and passkeys replace push approval.",
+          "kind": "security",
+          "priority": "must",
+          "status": "implemented",
+          "source": "threat-model",
+          "threats": [
+            "THR-0001"
+          ],
+          "controls": [
+            "CTL-0001",
+            "CTL-0002",
+            "CTL-0005"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "IA-2(1)"
+            }
+          ],
+          "owner": "Identity team"
+        },
+        {
+          "id": "REQ-0003",
+          "number": 3,
+          "title": "Secrets Never Live in App Settings",
+          "statement": "The API reads database credentials and keys from Key Vault through its managed identity; no secret is stored in application settings, code or pipelines.",
+          "kind": "security",
+          "priority": "must",
+          "status": "implemented",
+          "source": "standard",
+          "source_ref": "CIS Microsoft Azure Foundations Benchmark",
+          "threats": [
+            "THR-0003"
+          ],
+          "controls": [
+            "CTL-0006"
+          ],
+          "frameworks": [
+            {
+              "framework": "nist-800-53-r5",
+              "clause": "SC-12"
+            }
+          ],
+          "owner": "Application team"
         }
       ],
       "attack_paths": [

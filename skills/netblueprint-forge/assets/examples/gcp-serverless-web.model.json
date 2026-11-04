@@ -377,7 +377,14 @@
       "layout": {
         "order": 0
       },
-      "info": "Renders the storefront and validates Identity Platform tokens. Ingress allows only the load balancer and the VPC; the run.app URL answers 403."
+      "info": "Renders the storefront and validates Identity Platform tokens. Ingress allows only the load balancer and the VPC; the run.app URL answers 403.",
+      "depends_on": [
+        {
+          "kind": "api",
+          "ref": "run-api",
+          "note": "Pages render from the Orders API"
+        }
+      ]
     },
     {
       "name": "run-api",
@@ -398,7 +405,24 @@
       "layout": {
         "order": 1
       },
-      "info": "Reads and writes orders; invoked only with an ID token from the storefront or the admin console; reaches the VPC through the connector."
+      "info": "Reads and writes orders; invoked only with an ID token from the storefront or the admin console; reaches the VPC through the connector.",
+      "depends_on": [
+        {
+          "kind": "secrets",
+          "ref": "secret-manager",
+          "note": "Database password and the API signing key, read at start-up with the service account"
+        },
+        {
+          "kind": "logging",
+          "ref": "logging",
+          "criticality": "degraded"
+        },
+        {
+          "kind": "network",
+          "ref": "vpc-connector",
+          "note": "Every private call to Cloud SQL and Memorystore rides the Serverless VPC Access connector"
+        }
+      ]
     },
     {
       "name": "run-admin",
@@ -419,7 +443,14 @@
       "layout": {
         "order": 2
       },
-      "info": "Order management for the SRE and support teams; every request arrives through IAP and carries its signed header."
+      "info": "Order management for the SRE and support teams; every request arrives through IAP and carries its signed header.",
+      "depends_on": [
+        {
+          "kind": "identity",
+          "ref": "iap",
+          "note": "IAP fronts every administrative request"
+        }
+      ]
     },
     {
       "name": "vpc-connector",
@@ -669,7 +700,7 @@
       "label": "Secrets",
       "from": "run-api",
       "to": "secret-manager",
-      "kind": "control",
+      "kind": "dependency",
       "auth": "sa-iam",
       "protocol": "HTTPS",
       "port": "443/tcp",
@@ -717,7 +748,7 @@
       "label": "Logs and Metrics",
       "from": "run-api",
       "to": "logging",
-      "kind": "control",
+      "kind": "dependency",
       "auth": "sa-iam",
       "protocol": "HTTPS",
       "port": "443/tcp",
@@ -1913,6 +1944,20 @@
       "cis_controls": [
         "CIS-6.3"
       ],
+      "mitre_mitigations": [
+        "M1032",
+        "M1036"
+      ],
+      "d3fend": [
+        "D3-MFA"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "Identity Platform tenant settings: MFA enforced, reCAPTCHA Enterprise on sign-in",
+          "by": "Identity team"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -1938,6 +1983,20 @@
       ],
       "cis_controls": [
         "CIS-13.10"
+      ],
+      "mitre_mitigations": [
+        "M1037",
+        "M1050"
+      ],
+      "d3fend": [
+        "D3-NTF"
+      ],
+      "evidence": [
+        {
+          "kind": "test-report",
+          "reference": "Cloud Armor policy test with the preconfigured WAF rules and the rate limit against the external load balancer",
+          "by": "Application security"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -1973,6 +2032,20 @@
       "cis_controls": [
         "CIS-12.2"
       ],
+      "mitre_mitigations": [
+        "M1030",
+        "M1035"
+      ],
+      "d3fend": [
+        "D3-ITF"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "Cloud Run ingress settings and IAM invoker bindings of the three services",
+          "by": "Platform"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2006,6 +2079,12 @@
       "cis_controls": [
         "CIS-16.11"
       ],
+      "mitre_mitigations": [
+        "M1045"
+      ],
+      "d3fend": [
+        "D3-EAL"
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2031,6 +2110,10 @@
       "cis_controls": [
         "CIS-16.4"
       ],
+      "mitre_mitigations": [
+        "M1016",
+        "M1051"
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2055,6 +2138,13 @@
       ],
       "cis_controls": [
         "CIS-3.3"
+      ],
+      "mitre_mitigations": [
+        "M1041",
+        "M1026"
+      ],
+      "d3fend": [
+        "D3-MENCR"
       ],
       "layers": [
         "illustrative-threats"
@@ -2090,6 +2180,13 @@
         "CIS-3.3",
         "CIS-6.8"
       ],
+      "mitre_mitigations": [
+        "M1026",
+        "M1018"
+      ],
+      "d3fend": [
+        "D3-UAP"
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2117,6 +2214,20 @@
       "cis_controls": [
         "CIS-3.3"
       ],
+      "mitre_mitigations": [
+        "M1054",
+        "M1022"
+      ],
+      "d3fend": [
+        "D3-PH"
+      ],
+      "evidence": [
+        {
+          "kind": "audit-finding",
+          "reference": "Organization policy constraints storage.publicAccessPrevention and storage.uniformBucketLevelAccess, reviewed in the quarterly cloud configuration audit",
+          "by": "Cloud security"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2142,6 +2253,21 @@
       ],
       "cis_controls": [
         "CIS-12.2"
+      ],
+      "mitre_mitigations": [
+        "M1030",
+        "M1037"
+      ],
+      "d3fend": [
+        "D3-NTF"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "VPC firewall rules for the database and cache ports",
+          "by": "SRE",
+          "note": "Source range limited to the connector subnet"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -2174,6 +2300,20 @@
         "CIS-6.3",
         "CIS-12.2"
       ],
+      "mitre_mitigations": [
+        "M1032",
+        "M1035"
+      ],
+      "d3fend": [
+        "D3-MFA"
+      ],
+      "evidence": [
+        {
+          "kind": "audit-finding",
+          "reference": "IAP access levels and the security-key requirement, reviewed in the quarterly access review",
+          "by": "Security"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2199,6 +2339,16 @@
       ],
       "cis_controls": [
         "CIS-8.2"
+      ],
+      "mitre_mitigations": [
+        "M1047"
+      ],
+      "evidence": [
+        {
+          "kind": "log-sample",
+          "reference": "Data-access audit log entries and Security Command Center findings routed to the SRE on-call, sampled in the quarterly detection review",
+          "by": "SRE"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -2227,9 +2377,80 @@
       "cis_controls": [
         "CIS-3.11"
       ],
+      "mitre_mitigations": [
+        "M1041",
+        "M1030"
+      ],
+      "d3fend": [
+        "D3-MENCR"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "gcloud sql instances describe for the orders instance",
+          "by": "SRE",
+          "note": "ipv4Enabled false, requireSsl true, CMEK key set, IAM authentication on"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-0001",
+      "number": 1,
+      "title": "Customer Data Reachable Only Over Private IP",
+      "statement": "Cloud SQL and Memorystore have no public address; only the Serverless VPC Access connector range may reach their ports, over TLS with IAM authentication.",
+      "kind": "security",
+      "priority": "must",
+      "status": "verified",
+      "source": "architecture",
+      "threats": [
+        "THR-0004",
+        "THR-0005"
+      ],
+      "controls": [
+        "CTL-0009",
+        "CTL-0012"
+      ],
+      "frameworks": [
+        {
+          "framework": "nist-800-53-r5",
+          "clause": "SC-7"
+        }
+      ],
+      "owner": "SRE"
+    },
+    {
+      "id": "REQ-0002",
+      "number": 2,
+      "title": "Only Attested Images Run in Production",
+      "statement": "Every Cloud Run revision is built by the pipeline, scanned by Artifact Analysis and admitted by Binary Authorization; an image from anywhere else is refused.",
+      "kind": "security",
+      "priority": "must",
+      "status": "approved",
+      "source": "policy",
+      "source_ref": "Cymbal secure build standard",
+      "threats": [
+        "THR-0003"
+      ],
+      "controls": [
+        "CTL-0004",
+        "CTL-0005"
+      ],
+      "frameworks": [
+        {
+          "framework": "nist-800-53-r5",
+          "clause": "SA-10"
+        },
+        {
+          "framework": "nist-ssdf-1.1",
+          "clause": "PS.1"
+        }
+      ],
+      "owner": "Platform"
     }
   ],
   "attack_paths": [

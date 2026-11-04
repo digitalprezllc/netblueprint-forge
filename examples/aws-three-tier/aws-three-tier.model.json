@@ -427,6 +427,23 @@
           ],
           "info": "Reads and writes orders; calls RDS, Secrets Manager and S3 with the instance role."
         }
+      ],
+      "depends_on": [
+        {
+          "kind": "secrets",
+          "ref": "secrets",
+          "note": "Database credentials and the API key, read by the instance role"
+        },
+        {
+          "kind": "logging",
+          "ref": "cloudwatch",
+          "criticality": "degraded"
+        },
+        {
+          "kind": "update-service",
+          "ref": "ssm",
+          "note": "SSM Agent: Session Manager and Patch Manager"
+        }
       ]
     },
     {
@@ -451,7 +468,14 @@
         "pii",
         "financial"
       ],
-      "info": "Orders and customer records. Not publicly accessible; isolated subnets have no route to the Internet."
+      "info": "Orders and customer records. Not publicly accessible; isolated subnets have no route to the Internet.",
+      "depends_on": [
+        {
+          "kind": "kms",
+          "label": "AWS KMS customer managed key",
+          "note": "Storage encryption; the instance cannot start without the key"
+        }
+      ]
     },
     {
       "name": "s3-assets",
@@ -641,7 +665,7 @@
       "label": "Secrets",
       "from": "web-asg",
       "to": "secrets",
-      "kind": "control",
+      "kind": "dependency",
       "auth": "iam-role",
       "protocol": "HTTPS",
       "port": "443/tcp",
@@ -687,7 +711,7 @@
       "label": "Logs and Metrics",
       "from": "web-asg",
       "to": "cloudwatch",
-      "kind": "control",
+      "kind": "dependency",
       "auth": "iam-role",
       "protocol": "HTTPS",
       "port": "443/tcp",
@@ -700,7 +724,7 @@
       "label": "SSM Agent (Outbound)",
       "from": "web-asg",
       "to": "ssm",
-      "kind": "control",
+      "kind": "dependency",
       "auth": "iam-role",
       "protocol": "HTTPS",
       "port": "443/tcp",
@@ -1853,6 +1877,20 @@
       "cis_controls": [
         "CIS-6.3"
       ],
+      "mitre_mitigations": [
+        "M1032",
+        "M1036"
+      ],
+      "d3fend": [
+        "D3-MFA"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "Cognito user pool settings: MFA required, advanced security mode enforced",
+          "by": "Identity team"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -1878,6 +1916,21 @@
       ],
       "cis_controls": [
         "CIS-13.10"
+      ],
+      "mitre_mitigations": [
+        "M1037",
+        "M1050"
+      ],
+      "d3fend": [
+        "D3-NTF"
+      ],
+      "evidence": [
+        {
+          "kind": "test-report",
+          "reference": "WAF rule test against the CloudFront distribution with the managed rule groups and the rate-based rule",
+          "by": "Application security",
+          "note": "Scanner and credential-stuffing traffic blocked at the edge"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -1905,6 +1958,20 @@
       "cis_controls": [
         "CIS-12.2"
       ],
+      "mitre_mitigations": [
+        "M1030",
+        "M1037"
+      ],
+      "d3fend": [
+        "D3-ITF"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "Security group of the load balancer referencing the CloudFront managed prefix list",
+          "by": "Cloud operations"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -1925,6 +1992,9 @@
       ],
       "nist_800_53": [
         "SC-7"
+      ],
+      "mitre_mitigations": [
+        "M1037"
       ],
       "layers": [
         "illustrative-threats"
@@ -1952,6 +2022,19 @@
       "cis_controls": [
         "CIS-4.1"
       ],
+      "mitre_mitigations": [
+        "M1042"
+      ],
+      "d3fend": [
+        "D3-PH"
+      ],
+      "evidence": [
+        {
+          "kind": "scan-result",
+          "reference": "AWS Config rule ec2-imdsv2-check: compliant on every instance of the Auto Scaling group",
+          "by": "Cloud security"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -1977,6 +2060,17 @@
       ],
       "cis_controls": [
         "CIS-3.3"
+      ],
+      "mitre_mitigations": [
+        "M1054",
+        "M1022"
+      ],
+      "evidence": [
+        {
+          "kind": "audit-finding",
+          "reference": "Account-level Block Public Access and the organization SCP, reviewed in the quarterly access review",
+          "by": "Cloud security"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -2004,6 +2098,16 @@
       "cis_controls": [
         "CIS-8.2",
         "CIS-13.6"
+      ],
+      "mitre_mitigations": [
+        "M1047"
+      ],
+      "evidence": [
+        {
+          "kind": "log-sample",
+          "reference": "GuardDuty findings and CloudTrail events reaching the alarms, sampled in the quarterly detection review",
+          "by": "Security operations"
+        }
       ],
       "layers": [
         "illustrative-threats"
@@ -2039,6 +2143,13 @@
         "CIS-3.3",
         "CIS-6.8"
       ],
+      "mitre_mitigations": [
+        "M1026",
+        "M1018"
+      ],
+      "d3fend": [
+        "D3-UAP"
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2063,6 +2174,12 @@
       ],
       "cis_controls": [
         "CIS-13.4"
+      ],
+      "mitre_mitigations": [
+        "M1037"
+      ],
+      "d3fend": [
+        "D3-OTF"
       ],
       "layers": [
         "illustrative-threats"
@@ -2095,6 +2212,21 @@
         "CIS-12.2",
         "CIS-8.5"
       ],
+      "mitre_mitigations": [
+        "M1035",
+        "M1047"
+      ],
+      "d3fend": [
+        "D3-ITF"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "Security groups of the Auto Scaling group and the Session Manager logging preferences",
+          "by": "Cloud operations",
+          "note": "No inbound SSH rule; sessions logged to CloudWatch Logs"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
@@ -2122,9 +2254,92 @@
       "cis_controls": [
         "CIS-3.11"
       ],
+      "mitre_mitigations": [
+        "M1041",
+        "M1030"
+      ],
+      "d3fend": [
+        "D3-MENCR"
+      ],
+      "evidence": [
+        {
+          "kind": "configuration-export",
+          "reference": "RDS instance description: publicly accessible false, IAM authentication on, TLS required, KMS key set",
+          "by": "Database team"
+        }
+      ],
       "layers": [
         "illustrative-threats"
       ]
+    }
+  ],
+  "requirements": [
+    {
+      "id": "REQ-0001",
+      "number": 1,
+      "title": "No Inbound Administrative Ports",
+      "statement": "No security group admits SSH or RDP from anywhere; operators reach instances through Session Manager after an Identity Center sign-in, and every session is logged.",
+      "kind": "security",
+      "priority": "must",
+      "status": "verified",
+      "source": "policy",
+      "source_ref": "AnyCompany cloud operations standard",
+      "controls": [
+        "CTL-0010"
+      ],
+      "frameworks": [
+        {
+          "framework": "nist-800-53-r5",
+          "clause": "AC-17"
+        }
+      ],
+      "owner": "Cloud operations"
+    },
+    {
+      "id": "REQ-0002",
+      "number": 2,
+      "title": "The Instance Role Reads Only Its Own Secrets",
+      "statement": "The web tier role is scoped to the application's secrets and a non-master database user; it cannot list or read any other secret.",
+      "kind": "security",
+      "priority": "must",
+      "status": "approved",
+      "source": "threat-model",
+      "threats": [
+        "THR-0005"
+      ],
+      "controls": [
+        "CTL-0008"
+      ],
+      "frameworks": [
+        {
+          "framework": "nist-800-53-r5",
+          "clause": "AC-6"
+        }
+      ],
+      "owner": "Application team"
+    },
+    {
+      "id": "REQ-0003",
+      "number": 3,
+      "title": "Egress Is Allow-Listed",
+      "statement": "Outbound traffic from the private subnets leaves only through a domain allow-list in front of the NAT gateway.",
+      "kind": "security",
+      "priority": "should",
+      "status": "approved",
+      "source": "threat-model",
+      "threats": [
+        "THR-0006"
+      ],
+      "controls": [
+        "CTL-0009"
+      ],
+      "frameworks": [
+        {
+          "framework": "nist-800-53-r5",
+          "clause": "SC-7(5)"
+        }
+      ],
+      "owner": "Network team"
     }
   ],
   "attack_paths": [

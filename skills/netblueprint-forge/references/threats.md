@@ -4,7 +4,7 @@ A threat is its own object with a permanent number (the digit in its circle). On
 
 ## Normalize what the user types
 
-For every enumerated field, the user may answer in their own words. Run `node scripts/normalize.mjs <field> "<text>"` (fields: `stride`, `band`, `vulnerability`, `adversary`, `threat_status`, `treatment`, `control_type`, `control_status`, `classification`, `data_tag`, `security_protocol`, `client_auth`, `server_auth`, `credential_storage`, `factors`, `platform_category`, `hosting`, `elevated_access_model`, `hardening_baseline`, `sourcing`, `connection_type`, `initiator`, `scope`). Use the value when `ask` is false; otherwise show the top candidates and confirm. `--describe <field>` prints the options with one-line descriptions to read to the user. Never store free text in an enumerated field; put nuance in the adjacent free-text field (`vulnerability.description`, `risk.rationale`, `notes`).
+For every enumerated field, the user may answer in their own words. Run `node scripts/normalize.mjs <field> "<text>"` (fields: `stride`, `band`, `vulnerability`, `adversary`, `threat_status`, `treatment`, `control_type`, `control_status`, `classification`, `data_tag`, `security_protocol`, `client_auth`, `server_auth`, `credential_storage`, `factors`, `platform_category`, `hosting`, `elevated_access_model`, `hardening_baseline`, `sourcing`, `connection_type`, `initiator`, `scope`, `dependency_kind`, `criticality`, `requirement_kind`, `requirement_status`, `requirement_source`, `evidence_kind`). Use the value when `ask` is false; otherwise show the top candidates and confirm. `--describe <field>` prints the options with one-line descriptions to read to the user. Never store free text in an enumerated field; put nuance in the adjacent free-text field (`vulnerability.description`, `risk.rationale`, `notes`).
 
 ## The questions, in order
 
@@ -37,12 +37,22 @@ Optional: `classification.linddun[]`, `classification.attack_tactics[]` (ATT&CK 
 
 ## Controls
 
-Ask: name; type (preventive, detective, corrective, deterrent, recovery, compensating, directive); status (proposed, planned, in-progress, implemented, verified, not-implemented, retired); owner; due date and ticket for anything not yet implemented; how it was verified (`verification`: design-review, code-review, test, penetration-test, scanner, audit, continuous-monitoring, not-yet-verified; `verified` needs one) and when; effectiveness (very-low … very-high); where it lives on the diagram (`implemented_on[]`, same shape as targets; draws a green shield badge); NIST 800-53 and CIS references. One control usually treats several threats; reuse ids.
+Ask: name; type (preventive, detective, corrective, deterrent, recovery, compensating, directive); status (proposed, planned, in-progress, implemented, verified, not-implemented, retired); owner; due date and ticket for anything not yet implemented; how it was verified (`verification`: design-review, code-review, test, penetration-test, scanner, audit, continuous-monitoring, not-yet-verified; `verified` needs one) and when; effectiveness (very-low … very-high); where it lives on the diagram (`implemented_on[]`, same shape as targets; draws a green shield badge); references: NIST 800-53 (`nist_800_53`), CIS Controls (`cis_controls`), ISO 27001 Annex A (`iso_27001`), ATT&CK mitigations (`mitre_mitigations`: M1032 Multi-factor Authentication, M1030 Network Segmentation …), D3FEND techniques (`d3fend`: D3-MFA, D3-NTF, D3-UAP …) and clauses of other frameworks (`frameworks[]`: `{ framework: "pci-dss-4.0", clause: "8.4.2" }`). One control usually treats several threats; reuse ids.
+
+**Evidence.** A `verified` control says how it was verified; `evidence[]` says what showed it: `kind` (test-report, scan-result, penetration-test, audit-finding, configuration-export, screenshot, log-sample, ticket, attestation, design-document, other), `reference` (a URL, document id, ticket or file name), `date`, `by`, `note`. Ask for one record per artefact; the validator warns on a verified control without any, and `validate --strict` can fail on it.
+
+## Requirements and evidence
+
+A requirement says what must be true; a threat says what could go wrong, a control says what was built, and the control's evidence says it was checked. Requirements are `requirements[]` on the diagram (tab): `id` `REQ-0001`…, `number` (permanent), Title Case `title`, `statement` (one testable sentence: "Administrative sessions to the jump host authenticate with phishing-resistant MFA"), `kind` (security, privacy, resilience, compliance, operational, safety), `priority` (must, should, could), `status` (proposed → approved → implemented → verified; `waived` and `retired` need a `status_reason`), `source` and `source_ref` (threat-model, policy, standard, regulation, contract, customer, architecture, incident), `threats[]` it answers, `controls[]` that satisfy it, `attack_paths[]` it cuts, `frameworks[]` clauses it serves, `owner`, `due_date`.
+
+Ask, after the threats: "What must be true for this threat not to matter?" One requirement often answers several threats and is satisfied by several controls. `implemented` needs an implemented or verified control behind it; `verified` needs a verified one (the validator enforces the first and warns on the second). Requirements that come from a policy, a standard or a contract carry their clause in `frameworks[]`, so the register can answer "which controls satisfy PCI DSS 8.4.2 here". Ids and numbers are unique across the document; a what-if tab repeats its baseline's.
+
+On the page the Threat Register lists every requirement under the attack paths (kind, status, the threats it answers, the controls that satisfy it, the framework clauses); a row opens its record in the Attributes card, and a threat's card lists the requirements that answer it.
 
 ## Ids, numbers, scope
 
 - `THR-0001`…, `number` equals the id's digits. Assign the next unused number; never reuse one. Removing a threat means `status: "retired"`, `retired: true`, `status_reason`.
-- Controls are `CTL-0001`…, same rule.
+- Controls are `CTL-0001`…, same rule. Requirements are `REQ-0001`…, same rule.
 - Any zone, appliance, node, component or flow can be `out_of_scope: true` with a `scope_reason`. It stays on the diagram, greyed out, with all its attributes; threats may still target it.
 
 ## Where threats show up

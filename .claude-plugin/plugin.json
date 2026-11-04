@@ -1,7 +1,7 @@
 {
   "name": "netblueprint-forge",
   "displayName": "NetBlueprint Forge",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Interview-driven network flow and threat model diagrams rendered as self-contained interactive HTML.",
   "author": { "name": "DigitalPrez, LLC", "email": "subscriptions@digitalprez.com" },
   "license": "PolyForm-Noncommercial-1.0.0",

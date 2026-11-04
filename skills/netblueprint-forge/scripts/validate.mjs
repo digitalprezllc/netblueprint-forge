@@ -2,7 +2,7 @@
 /**
  * validate.mjs — check a NetBlueprint model before it is rendered.
  *
- *   node scripts/validate.mjs <model.json> [--fix] [--json] [--quiet]
+ *   node scripts/validate.mjs <model.json> [--fix] [--strict] [--json] [--quiet]
  *
  * 1. Schema: the model is checked against assets/schema/netblueprint.schema.json
  *    (a built-in validator for the draft 2020-12 subset the schema uses; no dependencies).
@@ -10,9 +10,12 @@
  *    status rules (a mitigated threat needs an implemented control, ...).
  * 3. --fix writes computed values back into the file: risk.rating / risk.score and the
  *    OWASP averages and levels, for inherent and residual assessments.
+ * 4. --strict applies settings.policy (open threats at a band with no plan, missing treatment
+ *    decisions, overdue controls, requirements without controls, suggested elements, …) and
+ *    reports each failure as an error, so CI can gate on the model's security state.
  *
- * Exit 0 = valid (warnings allowed), 1 = errors, 2 = usage or I/O problem.
- * Exported for build.mjs: validateModel(model, { fix }) -> { errors, warnings, fixed }
+ * Exit 0 = valid (warnings allowed), 1 = errors or policy failures, 2 = usage or I/O problem.
+ * Exported for build.mjs: validateModel(model, { fix, strict }) -> { errors, warnings, fixed, policy }
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -80,6 +83,8 @@ function check(sch, data, p, root) {
   }
   if (data && typeof data === 'object' && !Array.isArray(data)) {
     (sch.required || []).forEach((k) => { if (!(k in data)) err(`missing required property "${k}"`); });
+    if (sch.maxProperties != null && Object.keys(data).length > sch.maxProperties) err(`at most ${sch.maxProperties} properties allowed (has ${Object.keys(data).length})`);
+    if (sch.propertyNames && sch.propertyNames.pattern) { const re = new RegExp(sch.propertyNames.pattern); for (const k in data) if (!re.test(k)) err(`property name "${trunc(k)}" does not match the required form ${sch.propertyNames.pattern}`); }
     if (sch.properties) for (const k in sch.properties) if (k in data) { evaluated.add(k); errors.push(...check(sch.properties[k], data[k], [...p, k], root).errors); }
     if (sch.additionalProperties === false) { for (const k in data) if (!(sch.properties && k in sch.properties)) err(`unexpected property "${k}"`); }
     else if (sch.additionalProperties && typeof sch.additionalProperties === 'object') {
@@ -154,7 +159,7 @@ export function computeAssessment(r) {
 
 /* ---------- lint ---------- */
 const BUILTIN_AUTH = ['anonymous', 'password', 'basic', 'api-key', 'ssh-key', 'oauth2', 'saml', 'oidc', 'kerberos', 'mfa', 'mtls', 'certificate', 'fido2', 'managed-identity'];
-const BUILTIN_LAYERS = ['zones', 'appliances', 'nodes', 'components', 'internet', 'flows-strong', 'flows-moderate', 'flows-weak', 'flows-unspecified', 'flows-blocked', 'flows-trust', 'threats', 'controls', 'labels'];
+const BUILTIN_LAYERS = ['zones', 'appliances', 'nodes', 'components', 'internet', 'flows-strong', 'flows-moderate', 'flows-weak', 'flows-unspecified', 'flows-blocked', 'flows-trust', 'flows-dependency', 'threats', 'controls', 'labels'];
 
 // Labels are Title Case ("Bad Actor", "Edge Firewall"): AP style, articles / conjunctions / short prepositions stay lower case except as first or last word (so "Sign In" keeps its capital).
 const SMALL_WORDS = new Set(['a', 'an', 'the', 'and', 'but', 'or', 'nor', 'for', 'so', 'yet', 'as', 'at', 'by', 'in', 'of', 'off', 'on', 'per', 'to', 'up', 'via', 'vs', 'with', 'from', 'into', 'onto']);
@@ -192,7 +197,7 @@ export function lintModel(model, { fix = false } = {}) {
   // headings are Title Case too: the document title and subtitle, the side labels
   const tfield = (obj, key, what) => { const v = obj && obj[key]; if (typeof v === 'string' && v && titleCase(v) !== v) { if (fix) { obj[key] = titleCase(v); fixed = true; } else warnings.push(`${what} "${v}" should be Title Case ("${titleCase(v)}"); run validate --fix`); } };
   tfield(model.meta, 'title', 'meta.title'); tfield(model.meta, 'subtitle', 'meta.subtitle'); tfield(model.settings, 'network_label', 'settings.network_label'); tfield(model.settings, 'internet_label', 'settings.internet_label');
-  const topLevel = ['zones', 'nodes', 'flows', 'phases', 'steps', 'threats', 'controls', 'attack_paths'].filter((k) => model[k] !== undefined);
+  const topLevel = ['zones', 'nodes', 'flows', 'phases', 'steps', 'threats', 'controls', 'requirements', 'attack_paths'].filter((k) => model[k] !== undefined);
   if (model.tabs) {
     if (topLevel.length) errors.push(`a model with tabs[] keeps ${topLevel.join(', ')} inside each tab, not at the top level`);
     if (!model.tabs.length) errors.push('tabs[] is empty; add at least one tab or remove it');
@@ -202,9 +207,9 @@ export function lintModel(model, { fix = false } = {}) {
     const scen = new Map(model.tabs.filter((t) => t.scenario).map((t) => [t.name, t.scenario.baseline]));
     model.tabs.forEach((t) => { if (!t.scenario) return; const b = t.scenario.baseline; if (b === t.name) errors.push(`tab "${t.name}": a scenario cannot be its own baseline`); else if (!names.has(b)) errors.push(`tab "${t.name}": scenario.baseline "${b}" is not a tab`); else if (scen.has(b)) warnings.push(`tab "${t.name}": its baseline "${b}" is itself a scenario; derive scenarios from the baseline diagram so each delta reads against the real system`); });
     const related = (a, b) => scen.get(a) === b || scen.get(b) === a || (!!scen.get(a) && scen.get(a) === scen.get(b));
-    const seen = { threat: new Map(), 'threat number': new Map(), control: new Map(), 'attack path': new Map(), 'attack path number': new Map() };
+    const seen = { threat: new Map(), 'threat number': new Map(), control: new Map(), requirement: new Map(), 'requirement number': new Map(), 'attack path': new Map(), 'attack path number': new Map() };
     const across = (what, key, tab) => { const m = seen[what]; if (key == null) return; if (m.has(key) && m.get(key) !== tab && !related(m.get(key), tab)) errors.push(`${what} ${key} appears in tabs "${m.get(key)}" and "${tab}"; ${what}s are unique across the whole model (only a what-if scenario repeats its baseline's)`); if (!m.has(key)) m.set(key, tab); };
-    model.tabs.forEach((t) => { (t.threats || []).forEach((th) => { across('threat', th.id, t.name); across('threat number', th.number, t.name); }); (t.controls || []).forEach((c) => across('control', c.id, t.name)); (t.attack_paths || []).forEach((p) => { across('attack path', p.id, t.name); across('attack path number', p.number, t.name); }); });
+    model.tabs.forEach((t) => { (t.threats || []).forEach((th) => { across('threat', th.id, t.name); across('threat number', th.number, t.name); }); (t.controls || []).forEach((c) => across('control', c.id, t.name)); (t.requirements || []).forEach((r) => { across('requirement', r.id, t.name); across('requirement number', r.number, t.name); }); (t.attack_paths || []).forEach((p) => { across('attack path', p.id, t.name); across('attack path number', p.number, t.name); }); });
     model.tabs.forEach((t) => merge(lintScope({ ...t, auth_types: model.auth_types, layers: model.layers }, { fix }), `tab "${t.name}": `));
   } else {
     if (!model.zones || !model.nodes) errors.push('a model needs zones[] and nodes[] at the top level, or a tabs[] array whose entries have them');
@@ -217,7 +222,7 @@ function lintScope(model, { fix = false } = {}) {
   const errors = [], warnings = [];
   let fixed = false;
   const err = (m) => errors.push(m), warn = (m) => warnings.push(m);
-  const zones = model.zones || [], nodes = model.nodes || [], flows = model.flows || [], steps = model.steps || [], threats = model.threats || [], controls = model.controls || [], layers = model.layers || [], phases = model.phases || [], paths = model.attack_paths || [];
+  const zones = model.zones || [], nodes = model.nodes || [], flows = model.flows || [], steps = model.steps || [], threats = model.threats || [], controls = model.controls || [], layers = model.layers || [], phases = model.phases || [], paths = model.attack_paths || [], reqs = model.requirements || [];
 
   // uniqueness
   const uniq = (list, key, what) => { const seen = new Map(); list.forEach((x, i) => { const v = x[key]; if (v == null) return; if (seen.has(v)) err(`${what} "${v}" is defined twice (entries ${seen.get(v) + 1} and ${i + 1}); names must be unique`); seen.set(v, i); }); return seen; };
@@ -225,6 +230,7 @@ function lintScope(model, { fix = false } = {}) {
   uniq(steps, 'name', 'step'); uniq(phases, 'name', 'phase'); const L = uniq(layers, 'name', 'layer');
   const T = uniq(threats, 'id', 'threat'); const C = uniq(controls, 'id', 'control');
   uniq(threats, 'number', 'threat number'); uniq(paths, 'id', 'attack path'); uniq(paths, 'number', 'attack path number');
+  uniq(reqs, 'id', 'requirement'); uniq(reqs, 'number', 'requirement number');
   const APP = new Map(); zones.forEach((z) => (z.appliances || []).forEach((a) => { if (APP.has(a.name)) err(`appliance "${a.name}" is defined twice; names must be unique across zones`); APP.set(a.name, { a, zone: z.name }); if (N.has(a.name)) err(`appliance "${a.name}" has the same name as a node`); }));
   if (Z.has('internet')) err('"internet" is a reserved zone name; it needs no declaration');
   const COMP = new Map(); nodes.forEach((n) => { const seen = new Set(); (n.components || []).forEach((c) => { if (seen.has(c.name)) err(`node "${n.name}" has two components named "${c.name}"`); seen.add(c.name); COMP.set(`${n.name}/${c.name}`, c); }); });
@@ -256,6 +262,22 @@ function lintScope(model, { fix = false } = {}) {
     (f.via || []).forEach((v) => { if (!APP.has(v)) err(`flow "${f.name}": via "${v}" is not an appliance`); });
     checkLayers(f.layers, `flow "${f.name}"`);
   });
+  // dependencies: a declared provider must exist and be connected by a flow; a dependency flow should be declared on its source
+  const own = (r) => String(r || '').split('/')[0];
+  const connected = (a, b) => flows.some((f) => (own(f.from) === own(a) && own(f.to) === own(b)) || (own(f.from) === own(b) && own(f.to) === own(a)));
+  const withDeps = [...nodes.map((n) => ['node', n.name, n]), ...nodes.flatMap((n) => (n.components || []).map((c) => ['component', `${n.name}/${c.name}`, c])), ...zones.flatMap((z) => (z.appliances || []).map((a) => ['appliance', a.name, a]))];
+  withDeps.forEach(([kind, ref, x]) => (x.depends_on || []).forEach((d, i) => {
+    const w = `${kind} "${ref}" depends_on ${i + 1} (${d.kind})`;
+    if (d.ref && !refOk(d.ref)) err(`${w}: ref "${d.ref}" is not a node, component (node/component) or appliance`);
+    else if (d.ref && own(d.ref) === own(ref)) err(`${w}: an element cannot depend on itself`);
+    else if (d.ref && !connected(ref, d.ref)) warn(`${w}: no flow connects "${ref}" and "${d.ref}"; add one (kind dependency, or the real auth or data flow) so the dependency is on the diagram`);
+    if (!d.ref && !d.label) warn(`${w}: name the provider with ref (on the diagram) or label (off the diagram)`);
+  }));
+  flows.filter((f) => f.kind === 'dependency').forEach((f) => {
+    const at = (ref) => withDeps.filter(([, r]) => r === ref || r === own(ref));
+    const declares = (ref, other) => at(ref).some(([, , x]) => (x.depends_on || []).some((d) => d.ref && own(d.ref) === own(other)));
+    if (!declares(f.from, f.to) && !declares(f.to, f.from)) warn(`flow "${f.name}" is a dependency flow but neither "${f.from}" nor "${f.to}" has a depends_on entry naming the other; add one with the kind (identity, dns, kms, secrets, logging …)`);
+  });
   const phaseNames = new Set(phases.map((p) => p.name));
   steps.forEach((s) => {
     if (s.phase && phases.length && !phaseNames.has(s.phase)) err(`step "${s.name}": phase "${s.phase}" is not in phases[]`);
@@ -272,6 +294,7 @@ function lintScope(model, { fix = false } = {}) {
     (c.implemented_on || []).forEach((t) => { if (!targetOk(t)) err(`control "${c.id}": implemented_on ${t.kind} "${t.ref}" does not exist`); });
     checkLayers(c.layers, `control "${c.id}"`);
     if (c.due_date && ['proposed', 'planned', 'in-progress'].includes(c.status) && c.due_date < new Date().toISOString().slice(0, 10)) warn(`control "${c.id}" (${c.name}) is ${c.status} and past its due date ${c.due_date}`);
+    if (c.status === 'verified' && !(c.evidence || []).length) warn(`control "${c.id}" (${c.name}) is verified but has no evidence record; add what showed it works (a test report, a scan, an audit finding, a configuration export …)`);
   });
   function targetOk(t) {
     if (t.kind === 'zone') return Z.has(t.ref);
@@ -365,6 +388,20 @@ function lintScope(model, { fix = false } = {}) {
     const assess = assessor(where);
     if (p.risk) { assess(p.risk, 'path risk'); if (p.risk.residual) assess(p.risk.residual, 'residual (current) path risk'); if (p.risk.projected) assess(p.risk.projected, 'projected path risk'); }
   });
+  // requirements: what must hold; references resolve; an implemented or verified requirement rests on a real control
+  reqs.forEach((r) => {
+    const where = `requirement ${r.id}`;
+    const n = parseInt((r.id || '').replace('REQ-', ''), 10);
+    if (Number.isInteger(n) && n !== r.number) warn(`${where}: number ${r.number} does not match the id digits (${n})`);
+    (r.threats || []).forEach((id) => { if (!T.has(id)) err(`${where}: threat "${id}" does not exist`); });
+    (r.controls || []).forEach((id) => { if (!C.has(id)) err(`${where}: control "${id}" does not exist`); });
+    (r.attack_paths || []).forEach((id) => { if (!paths.some((p) => p.id === id)) err(`${where}: attack path "${id}" does not exist`); });
+    const behind = (r.controls || []).map((id) => controls.find((c) => c.id === id)).filter(Boolean);
+    if (['implemented', 'verified'].includes(r.status) && !behind.some((c) => ['implemented', 'verified'].includes(c.status))) err(`${where}: status is ${r.status} but none of its controls is implemented or verified`);
+    else if (r.status === 'verified' && !behind.some((c) => c.status === 'verified')) warn(`${where}: status is verified but no control behind it is verified`);
+    if (['approved', 'implemented', 'verified'].includes(r.status) && !(r.controls || []).length && !(r.threats || []).length) warn(`${where}: names no threat and no control; say what it answers and what satisfies it`);
+    checkLayers(r.layers, where);
+  });
   // service profiles and flow detail
   const DEPRECATED_TLS = ['tls-1.1', 'tls-1.0', 'ssl-3'], WEAK_STORE = ['config-file-plaintext', 'source-code', 'environment-variable', 'file-on-disk'];
   const profiled = [...nodes.map((n) => ['node', n.name, n]), ...nodes.flatMap((n) => (n.components || []).map((c) => ['component', `${n.name}/${c.name}`, c])), ...zones.flatMap((z) => (z.appliances || []).map((a) => ['appliance', a.name, a]))];
@@ -405,25 +442,61 @@ function lintScope(model, { fix = false } = {}) {
   threats.forEach((t) => theading(t, 'title', `threat ${t.id}`));
   controls.forEach((c) => theading(c, 'name', `control ${c.id}`));
   paths.forEach((p) => theading(p, 'title', `attack path ${p.id}`));
+  reqs.forEach((r) => theading(r, 'title', `requirement ${r.id}`));
   // zones with nothing in them
   zones.forEach((z) => { if (!nodes.some((n) => n.zone === z.name) && !zones.some((k) => k.parent === z.name)) warn(`zone "${z.name}" contains no nodes or zones`); });
   // suggested elements
-  const sugg = [...zones, ...nodes, ...flows, ...threats, ...controls, ...paths].filter((x) => x.suggested).length + zones.reduce((s, z) => s + (z.appliances || []).filter((a) => a.suggested).length, 0);
+  const sugg = [...zones, ...nodes, ...flows, ...threats, ...controls, ...reqs, ...paths].filter((x) => x.suggested).length + zones.reduce((s, z) => s + (z.appliances || []).filter((a) => a.suggested).length, 0);
   if (sugg) warn(`${sugg} element(s) are still marked suggested; confirm or remove them with the user`);
   if (!steps.length) warn('no steps: the diagram will have no walkthrough');
   if (steps.length && !steps.some((s) => s.outcome)) warn('no step has an outcome; the last step usually states what the flow achieved');
   return { errors, warnings, fixed };
 }
 
+/* ---------- policy (validate --strict) ---------- */
+const POLICY_DEFAULTS = { open_threats: { band: 'high', allow_with_plan: true }, require_treatment_decision: true, overdue_controls: true, verified_needs_evidence: false, requirements_need_controls: true, no_suggested: true, classify_every_flow: false, risk_reviews: true };
+const bandOf = (r) => { if (!r) return null; if (r.rating_override) return r.rating_override; if (r.rating) return r.rating; const c = computeAssessment(r); return c ? c.rating : null; };
+const currentBand = (t) => (t.risk && t.risk.residual && bandOf(t.risk.residual)) || bandOf(t.risk) || 'moderate';
+/** The policy failures of a model: settings.policy over the defaults, applied to every tab. Strings; an empty list means the model passes. */
+export function policyCheck(model) {
+  const P = Object.assign({}, POLICY_DEFAULTS, (model.settings || {}).policy || {});
+  const ot = Object.assign({}, POLICY_DEFAULTS.open_threats, P.open_threats || {});
+  const today = new Date().toISOString().slice(0, 10);
+  const out = [];
+  const scopes = model.tabs ? model.tabs.map((t) => [`tab "${t.name}": `, t]) : [['', model]];
+  scopes.forEach(([pre, s]) => {
+    const threats = s.threats || [], controls = s.controls || [], reqs = s.requirements || [], flows = s.flows || [];
+    const ctl = (id) => controls.find((c) => c.id === id);
+    threats.filter((t) => ['identified', 'investigating', 'open'].includes(t.status)).forEach((t) => {
+      const band = currentBand(t), tr = t.treatment || {};
+      if (P.require_treatment_decision && (!tr.decision || tr.decision === 'undecided')) out.push(`${pre}threat ${t.id} is ${t.status} with no treatment decision`);
+      if (BANDS.indexOf(band) >= BANDS.indexOf(ot.band)) {
+        const planned = [...new Set([...(tr.planned_controls || []), ...(tr.controls || [])])].map(ctl).filter(Boolean).filter((c) => ['proposed', 'planned', 'in-progress'].includes(c.status));
+        const onTrack = planned.some((c) => !c.due_date || c.due_date >= today);
+        if (!(ot.allow_with_plan && onTrack)) out.push(`${pre}threat ${t.id} is ${t.status} at ${band}${ot.allow_with_plan ? ' with no planned control on track' : ''} (open threats at ${ot.band} or above fail)`);
+      }
+    });
+    if (P.risk_reviews) threats.filter((t) => t.status === 'accepted' && t.treatment && t.treatment.acceptance && t.treatment.acceptance.review_by && t.treatment.acceptance.review_by < today).forEach((t) => out.push(`${pre}threat ${t.id} is accepted but its review date ${t.treatment.acceptance.review_by} has passed`));
+    if (P.overdue_controls) controls.filter((c) => ['proposed', 'planned', 'in-progress'].includes(c.status) && c.due_date && c.due_date < today).forEach((c) => out.push(`${pre}control ${c.id} is ${c.status} and past its due date ${c.due_date}`));
+    if (P.verified_needs_evidence) controls.filter((c) => c.status === 'verified' && !(c.evidence || []).length).forEach((c) => out.push(`${pre}control ${c.id} is verified without an evidence record`));
+    if (P.requirements_need_controls) reqs.filter((r) => ['approved', 'implemented', 'verified'].includes(r.status) && !(r.controls || []).length).forEach((r) => out.push(`${pre}requirement ${r.id} is ${r.status} with no control`));
+    if (P.classify_every_flow) flows.filter((f) => !f.data_classification && !(f.data && f.data.sensitivity) && f.kind !== 'trust' && f.kind !== 'blocked').forEach((f) => out.push(`${pre}flow "${f.name}" has no data classification`));
+    if (P.no_suggested) { const n = [...(s.zones || []), ...(s.nodes || []), ...flows, ...threats, ...controls, ...reqs, ...(s.attack_paths || [])].filter((x) => x.suggested).length + (s.zones || []).reduce((k, z) => k + (z.appliances || []).filter((a) => a.suggested).length, 0); if (n) out.push(`${pre}${n} element(s) are still marked suggested`); }
+  });
+  return out;
+}
+
 /* ---------- entry points ---------- */
 export function loadSchema() { return JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8').replace(/^﻿/, '')); }
 
-export function validateModel(model, { fix = false, schema } = {}) {
+export function validateModel(model, { fix = false, strict = false, schema } = {}) {
   schema = schema || loadSchema();
   const errors = schemaErrors(model, schema);
-  if (errors.length) return { errors, warnings: [], fixed: false, stage: 'schema' };
+  if (errors.length) return { errors, warnings: [], fixed: false, stage: 'schema', policy: [] };
   const r = lintModel(model, { fix });
-  return { errors: r.errors, warnings: r.warnings, fixed: r.fixed, stage: 'lint' };
+  const res = { errors: r.errors, warnings: r.warnings, fixed: r.fixed, stage: 'lint', policy: [] };
+  if (strict && !r.errors.length) { res.policy = policyCheck(model); if (res.policy.length) { res.stage = 'policy'; res.errors = res.policy.map((p) => 'policy: ' + p); } }
+  return res;
 }
 
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -431,12 +504,12 @@ if (isMain) {
   const args = process.argv.slice(2);
   const file = args.find((a) => !a.startsWith('-'));
   try { useLocalIndex(file); } catch (e) { console.warn(`warning: ${e.message}`); }
-  if (!file || args.includes('-h') || args.includes('--help')) { console.error('usage: node scripts/validate.mjs <model.json> [--fix] [--json] [--quiet]'); process.exit(file ? 0 : 2); }
+  if (!file || args.includes('-h') || args.includes('--help')) { console.error('usage: node scripts/validate.mjs <model.json> [--fix] [--strict] [--json] [--quiet]'); process.exit(file ? 0 : 2); }
   let model;
   try { model = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^﻿/, '')); }
   catch (e) { console.error(`validate: ${file} is not valid JSON: ${e.message}`); process.exit(2); }
-  const fix = args.includes('--fix');
-  const res = validateModel(model, { fix });
+  const fix = args.includes('--fix'), strict = args.includes('--strict');
+  const res = validateModel(model, { fix, strict });
   if (res.fixed) fs.writeFileSync(file, JSON.stringify(model, null, 2) + '\n', 'utf8');
   if (args.includes('--json')) { console.log(JSON.stringify(res, null, 2)); process.exit(res.errors.length ? 1 : 0); }
   if (!args.includes('--quiet')) {
@@ -444,7 +517,7 @@ if (isMain) {
     res.warnings.forEach((w) => console.warn(`warning: ${w}`));
   }
   const name = path.basename(file);
-  if (res.errors.length) console.error(`${name}: ${res.errors.length} error(s)${res.warnings.length ? `, ${res.warnings.length} warning(s)` : ''} (${res.stage})`);
-  else console.log(`${name}: valid${res.warnings.length ? ` with ${res.warnings.length} warning(s)` : ''}${res.fixed ? '; computed ratings written back' : ''}`);
+  if (res.errors.length) console.error(`${name}: ${res.errors.length} ${res.stage === 'policy' ? 'policy failure(s)' : 'error(s)'}${res.warnings.length ? `, ${res.warnings.length} warning(s)` : ''} (${res.stage})`);
+  else console.log(`${name}: valid${strict ? ' and within policy' : ''}${res.warnings.length ? ` with ${res.warnings.length} warning(s)` : ''}${res.fixed ? '; computed ratings written back' : ''}`);
   process.exit(res.errors.length ? 1 : 0);
 }

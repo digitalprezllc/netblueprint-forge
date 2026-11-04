@@ -231,7 +231,14 @@
           "out_of_scope": true,
           "scope_reason": "Operated by the identity team; its internal design is not modelled here.",
           "info": "Contoso's tenant. Pre-authenticates every Application Proxy request, applies Conditional Access to guests, and issues the session the proxy requires.",
-          "icon": "azure/microsoft-entra-id"
+          "icon": "azure/microsoft-entra-id",
+          "depends_on": [
+            {
+              "kind": "directory",
+              "ref": "ad-ds",
+              "note": "Hybrid identity: users and password hashes synchronised by Entra Connect"
+            }
+          ]
         },
         {
           "name": "app-proxy",
@@ -360,7 +367,19 @@
               "licensed_support": true
             }
           },
-          "info": "Two connectors in a connector group. They open outbound TLS tunnels to the Application Proxy service, pull requests down them, obtain Kerberos tickets through constrained delegation, and call the portal over ExpressRoute."
+          "info": "Two connectors in a connector group. They open outbound TLS tunnels to the Application Proxy service, pull requests down them, obtain Kerberos tickets through constrained delegation, and call the portal over ExpressRoute.",
+          "depends_on": [
+            {
+              "kind": "directory",
+              "ref": "ad-ds",
+              "note": "Kerberos constrained delegation: the connector requests service tickets on the partner's behalf"
+            },
+            {
+              "kind": "identity",
+              "ref": "app-proxy",
+              "note": "Outbound registration with the Application Proxy service"
+            }
+          ]
         },
         {
           "name": "ad-ds",
@@ -1051,7 +1070,7 @@
           "from": "ad-ds",
           "to": "entra-id",
           "direction": "one-way",
-          "kind": "control",
+          "kind": "dependency",
           "auth": "mtls",
           "protocol": "HTTPS",
           "port": "443/tcp",
@@ -1946,6 +1965,13 @@
           "cis_controls": [
             "CIS-6.3"
           ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "Conditional Access policy export: MFA required and legacy authentication blocked for the B2B guest group",
+              "by": "Identity team"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -2023,6 +2049,14 @@
             "CIS-4.1",
             "CIS-7.4"
           ],
+          "evidence": [
+            {
+              "kind": "scan-result",
+              "reference": "CIS Level 1 benchmark scan of the two connector VMs and the patch compliance report",
+              "by": "Platform team",
+              "note": "No failed benchmark item; patches within the monthly window"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -2047,6 +2081,14 @@
           ],
           "cis_controls": [
             "CIS-12.2"
+          ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "NSG rule set of the connector subnet",
+              "by": "Platform team",
+              "note": "No inbound rule; outbound limited to 443 to the Microsoft service tags"
+            }
           ],
           "layers": [
             "illustrative-threats"
@@ -2104,6 +2146,13 @@
           "cis_controls": [
             "CIS-5.4"
           ],
+          "evidence": [
+            {
+              "kind": "audit-finding",
+              "reference": "Delegation review: msDS-AllowedToActOnBehalfOfOtherIdentity on the portal SPN lists only the connector accounts",
+              "by": "Directory team"
+            }
+          ],
           "layers": [
             "illustrative-threats"
           ]
@@ -2130,6 +2179,14 @@
           "cis_controls": [
             "CIS-4.4",
             "CIS-13.10"
+          ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "Edge firewall rule base export and the change records of the last quarter",
+              "by": "Network team",
+              "note": "Deny-all inbound baseline unchanged; every rule change carries a ticket"
+            }
           ],
           "layers": [
             "illustrative-threats"
@@ -2790,6 +2847,14 @@
             {
               "kind": "node",
               "ref": "jump-host"
+            }
+          ],
+          "evidence": [
+            {
+              "kind": "configuration-export",
+              "reference": "Credential Guard status and the session recording policy of the jump host",
+              "by": "Platform team",
+              "note": "Credential Guard running; every interactive session recorded to the PAM vault"
             }
           ],
           "layers": [

@@ -13,7 +13,8 @@ The interview is the default way in. When the user hands you a source instead (T
 | Peering, VPN, ExpressRoute / Direct Connect, private endpoint, PrivateLink | `tunnel` or `data` flows between the zones' edges; the gateway is an appliance | |
 | IAM role, managed identity, service account A uses to call B | the flow's `auth` (`managed-identity`, or a declared `auth_types[]` entry) and `authentication.client.method` | Access keys and connection strings in configuration are `api-key` / `password` with `credential_storage` recorded, and a threat to raise |
 | OpenAPI `servers`, `paths`, `securitySchemes` | one `api` node or component; one flow per calling client; `auth` from the scheme (`oauth2`, `oidc`, `api-key`, HTTP basic → `basic`); `data` from request and response schemas (PII fields → `data_tags`) | Routes without a security scheme are a `broken-authentication` threat |
-| Logging and monitoring sinks | `control` flows to a monitoring node, `data_classification: "internal"` | |
+| Logging and monitoring sinks | `dependency` flows to a monitoring node, `data_classification: "internal"`, and a `depends_on` entry of kind `logging` or `monitoring` on the source | |
+| Key vault, secrets manager or KMS references in app settings, environment variables or IAM policies | a `depends_on` entry (`secrets`, `kms`) on the node and a `dependency` flow to the vault node with the identity the policy grants | |
 | A sentence in a spec: "A calls B over HTTPS with a client certificate" | a flow with `protocol`, `auth: "mtls"`, `encrypted: true` | Quote the sentence in `info` so the source stays traceable |
 
 ## Order of work

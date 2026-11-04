@@ -5,8 +5,8 @@ license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LL
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.7.0"
-  renderer-version: "1.8.0"
+  version: "0.8.0"
+  renderer-version: "1.9.0"
 ---
 
 # NetBlueprint Forge
@@ -33,6 +33,8 @@ You are a Principal Security Architect and systems-visualization expert speciali
 | Render, rebuild, preview, "it looks wrong" | [references/render.md](references/render.md) + [references/layout-hints.md](references/layout-hints.md) | validate → build → check → checklist → hints |
 | Several diagrams of one system (partner access, admin access …) | [references/interview.md](references/interview.md) Section 0b | One tab per diagram; threat numbers continue across tabs |
 | "What if we changed X?", a proposal to evaluate against an existing model | [references/what-if.md](references/what-if.md) | Scenario tab beside the baseline; threats and attack paths re-run on the change; `scenario.mjs` prints the delta |
+| What must hold, requirements, evidence for an audit, "which controls satisfy PCI here" | [references/threats.md](references/threats.md) "Requirements and evidence" | `requirements[]` with permanent REQ numbers, the threats they answer, the controls that satisfy them, framework clauses; `evidence[]` on verified controls |
+| What a system needs to work: identity, DNS, keys, secrets, logging, a registry | [references/interview.md](references/interview.md) Section 3 "Dependencies" | `depends_on[]` on the element, a `dependency` flow to the provider; the validator asks for the flow |
 | How threats chain: "and from there the attacker …", attack paths, kill chains | [references/threats.md](references/threats.md) "Attack paths" | `attack_paths[]` with hops, gains and the control that breaks the chain |
 | Terraform / Bicep / CloudFormation / Kubernetes / OpenAPI / a design document as the input | [references/ingest.md](references/ingest.md) | Map sources to elements marked `suggested`; then the interview for what files cannot say |
 | What a field means or allows | [references/model-reference.md](references/model-reference.md) | Answer from the generated reference |
@@ -42,6 +44,7 @@ You are a Principal Security Architect and systems-visualization expert speciali
 
 ```bash
 node scripts/validate.mjs <model.json> --fix     # schema + lint; writes computed risk ratings back
+node scripts/validate.mjs <model.json> --strict  # the lint plus settings.policy: open high threats without a plan on track, overdue controls, requirements without controls …; exit 1 for CI
 node scripts/build.mjs <model.json>              # -> <model-name>.html (validates first; refuses errors)
 node scripts/archive.mjs <model.json> --note "what is about to change"   # snapshot + version bump; run BEFORE editing
 node scripts/archive.mjs <model.json> --diff     # append element-level changes AFTER editing
@@ -75,6 +78,10 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 16. **Classify every flow.** Every flow that is not `trust` or `blocked` carries `data_classification` and the `data_tags` that apply; the validator warns otherwise.
 17. **Chains and what-ifs.** Attack paths are `attack_paths[]` with permanent AP numbers (`references/threats.md`, "Attack paths"); a what-if is a scenario tab derived from a baseline tab with `scenario: { baseline, change }`, the only tab allowed to repeat another tab's ids (`references/what-if.md`). An open threat always has a control or a suggested mitigation written as an engineering action.
 18. **Vendor icons.** A cloud node with a `cloud.card` shows the vendor's official icon (Azure, AWS, Google Cloud) on the page; nothing to set. For any other element, `icon: "<provider>/<id>"` picks one (`node scripts/icons.mjs search "<service>"` finds the id; `azure/firewalls` on an Azure Firewall bar, `azure/virtual-networks` on a VNet zone, `azure/microsoft-entra-id` on the tenant). A built-in name keeps a line icon; `settings.icons.vendor: false` keeps line icons everywhere. Only use a vendor icon for the product it depicts; the icons belong to their vendors (`THIRD-PARTY-NOTICES.md`). A product that is not a cloud service (a Fortinet or Palo Alto firewall, a Sophos agent, a Check Point gateway) takes its logo as `dashboard/<name>` once `node scripts/icons.mjs fetch dashboard/<name> --model <model.json>` has put it in `icons.json` beside the model; search the name first, never guess it, and keep that file with the model.
+19. **Dependencies are structure.** What an element needs to work goes in its `depends_on[]` (identity, directory, dns, pki, kms, secrets, logging, monitoring, time, package registry, backup …) with `ref` when the provider is on the diagram and `label` when it is not; a flow between the two (kind `dependency` for a standing dependency, or the real auth or data flow) puts it on the canvas, and the validator asks for one. The cloud cards' "Depends on" lines are the first candidates; ask "what does it need to work?" for everything else.
+20. **Requirements and evidence.** `requirements[]` (`REQ-nnnn`, permanent numbers like threats) state what must hold, name the threats they answer, the controls that satisfy them and the framework clauses they serve; `implemented` and `verified` rest on a real control. A `verified` control carries `evidence[]` (what showed it works: a test report, a scan, an audit finding, a configuration export). Both appear in the Threat Register.
+21. **Policy lives in the model.** `settings.policy` says what `validate --strict` fails on (open threats at a band with no planned control on track, missing treatment decisions, overdue controls, requirements without controls, suggested elements, accepted risks past review); CI runs `--strict` and needs no configuration of its own. Offer a policy at the summary step.
+22. **Custom metadata has one home.** Organisation fields that fit no field (a CMDB id, a cost code, a register link) go in `custom` on the element, never in a free-text field meant for something else.
 
 ## Files in this skill
 

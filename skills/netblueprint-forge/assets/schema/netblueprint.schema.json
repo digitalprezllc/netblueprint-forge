@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://digitalprez.com/netblueprint/schema/1/netblueprint.schema.json",
   "title": "NetBlueprint Forge context model",
-  "description": "A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.",
+  "description": "A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, requirement ids, dependency providers, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -11,7 +11,7 @@
   ],
   "properties": {
     "tabs": {
-      "description": "Several diagrams in one document, shown as tabs under the canvas (left to right in this order). Each tab holds its own zones, nodes, flows, phases, steps, threats and controls; meta, settings, auth_types and layers are shared. With tabs[] the top-level collections stay empty (validate.mjs enforces this). Threat ids and numbers, control ids and attack path ids and numbers are unique across all tabs (a scenario tab may repeat those of its baseline tab); other names are unique within a tab.",
+      "description": "Several diagrams in one document, shown as tabs under the canvas (left to right in this order). Each tab holds its own zones, nodes, flows, phases, steps, threats, controls and requirements; meta, settings, auth_types and layers are shared. With tabs[] the top-level collections stay empty (validate.mjs enforces this). Threat ids and numbers, control ids, requirement ids and numbers and attack path ids and numbers are unique across all tabs (a scenario tab may repeat those of its baseline tab); other names are unique within a tab.",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -40,7 +40,7 @@
       }
     },
     "layers": {
-      "description": "Custom layers. Built-in layers (zones, appliances, nodes, components, internet, flows-weak, flows-moderate, flows-strong, flows-blocked, threats, controls, labels) exist without being declared and can be hidden by default through settings.layers_hidden.",
+      "description": "Custom layers. Built-in layers (zones, appliances, nodes, components, internet, flows-weak, flows-moderate, flows-strong, flows-blocked, flows-trust, flows-dependency, threats, controls, labels) exist without being declared and can be hidden by default through settings.layers_hidden.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/layer"
@@ -88,6 +88,13 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/control"
+      }
+    },
+    "requirements": {
+      "description": "Security requirements: what must hold, mapped to the threats they answer, the controls that satisfy them and the framework clauses they serve. Ids and numbers are unique across the document, like threats.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/requirement"
       }
     },
     "attack_paths": {
@@ -1225,6 +1232,13 @@
             "$ref": "#/$defs/control"
           }
         },
+        "requirements": {
+          "description": "Security requirements: what must hold, mapped to the threats they answer, the controls that satisfy them and the framework clauses they serve. Ids and numbers are unique across the document, like threats.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requirement"
+          }
+        },
         "attack_paths": {
           "description": "Attack paths (multi-hop chains) of this diagram.",
           "type": "array",
@@ -1234,6 +1248,9 @@
         },
         "scenario": {
           "$ref": "#/$defs/scenario"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         }
       }
     },
@@ -1337,6 +1354,9 @@
             "type": "string",
             "maxLength": 40
           }
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         }
       }
     },
@@ -1470,6 +1490,9 @@
         "severity_filter_default": {
           "description": "Minimum band shown when the diagram opens.",
           "$ref": "#/$defs/fiveLevel"
+        },
+        "policy": {
+          "$ref": "#/$defs/policy"
         },
         "theme": {
           "type": "object",
@@ -1631,6 +1654,16 @@
         "profile": {
           "$ref": "#/$defs/profile"
         },
+        "depends_on": {
+          "description": "What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
+        },
         "out_of_scope": {
           "description": "Still drawn and documented, but greyed out.",
           "type": "boolean"
@@ -1756,6 +1789,9 @@
         },
         "cloud": {
           "$ref": "#/$defs/cloud"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         },
         "layers": {
           "$ref": "#/$defs/nameList"
@@ -1892,6 +1928,16 @@
         "profile": {
           "$ref": "#/$defs/profile"
         },
+        "depends_on": {
+          "description": "What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
+        },
         "out_of_scope": {
           "description": "Still drawn and documented, but greyed out.",
           "type": "boolean"
@@ -1994,8 +2040,18 @@
         "profile": {
           "$ref": "#/$defs/profile"
         },
+        "depends_on": {
+          "description": "What this element needs to work; see the dependency entry. Dependencies the cloud cards list (identity, DNS, key management, logging) belong here.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dependency"
+          }
+        },
         "layout": {
           "$ref": "#/$defs/layoutHints"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         },
         "layers": {
           "$ref": "#/$defs/nameList"
@@ -2046,7 +2102,7 @@
           "default": "one-way"
         },
         "kind": {
-          "description": "data: application traffic. control: policy / control plane. auth: authentication exchange. token: credential or token issuance. trust: a standing trust relationship (dotted). blocked: denied by policy (red ✕). tunnel: an established encrypted tunnel.",
+          "description": "data: application traffic. control: policy / control plane. auth: authentication exchange. token: credential or token issuance. trust: a standing trust relationship (dotted). blocked: denied by policy (red ✕). tunnel: an established encrypted tunnel. dependency: a standing dependency between the two ends (identity, DNS, keys, secrets, logging, directory synchronisation); one of them declares it in depends_on. Drawn thin and dashed on its own layer; `from` is still the initiator and the flow carries its authentication like any other.",
           "type": "string",
           "enum": [
             "data",
@@ -2055,7 +2111,8 @@
             "token",
             "trust",
             "blocked",
-            "tunnel"
+            "tunnel",
+            "dependency"
           ],
           "default": "data"
         },
@@ -2108,6 +2165,9 @@
         },
         "availability": {
           "$ref": "#/$defs/flowAvailability"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         },
         "out_of_scope": {
           "description": "Still drawn and documented, but greyed out.",
@@ -2260,6 +2320,9 @@
         },
         "layers": {
           "$ref": "#/$defs/nameList"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         }
       }
     },
@@ -3201,6 +3264,9 @@
             }
           }
         },
+        "custom": {
+          "$ref": "#/$defs/custom"
+        },
         "layers": {
           "$ref": "#/$defs/nameList"
         },
@@ -3343,6 +3409,50 @@
             "type": "string",
             "pattern": "^CIS-([1-9]|1[0-8])(\\.[0-9]{1,2})?$"
           }
+        },
+        "iso_27001": {
+          "description": "ISO/IEC 27001:2022 Annex A controls, e.g. A.8.5.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^A\\.[5-8]\\.[0-9]{1,2}$"
+          }
+        },
+        "mitre_mitigations": {
+          "description": "ATT&CK mitigation ids (M1032 Multi-factor Authentication, M1030 Network Segmentation …).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^M[0-9]{4}$"
+          }
+        },
+        "d3fend": {
+          "description": "D3FEND technique ids (D3-MFA, D3-NTF, D3-UAP …).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^D3-[A-Z0-9]{1,8}$"
+          }
+        },
+        "frameworks": {
+          "description": "Clauses of other standards and regulations this control satisfies (PCI DSS, SOC 2, HIPAA, GDPR …).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frameworkRef"
+          }
+        },
+        "evidence": {
+          "description": "How the control was shown to work: one record per artefact.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
         },
         "layers": {
           "$ref": "#/$defs/nameList"
@@ -3539,6 +3649,9 @@
             "pattern": "^T[0-9]{4}(\\.[0-9]{3})?$"
           }
         },
+        "custom": {
+          "$ref": "#/$defs/custom"
+        },
         "layers": {
           "$ref": "#/$defs/nameList"
         },
@@ -3578,6 +3691,340 @@
           "items": {
             "$ref": "#/$defs/shortText"
           }
+        }
+      }
+    },
+    "custom": {
+      "description": "Organisation-specific metadata that has no field of its own: a CMDB id, a cost code, a review tag, a link into a risk register. Any JSON object with up to 40 keys (letters, digits, space, _ . -). The page lists it in the Attributes card under Custom; the validator leaves it alone.",
+      "type": "object",
+      "maxProperties": 40,
+      "propertyNames": {
+        "pattern": "^[A-Za-z][A-Za-z0-9_ .-]{0,63}$"
+      }
+    },
+    "dependency": {
+      "description": "Something the element needs in order to work: an identity provider, a directory, DNS, a certificate authority, key management, a secrets service, logging, monitoring, time, a package registry, a backup target. `ref` names the node, component or appliance that provides it when it is on the diagram; a flow between the two (kind `dependency`, or the real auth or data flow) draws the relationship, and the validator asks for one when it is missing. An off-diagram provider gets a `label` instead.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "identity",
+            "directory",
+            "dns",
+            "pki",
+            "kms",
+            "secrets",
+            "logging",
+            "monitoring",
+            "time",
+            "package-registry",
+            "update-service",
+            "backup",
+            "licensing",
+            "messaging",
+            "storage",
+            "database",
+            "api",
+            "network",
+            "other"
+          ]
+        },
+        "ref": {
+          "description": "The provider on the diagram: a node, `node/component` or appliance name.",
+          "$ref": "#/$defs/ref"
+        },
+        "label": {
+          "description": "The provider when it is not on the diagram (\"Let's Encrypt\", \"corporate NTP\").",
+          "$ref": "#/$defs/shortText"
+        },
+        "criticality": {
+          "description": "What happens to the element when the dependency is unavailable: `required` stops it, `degraded` limits it, `optional` is barely noticed.",
+          "type": "string",
+          "enum": [
+            "required",
+            "degraded",
+            "optional"
+          ],
+          "default": "required"
+        },
+        "note": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "frameworkRef": {
+      "description": "A clause of a standard, regulation or framework that a control or requirement satisfies. `framework` is a short id (`pci-dss-4.0`, `iso-27001-2022`, `soc2-2017`, `hipaa-security-rule`, `nist-csf-2.0`, `nist-800-171-r3`, `gdpr`, `dora`, `iec-62443`, or your own); `clause` is the clause as the framework numbers it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "framework",
+        "clause"
+      ],
+      "properties": {
+        "framework": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]{1,40}$"
+        },
+        "clause": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "note": {
+          "$ref": "#/$defs/shortText"
+        }
+      }
+    },
+    "evidence": {
+      "description": "A record that a control was verified: what kind of artefact, where it is, when, by whom. The Attributes card and the audit report list it; `validate --strict` can require one on every verified control.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "test-report",
+            "scan-result",
+            "penetration-test",
+            "audit-finding",
+            "configuration-export",
+            "screenshot",
+            "log-sample",
+            "ticket",
+            "attestation",
+            "design-document",
+            "other"
+          ]
+        },
+        "reference": {
+          "description": "A URL, a document id, a ticket key or a file name.",
+          "type": "string",
+          "maxLength": 300
+        },
+        "date": {
+          "$ref": "#/$defs/date"
+        },
+        "by": {
+          "$ref": "#/$defs/shortText"
+        },
+        "note": {
+          "$ref": "#/$defs/longText"
+        }
+      }
+    },
+    "requirementId": {
+      "type": "string",
+      "pattern": "^REQ-[0-9]{4}$"
+    },
+    "requirement": {
+      "description": "A security requirement: what must hold, which threats it answers, which controls satisfy it, which framework clauses it serves. Numbered like threats (`REQ-0001`, permanent; retire, never delete). A requirement is the bridge between a threat and the audit: a threat says what could go wrong, a requirement says what must be true, a control says what was built, and the control's evidence says it was checked.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "number",
+        "title",
+        "statement",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/requirementId"
+        },
+        "number": {
+          "description": "Permanent number; equals the id's digits.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9999
+        },
+        "title": {
+          "$ref": "#/$defs/shortText"
+        },
+        "statement": {
+          "description": "The requirement as a testable sentence: \"Administrative sessions to the jump host authenticate with phishing-resistant MFA\".",
+          "$ref": "#/$defs/longText"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "security",
+            "privacy",
+            "resilience",
+            "compliance",
+            "operational",
+            "safety"
+          ],
+          "default": "security"
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "must",
+            "should",
+            "could"
+          ],
+          "default": "must"
+        },
+        "status": {
+          "description": "proposed → approved → implemented → verified; `waived` and `retired` need a `status_reason`.",
+          "type": "string",
+          "enum": [
+            "proposed",
+            "approved",
+            "implemented",
+            "verified",
+            "waived",
+            "retired"
+          ]
+        },
+        "status_reason": {
+          "$ref": "#/$defs/longText"
+        },
+        "source": {
+          "description": "Where the requirement comes from.",
+          "type": "string",
+          "enum": [
+            "threat-model",
+            "policy",
+            "standard",
+            "regulation",
+            "contract",
+            "customer",
+            "architecture",
+            "incident",
+            "other"
+          ]
+        },
+        "source_ref": {
+          "description": "The policy, standard, contract or ticket it comes from.",
+          "$ref": "#/$defs/shortText"
+        },
+        "threats": {
+          "description": "Threats this requirement answers.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/threatId"
+          }
+        },
+        "controls": {
+          "description": "Controls that satisfy it; `implemented` and `verified` need at least one implemented or verified control.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/controlId"
+          }
+        },
+        "attack_paths": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/attackPathId"
+          }
+        },
+        "frameworks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/frameworkRef"
+          }
+        },
+        "owner": {
+          "$ref": "#/$defs/shortText"
+        },
+        "due_date": {
+          "$ref": "#/$defs/date"
+        },
+        "custom": {
+          "$ref": "#/$defs/custom"
+        },
+        "layers": {
+          "$ref": "#/$defs/nameList"
+        },
+        "suggested": {
+          "$ref": "#/$defs/suggested"
+        },
+        "suggested_from": {
+          "$ref": "#/$defs/suggestedFrom"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "waived",
+              "retired"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "status_reason"
+        ]
+      }
+    },
+    "policy": {
+      "description": "What `validate --strict` enforces on top of the schema and the lint, so CI can fail a build on security grounds. Every rule is optional; the defaults below apply to a rule that is not set. A policy travels with the model, so it needs no CI configuration.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "open_threats": {
+          "description": "An open threat (identified, investigating, open) whose current rating is at `band` or above fails, unless `allow_with_plan` is true and the threat has a planned control that is not overdue.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "band": {
+              "$ref": "#/$defs/fiveLevel",
+              "default": "high"
+            },
+            "allow_with_plan": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "require_treatment_decision": {
+          "description": "Every open threat needs a `treatment.decision` other than undecided.",
+          "type": "boolean",
+          "default": true
+        },
+        "overdue_controls": {
+          "description": "A proposed, planned or in-progress control past its due date fails.",
+          "type": "boolean",
+          "default": true
+        },
+        "verified_needs_evidence": {
+          "description": "A verified control needs at least one evidence record.",
+          "type": "boolean",
+          "default": false
+        },
+        "requirements_need_controls": {
+          "description": "An approved, implemented or verified requirement needs at least one control.",
+          "type": "boolean",
+          "default": true
+        },
+        "no_suggested": {
+          "description": "Any element still marked suggested fails.",
+          "type": "boolean",
+          "default": true
+        },
+        "classify_every_flow": {
+          "description": "A flow without a data classification fails (the lint only warns).",
+          "type": "boolean",
+          "default": false
+        },
+        "risk_reviews": {
+          "description": "An accepted threat whose acceptance review date has passed fails.",
+          "type": "boolean",
+          "default": true
         }
       }
     }

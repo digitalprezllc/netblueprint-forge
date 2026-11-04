@@ -120,6 +120,19 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 - AWS: service and resource icons, group and category icons. Google: the 2025 product and category icons plus the legacy per-product icons, product first. `tests/check_icons.mjs` checks the library, the cards and the examples' pages.
 - Product logos on demand: `icon: "dashboard/<name>"` names a logo from the Dashboard Icons collection; `node scripts/icons.mjs fetch` downloads it (jsDelivr, then GitHub), refuses scripts, event handlers, foreign objects and external references, normalizes it and stores it in `icons.json` beside the model, which `build.mjs`, `validate.mjs` and `icons.mjs check` read; `search --provider dashboard` queries the collection's catalogue. The skill ships no logo; the notices file states the collection's licence and its trademark disclaimer; `tests/check_icons.mjs` exercises the fetch offline from a folder.
 
+### 2.22 Dependencies
+- Any node, component or appliance lists what it needs to work in `depends_on[]`: `kind` (identity, directory, dns, pki, kms, secrets, logging, monitoring, time, package-registry, update-service, backup, licensing, messaging, storage, database, api, network, other), `ref` to the provider on the diagram or `label` for one off it, `criticality` (required, degraded, optional), `note`. A flow of kind `dependency` (thin, dashed, its own layer) or the real auth or data flow connects the two; the validator errors on a provider that does not exist or an element depending on itself, and warns on a dependency with no flow or a dependency flow nobody declares. The cloud cards' "Depends on" lines become proposals.
+
+### 2.23 Requirements and evidence
+- `requirements[]` (top level or per tab; `REQ-nnnn`, permanent numbers, unique across the document like threats): `title`, `statement`, `kind`, `priority`, `status` (proposed, approved, implemented, verified, waived, retired; the last two need a reason), `source` and `source_ref`, the `threats[]` answered, the `controls[]` that satisfy it, `attack_paths[]`, `frameworks[]` clauses, `owner`, `due_date`. `implemented` and `verified` need an implemented or verified control behind them.
+- Controls gain `evidence[]` (kind, reference, date, by, note), ATT&CK mitigation ids, D3FEND technique ids, ISO 27001 Annex A ids and `frameworks[]` clauses; the validator warns on a verified control without evidence.
+
+### 2.24 Policy and strict validation
+- `settings.policy` states what `validate --strict` fails on: open threats at or above a band without a planned control on track, open threats without a treatment decision, overdue controls, verified controls without evidence (opt in), approved requirements without controls, suggested elements, flows without classification (opt in), accepted risks past their review date. Defaults apply to rules left unset; every failure is reported as `error: policy: …` with exit 1. The policy is part of the model so that CI runs one command and no configuration.
+
+### 2.25 Custom metadata
+- Every element, threat, control, requirement, attack path, tab and the meta block accept a `custom` object (up to 40 keys) for organisation metadata with no field of its own; the schema validates the key names, the validator leaves the values alone, the Attributes card lists them under Custom.
+
 ## 3. Renderer
 
 ### 3.1 Output
@@ -220,6 +233,11 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 ### 3.15 Vendor icons on the page
 - `build.mjs` injects one `<symbol>` per distinct vendor icon the model uses into the page's `<defs>`, plus the ref-to-symbol map and the cards' icons; the page stays self-contained and grows by a few kilobytes per icon.
 - The renderer draws a vendor icon with `<use>` in the same 24 × 22 slot as a line icon (22 × 22, centred, never stretched), on nodes, host title rows, component rows, appliance bars and zone titles; an out-of-scope element dims it. A vendor icon the page does not carry falls back to the built-in icon and is listed in the self-check report (`missingIcons`, informational). The legend names the vendors whose icons the tab shows; the Attributes card shows the icon id. A fetched logo is embedded from `icons.json` beside the model like any vendor icon, and the legend names the collection.
+
+### 3.16 Dependencies, requirements and custom fields on the page
+- A `dependency` flow is drawn thin and dashed in grey-blue, routed with the control flows, on the built-in layer `flows-dependency` ("Dependencies"), with its auth badge and a legend entry; it carries hop markers and threat circles like any flow.
+- The Attributes card of a node, component or appliance lists Depends on (each entry with a link to its provider, its criticality and note) and Depended on by; `custom` fields appear under Custom on every element and threat. A threat's card lists the requirements that answer it.
+- The Threat Register gains a Requirements table under the attack paths (kind, status, the threats answered, the controls that satisfy it, framework clauses); a row opens the requirement's record in the Attributes card; the band counts requirements with the threats and paths; a what-if tab repeats its baseline's requirements like its threats.
 
 ## 4. Skill (interview)
 

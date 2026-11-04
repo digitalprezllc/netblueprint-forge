@@ -10,7 +10,7 @@ Each card has the same sections:
 | **Attaches to** | VPC/VNet + subnet, public endpoint, private endpoint (PrivateLink / Private Endpoint / Private Service Connect), service endpoint |
 | **Default exposure** | Internet-reachable by default? Which ports/protocols? Recent default changes that older resources do not have |
 | **Disable unless needed** | Legacy or insecure defaults, as **bold** ids for `cloud.disabled_protocols` (confirmed off) or `cloud.enabled_risky_protocols` (still on) |
-| **Depends on** | Identity, DNS, key management, logging, and the other services it needs |
+| **Depends on** | Identity, DNS, key management, logging, and the other services it needs: propose each as a `depends_on` entry on the node (`kind`, `ref` when the provider is on the diagram) and a `dependency` flow when no flow connects them yet |
 | **Ask** | The exposure questions, in order. Stop asking once the answers settle the attachment and exposure |
 | **Propose** | Zones, nodes and boundary appliances to add, with suggested types |
 | **Threats** | Each with STRIDE, `vulnerability.category`, CWE / ATT&CK / OWASP refs and the control that addresses it, ready to pre-fill as `suggested` |

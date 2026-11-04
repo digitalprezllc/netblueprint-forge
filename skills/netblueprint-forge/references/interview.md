@@ -85,6 +85,8 @@ Rules: a `database` or `storage` node on the Internet side gets a warning; SaaS 
 
 Normalize every typed answer with `scripts/normalize.mjs` (fields `platform_category`, `hosting`, `factors`, `credential_storage`, `elevated_access_model`, `hardening_baseline`, `sourcing`).
 
+**Dependencies** (`depends_on`, on any node, component or appliance): ask "what does it need to work?" and list each as `kind` (identity, directory, dns, pki, kms, secrets, logging, monitoring, time, package-registry, update-service, backup, licensing, messaging, storage, database, api, network, other; `normalize.mjs dependency_kind`), `ref` when the provider is on the diagram (a node, `node/component` or appliance) or `label` when it is not ("Let's Encrypt", "corporate NTP"), `criticality` (required, degraded, optional) and a `note`. A cloud card's "Depends on" line is the list to start from. Every dependency with a `ref` wants a flow between the two elements: the real auth or data flow when one exists, otherwise a flow of kind `dependency` (Section 5), which the renderer draws thin and dashed on its own layer. The validator warns about a dependency with no flow.
+
 ## Section 4: Users, devices and actors
 
 Ask: who initiates the flows (customers, employees, administrators, partners, batch jobs); from where (Internet, office, branch, home); on what device (managed laptop, workstation, mobile, IoT/OT); and whether to draw a **bad actor** (recommended whenever a threat model is wanted; it anchors adversaries and blocked paths).
@@ -93,7 +95,7 @@ Write: nodes of type `user`, `remote-user`, `admin`, `laptop`, `workstation`, `m
 
 ## Section 5: Flows and authentication
 
-For every interaction worth drawing, ask: from → to (by name; components as `node/component`), direction (`one-way` or `two-way`), what kind of traffic (`data`, `control`, `auth`, `token`, `trust`, `blocked`, `tunnel`), protocol and port, and **how it authenticates**. Offer the auth list with strengths; weak and absent authentication are drawn as warnings on purpose:
+For every interaction worth drawing, ask: from → to (by name; components as `node/component`), direction (`one-way` or `two-way`), what kind of traffic (`data`, `control`, `auth`, `token`, `trust`, `blocked`, `tunnel`, `dependency` for a standing dependency such as a secrets read at start-up, log shipping or directory synchronisation), protocol and port, and **how it authenticates**. Offer the auth list with strengths; weak and absent authentication are drawn as warnings on purpose:
 
 - none: anonymous · weak: password, basic, api-key · moderate: ssh-key, oauth2, saml, oidc · strong: kerberos, mfa, mtls, certificate, fido2 (phishing-resistant), managed-identity.
 - If the user's environment uses other names ("Entra ID + MFA"), declare `auth_types[]` with ids, labels and strengths and use those.
@@ -127,6 +129,10 @@ Open `threats.md` and `risk-scoring.md`. Ask whether the user wants threats now;
 
 Once the threats are in, ask how they chain (`threats.md`, "Attack paths"): where an adversary enters, what the first threat gains them, which flow or system that opens next, and so on to the asset and its impact. Write `attack_paths[]` with permanent AP numbers, one hop per move, the control that breaks the chain today and the one that would. Skip when the user wants the diagram only; offer it again when a threat's consequence reads like "and from there …".
 
+## Section 7c: Requirements and evidence
+
+After the threats and paths, ask what must be true (`threats.md`, "Requirements and evidence"): "What must hold for THR-0004 not to matter?" Write `requirements[]` with permanent REQ numbers: a testable `statement`, the threats it answers, the controls that satisfy it, its source (a policy, a standard, a regulation, a contract, this threat model) and the framework clauses it serves. For every `verified` control ask what showed it works and record it in `evidence[]` (kind, reference, by). Skip when the user wants the diagram only; offer it again before the summary, since the register and the reports rest on it.
+
 ## Scope, at any point
 
 Any zone, appliance, node, component or flow can be marked `out_of_scope: true` with a `scope_reason`. It stays on the diagram with all its attributes but is drawn greyed out; threats may still target it. Ask "is this in scope for the review?" whenever the user mentions something they only want shown for context.
@@ -139,8 +145,12 @@ Ask: "Should anything be toggleable as a group: a future phase, a proposed chang
 
 Ask for: a logo file (embed as a `data:` URI in `meta.logo`; keep it under 200 KB), the one-line `flow_summary`, the `path_summary` hops for the chips, the `access_summary`, `assumptions[]` and `out_of_scope[]`. Confirm `settings.layout.min_width/min_height` (defaults 1280 × 640) and whether the register, layer panel, legend and signature block should show (`settings.show`).
 
+Offer a **policy** (`settings.policy`): what `validate --strict` should fail on when this model is checked in CI. The defaults are sensible (an open threat at high or above with no planned control on track, an open threat with no treatment decision, an overdue control, an approved requirement with no control, a suggested element, an accepted risk past its review date); the user can move the band, require evidence on every verified control, or require a classification on every flow. The policy travels with the model, so CI only runs `node scripts/validate.mjs model.json --strict`.
+
+Organisation metadata that fits no field (a CMDB id, a cost code, a register link) goes in `custom` on the element.
+
 ## Finish
 
-1. `node scripts/validate.mjs model.json --fix` with zero errors; read the warnings aloud and resolve what the user wants resolved.
+1. `node scripts/validate.mjs model.json --fix` with zero errors; read the warnings aloud and resolve what the user wants resolved. If the model carries a policy, run `--strict` too and report what it would fail on in CI.
 2. `node scripts/build.mjs model.json`, open the HTML, run the layout checklist in `render.md`.
 3. Tell the user what the model contains (counts), where the files are, and what is still open (flows without auth, suggested elements, threats to add).

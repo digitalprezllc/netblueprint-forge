@@ -1,5 +1,6 @@
-// Runs scripts/validate.mjs against every fixture and the shipped example.
+// Runs scripts/validate.mjs against every fixture and the shipped examples.
 // Fixtures named invalid-*.model.json must fail; everything else must pass (warnings allowed).
+// policy.model.json is valid on its own and must fail validate --strict with exactly the policy failures listed below.
 //   node tests/check_validate.mjs
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,5 +40,17 @@ for (const [r, expected] of cases) {
   const ok = c && c.rating === expected;
   console.log(`${ok ? 'PASS' : 'FAIL'}  computeAssessment(${r.method}) → ${c ? c.rating : 'null'} (expected ${expected})`);
   if (!ok) failures++;
+}
+// policy: validate --strict applies settings.policy over the defaults; the fixture breaks seven rules and nothing else
+{
+  const file = path.join(root, 'tests', 'fixtures', 'policy.model.json');
+  const model = JSON.parse(fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, ''));
+  const plain = validateModel(model);
+  const strict = validateModel(JSON.parse(JSON.stringify(model)), { strict: true });
+  const expected = ['THR-0001 is open at high', 'THR-0002 is open with no treatment decision', 'THR-0002 is open at high', 'THR-0003 is open with no treatment decision', 'CTL-0003 is planned and past its due date', 'CTL-0002 is verified without an evidence record', 'REQ-0002 is approved with no control'];
+  const hit = expected.filter((e) => strict.policy.some((p) => p.includes(e)));
+  const ok = plain.errors.length === 0 && strict.stage === 'policy' && strict.policy.length === expected.length && hit.length === expected.length && strict.errors.every((e) => e.startsWith('policy: '));
+  console.log(`${ok ? 'PASS' : 'FAIL'}  policy.model.json: valid on its own (${plain.errors.length} error(s)); --strict reports ${strict.policy.length} policy failure(s), ${hit.length} of ${expected.length} expected`);
+  if (!ok) { strict.policy.forEach((p) => console.log('      - ' + p)); plain.errors.forEach((e) => console.log('      - error: ' + e)); failures++; }
 }
 process.exit(failures ? 1 : 0);
