@@ -147,6 +147,9 @@ The full list, including what to check after a build and how to fix what you see
 - **Attack paths** chain threats into a cascade: each hop names the threat, the flow it rides, where it lands, what the adversary gains (foothold, credentials, token, session, network access, code execution, data access, data exfiltration, privilege, persistence, lateral movement, denial of service, impact), the controls it bypasses and a note; the path carries its entry point, impact, assets at risk, its own three ratings, the controls that break it and the ATT&CK techniques. The validator checks that the chain is continuous and that each hop's threat is relevant to where it lands.
 - **Two lints raise the floor:** every flow that is not a trust relationship or blocked carries a data classification, and every open threat has a control or a suggested mitigation an engineer can build.
 - **Requirements and evidence.** `requirements[]` (REQ-0001 …) say what must be true, which threats they answer, which controls satisfy them and which framework clauses they serve; `evidence[]` on a verified control records what showed it works. **Dependencies** (`depends_on` with a `dependency` flow) record what each element needs to work. **Policy** (`settings.policy`) is what `validate --strict` enforces in CI.
+- **Rules propose, the user confirms.** `suggest.mjs` runs 23 rules over the flows and elements (STRIDE per interaction) and proposes threats with STRIDE, CWE, ATT&CK, an adversary, a rating and a mitigation; a threat the model already has on the same target is not proposed again; `--apply` writes the rest as suggested threats to confirm or retire. Deterministic, offline, tested on a fixture that triggers every rule ([references/threats.md](skills/netblueprint-forge/references/threats.md), "Suggested threats from cards and rules").
+- **Component cards.** The common self-managed components (web server, reverse proxy, application server, API gateway, database, cache, message broker, file share, identity provider, directory, VPN gateway, jump host, mail, DNS, CI/CD runner, secrets vault, backup, workstation, SIEM, firewall, WAF) have cards in the cloud-card format: dependencies, exposure questions, proposals and threats with controls ([references/components.md](skills/netblueprint-forge/references/components.md)).
+- **Reports.** `report.mjs` writes the executive summary, the developer to-do list and the audit evidence view from the model as Markdown; `portfolio.mjs` puts every model under a folder in one table.
 - **Cloud services.** When a node is an AWS, Azure or GCP service, the skill loads its card (12 per provider: compute, storage, databases, serverless, Kubernetes, messaging, secrets and keys, edge and WAF, administration brokers) and asks the card's exposure questions; proposed zones, nodes and threats stay marked `suggested` until confirmed. Each card also carries the service's official icon, which the page shows beside the node's label. Cards: [references/cloud](skills/netblueprint-forge/references/cloud/README.md); research: [docs/research/cloud-service-catalogue.md](docs/research/cloud-service-catalogue.md).
 
 ## Install
@@ -196,6 +199,9 @@ The skill writes `netblueprint/<model-name>/model.json`, builds `netblueprint/<m
 | - | - |
 | `node scripts/validate.mjs <model.json> --fix` | Schema check plus cross-reference lint; writes computed ratings and Title Case labels back. Exit 1 on errors. |
 | `node scripts/validate.mjs <model.json> --strict` | The same, plus the model's `settings.policy`: exit 1 on an open high threat with no plan on track, a missing treatment decision, an overdue control, a requirement without a control, a suggested element. For CI. |
+| `node scripts/suggest.mjs <model.json>` | What the 23 threat rules find (STRIDE per interaction: unauthenticated or password-only Internet flows, data in the clear, unguarded boundaries, admin sessions without strong MFA, exposed data stores, deprecated TLS, plaintext credentials, end-of-life platforms …), each with STRIDE, CWE, ATT&CK, a rating and a mitigation; `--apply` writes them as suggested threats. |
+| `node scripts/report.mjs <model.json> --kind exec` | Markdown reports: `exec` (risk at a glance, open threats, paths, accepted risks, policy), `developer` (planned controls by owner, unconverted mitigations, open threats with no plan), `audit` (verified controls with evidence, requirements by framework clause), `all`. |
+| `node scripts/portfolio.mjs <folder>` | One table across every model under a folder: threats by band, open high threats, overdue controls, requirements verified, policy and validator results. |
 | `node scripts/build.mjs <model.json>` | Validates, then renders `<model-name>.html` next to the model. Refuses a model with errors. |
 | `node scripts/archive.mjs <model.json> --note "…"` / `--diff` | Snapshot and version bump before an edit; element-level changelog entry after it. |
 | `node scripts/scenario.mjs <model.json> --tab <what-if tab>` | The delta of a what-if tab against its baseline, as Markdown (`--json` for data). |
@@ -274,7 +280,7 @@ Skill:  Deriving the scenario tab whatif-public-db from main (archived v1.4.0 ->
 
 ## Quality checks
 
-Five checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
+Seven checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
 
 | Check | Command | Covers |
 | - | - | - |
@@ -283,13 +289,15 @@ Five checks, each one command, all run by CI on every push and pull request to `
 | Layout check | `node tests/check_layout.mjs` | Builds the examples, opens every diagram tab headless and fails when a line passes through or hugs a box it does not touch, runs over text, clashes with a glyph, jogs, shares a lane or could not be routed; compares crossings and bends with `tests/layout-baseline.json`. CI runs it with `--hard-only` because the baseline depends on the machine's fonts; `--font "DejaVu Sans"` previews what the Linux runner sees. |
 | Icon check | `node tests/check_icons.mjs` | The vendor icon library and its use, without a browser: the index files, every cloud card's icon, every example's icons and the symbols in its built page, the normalizer, and the fetch path for product logos (offline, from a folder). |
 | Packaging check | `node tests/check_package.mjs` | Builds the release zip twice, from the skill folder and from a copy with other file times, and requires the same bytes; then reads the archive back and compares every entry with the folder: names, order, one fixed time, CRC, content. |
+| Rules check | `node tests/check_suggest.mjs` | Every threat rule fires on `tests/fixtures/rules.model.json` with the expected counts, `--apply` writes threats the validator accepts and a second run recognises, and the examples get at most a handful of suggestions, none duplicating a threat they have. |
+| Reports check | `node tests/check_reports.mjs` | The three reports hold their sections and list every threat, verified control, planned control and framework clause of the hub-spoke model; the portfolio finds the five examples with the right counts. |
 
 The Actions tab of the repository shows each run. Two more workflows: [release.yml](.github/workflows/release.yml) packages the skill and publishes a GitHub Release when a merge to `master` raises the skill version; [pull-requests.yml](.github/workflows/pull-requests.yml) closes a pull request from outside the organization on arrival with a note, since the repository takes reports and not code ([CONTRIBUTING.md](CONTRIBUTING.md)). `node tests/readme_screenshots.mjs` regenerates the pictures in this README from the built examples. All of it is described in [tests/README.md](tests/README.md).
 
 ## Documentation
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): the agreed scope, section by section, with what is in version 1 and what comes later.
-- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D44.
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D47.
 - [docs/PLATFORMS.md](docs/PLATFORMS.md): which tool reads which folder, how to invoke the skill in each, platform-specific extras.
 - Research notes: [threat attributes](docs/research/threat-attributes.md), [service, flow and threat detail](docs/research/service-flow-threat-attributes.md), [cloud service catalogue](docs/research/cloud-service-catalogue.md), [layout and routing](docs/research/layout-routing.md).
 - The skill's own references, loaded on demand by [SKILL.md](skills/netblueprint-forge/SKILL.md): [interview](skills/netblueprint-forge/references/interview.md), [threats](skills/netblueprint-forge/references/threats.md), [risk scoring](skills/netblueprint-forge/references/risk-scoring.md), [what-if](skills/netblueprint-forge/references/what-if.md), [ingest](skills/netblueprint-forge/references/ingest.md), [revise and archive](skills/netblueprint-forge/references/revise-and-archive.md), [render](skills/netblueprint-forge/references/render.md), [layout hints](skills/netblueprint-forge/references/layout-hints.md), [icons](skills/netblueprint-forge/references/icons.md), [model reference](skills/netblueprint-forge/references/model-reference.md), [cloud cards](skills/netblueprint-forge/references/cloud/README.md).
@@ -305,8 +313,8 @@ The Actions tab of the repository shows each run. Two more workflows: [release.y
 netblueprint-forge/
 ├── skills/netblueprint-forge/     The skill. This folder is what gets installed; it carries its own LICENSE.
 │   ├── SKILL.md                   Router: what the skill does and which reference to load for which request
-│   ├── references/                Interview, threats, risk scoring, what-if, ingest, layout hints, render, model reference, icons, cloud cards
-│   ├── scripts/                   validate · build · archive · normalize · scenario · check · screenshot · model-reference (Node.js, no dependencies)
+│   ├── references/                Interview, threats, risk scoring, what-if, ingest, layout hints, render, model reference, icons, cloud cards, component cards
+│   ├── scripts/                   validate · build · archive · normalize · scenario · suggest (with rules) · report · portfolio · check · screenshot · model-reference (Node.js, no dependencies)
 │   ├── assets/schema/             JSON Schema for the context model (draft 2020-12)
 │   ├── assets/icons/              The vendor icon library: Azure (with Entra), AWS, Google Cloud, one index per provider
 │   ├── assets/template/           The HTML renderer
@@ -315,11 +323,11 @@ netblueprint-forge/
 ├── examples/                      The example models, their rendered pages and a README each
 ├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README
 ├── platforms/                     Install scripts for Windows (install.ps1) and macOS / Linux (install.sh); package.mjs builds the release zip
-├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, README pictures
+├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, rules check, reports check, README pictures
 ├── blueprints/                    Working models produced with the skill in this repository
 ├── .claude-plugin/                Plugin and marketplace manifests for Claude Code
 ├── .github/ISSUE_TEMPLATE/        Bug report and feature request forms; blank issues are off; the pull request notice sits beside them
-├── .github/workflows/             checks.yml runs the five checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
+├── .github/workflows/             checks.yml runs the seven checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
 ├── CHANGELOG.md                   What each release holds
 ├── CONTRIBUTING.md                Bug reports and feature requests are welcome; pull requests are not accepted
 ├── LICENSE                        PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms
@@ -329,7 +337,7 @@ netblueprint-forge/
 
 ## Status
 
-Skill 0.8.0, renderer 1.9.0. Usable for real models; the five examples, three on Azure and one each on AWS and Google Cloud, are rendered from their models and pass every check. Done so far: the interview with its references and option lists; the JSON Schema, the validator with its lint and `--fix`, the archive workflow; service profiles, flow detail and threat detail from the research notes; the cloud catalogue (36 cards); multi-tab documents with one Threat Register; floating Layers and Attributes cards; Title Case labels and arrows that leave the initiator; the title-block footer; the visibility-graph router with a written precedence and the page's self-check; automated layout checks with a baseline; attack paths walked on the canvas; what-if scenario tabs with a delta script; classification and remediation lints; the ingest guide; deep links and PNG export; CI; the official Azure, AWS and Google Cloud icons on cloud elements and product logos fetched on demand for everything else; dependencies as structure, requirements with evidence, a policy the validator enforces in CI, custom metadata. Published on GitHub with `develop` as the default branch and `master` protected; a merge to `master` that raises the skill version becomes a release with its zip; bug reports and feature requests come in through issue forms, and pull requests are not accepted. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) and the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md).
+Skill 0.9.0, renderer 1.9.0. Usable for real models; the five examples, three on Azure and one each on AWS and Google Cloud, are rendered from their models and pass every check. Done so far: the interview with its references and option lists; the JSON Schema, the validator with its lint and `--fix`, the archive workflow; service profiles, flow detail and threat detail from the research notes; the cloud catalogue (36 cards); multi-tab documents with one Threat Register; floating Layers and Attributes cards; Title Case labels and arrows that leave the initiator; the title-block footer; the visibility-graph router with a written precedence and the page's self-check; automated layout checks with a baseline; attack paths walked on the canvas; what-if scenario tabs with a delta script; classification and remediation lints; the ingest guide; deep links and PNG export; CI; the official Azure, AWS and Google Cloud icons on cloud elements and product logos fetched on demand for everything else; dependencies as structure, requirements with evidence, a policy the validator enforces in CI, custom metadata; threat enumeration by rule, component cards for the self-managed world, executive, developer and audit reports and a portfolio table. Published on GitHub with `develop` as the default branch and `master` protected; a merge to `master` that raises the skill version becomes a release with its zip; bug reports and feature requests come in through issue forms, and pull requests are not accepted. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md) and the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 ## Branches
 

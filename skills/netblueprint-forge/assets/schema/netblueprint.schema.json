@@ -999,6 +999,7 @@
             "reviewer",
             "cloud-catalogue",
             "live-research",
+            "rule",
             "standard",
             "other"
           ]
@@ -3244,6 +3245,7 @@
                 "automated-scan",
                 "cloud-catalogue",
                 "live-research",
+                "rule",
                 "other"
               ]
             },

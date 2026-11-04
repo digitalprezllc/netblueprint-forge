@@ -8,7 +8,7 @@ You are building `model.json` section by section. The user answers in their own 
 - **Offer defaults and accept "skip".** Only the fields marked **must** below are mandatory. Everything else gets a sensible default or stays empty.
 - **Names are ids.** Propose a short `name` for each element (`web-01`, `snet-data`, `f-api-sql`) and confirm it once; the user refers to it later. Labels carry the human wording. Names are unique across their kind; never rename one silently.
 - **Write after every section.** Save `model.json`, run `node scripts/validate.mjs model.json --fix`, fix what it reports before moving on. From section 5 onward, build and show the diagram whenever something meaningful changed (`render.md`).
-- **Cloud services trigger the card workflow.** The moment a node is "an App Service", "an S3 bucket", "Cloud SQL", open `cloud/README.md` and run that card's questions before continuing the section.
+- **Cloud services trigger the card workflow.** The moment a node is "an App Service", "an S3 bucket", "Cloud SQL", open `cloud/README.md` and run that card's questions before continuing the section. A common self-managed component (IIS, Postgres, AD DS, Okta, a FortiGate, a jump host) has a card in `components.md`; use it the same way.
 - **Never invent facts.** If the user does not know how something authenticates, leave `auth` out; the diagram shows "?" and the register will prompt for it later.
 
 ## Where the files go
@@ -113,7 +113,7 @@ Write: `flows[]` with `name` (`f-<from>-<to>` works), `label`, `from`, `to`, `di
 
 Normalize with `normalize.mjs` (`connection_type`, `initiator`, `classification`, `data_tag`, `security_protocol`, `client_auth`, `server_auth`, `credential_storage`, `factors`). The validator warns on deprecated TLS, sensitive data without confidentiality, weak credential storage, disabled certificate validation and unlogged flows.
 
-Build and show the diagram here; the shape of the network is now visible and it is the right moment to add layout hints (`layout-hints.md`).
+Build and show the diagram here; the shape of the network is now visible and it is the right moment to add layout hints (`layout-hints.md`). Then run `node scripts/suggest.mjs model.json`: the rules read the flows just captured and list the threats they imply (an unauthenticated crossing, data in the clear, a boundary with no appliance …); tell the user what they found, and keep the list for Section 7, where `--apply` writes the ones they want as suggested threats (`threats.md`, "Suggested threats from cards and rules").
 
 ## Section 6: The story (phases and steps)
 
@@ -154,3 +154,4 @@ Organisation metadata that fits no field (a CMDB id, a cost code, a register lin
 1. `node scripts/validate.mjs model.json --fix` with zero errors; read the warnings aloud and resolve what the user wants resolved. If the model carries a policy, run `--strict` too and report what it would fail on in CI.
 2. `node scripts/build.mjs model.json`, open the HTML, run the layout checklist in `render.md`.
 3. Tell the user what the model contains (counts), where the files are, and what is still open (flows without auth, suggested elements, threats to add).
+4. Offer the reports: `node scripts/report.mjs model.json --kind exec` for the executive summary, `--kind developer` for the to-do list by owner, `--kind audit` for the evidence view (`-o report.md` writes the file); and `node scripts/portfolio.mjs <folder>` when the user keeps several models.

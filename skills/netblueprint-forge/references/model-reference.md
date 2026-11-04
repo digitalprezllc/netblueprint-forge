@@ -732,7 +732,7 @@ The weakness the threat exploits, normalized to one category (CWE classes and OW
 | Field | Type / allowed values | Required | Notes |
 | - | - | - | - |
 | `text` | text ≤4000 | yes |  |
-| `source` | `user`, `reviewer`, `cloud-catalogue`, `live-research`, `standard`, `other` |  |  |
+| `source` | `user`, `reviewer`, `cloud-catalogue`, `live-research`, `rule`, `standard`, `other` |  |  |
 | `status` | `suggested`, `accepted`, `rejected`, `converted` |  | Default `"suggested"`. |
 | `control_id` | `CTL-0000` to `CTL-9999` |  | Set when the suggestion became a control. |
 | `notes` | text ≤4000 |  |  |

@@ -1,0 +1,264 @@
+{
+  "netblueprint": "1",
+  "meta": {
+    "title": "Rules Fixture",
+    "author": "NetBlueprint tests",
+    "date": "2026-11-04",
+    "version": "0.1.0",
+    "description": "Valid model built to trigger every threat rule of scripts/rules.mjs at least once: it is the input of tests/check_suggest.mjs."
+  },
+  "settings": {
+    "network_label": "Fabrikam Network"
+  },
+  "zones": [
+    {
+      "name": "corp",
+      "label": "Fabrikam Network",
+      "kind": "network",
+      "appliances": [
+        {
+          "name": "edge-fw",
+          "label": "Edge Firewall",
+          "type": "firewall",
+          "filters": "both"
+        }
+      ]
+    },
+    {
+      "name": "dmz",
+      "label": "DMZ",
+      "kind": "dmz",
+      "parent": "corp",
+      "dashed": true
+    },
+    {
+      "name": "app",
+      "label": "Application Tier",
+      "kind": "segment",
+      "parent": "corp"
+    },
+    {
+      "name": "plant",
+      "label": "Plant Floor",
+      "kind": "ot",
+      "parent": "corp"
+    }
+  ],
+  "nodes": [
+    {
+      "name": "customer",
+      "label": "Customer",
+      "type": "remote-user",
+      "zone": "internet"
+    },
+    {
+      "name": "crm",
+      "label": "CRM (SaaS)",
+      "type": "saas",
+      "zone": "internet"
+    },
+    {
+      "name": "admin",
+      "label": "IT Administrator",
+      "type": "admin",
+      "zone": "corp"
+    },
+    {
+      "name": "web",
+      "label": "WEB-01",
+      "sub": "Public web front end",
+      "type": "server",
+      "zone": "dmz",
+      "components": [
+        {
+          "name": "site",
+          "label": "Portal Site",
+          "type": "web-server",
+          "ports": [
+            "443/tcp"
+          ]
+        }
+      ],
+      "profile": {
+        "platform": {
+          "category": "virtual-machine",
+          "os": "Windows Server 2012 R2",
+          "support_status": "end-of-life"
+        },
+        "device_authentication": {
+          "credential_storage": "config-file-plaintext"
+        },
+        "elevated_access": {
+          "model": "standing-admin",
+          "mfa_required": false,
+          "session_recording": false
+        },
+        "patching": {
+          "cadence": "none"
+        },
+        "hardening": {
+          "baseline": "none"
+        }
+      }
+    },
+    {
+      "name": "api",
+      "label": "Orders API",
+      "type": "api",
+      "zone": "app",
+      "cloud": {
+        "provider": "azure",
+        "service": "App Service",
+        "exposure": "private",
+        "enabled_risky_protocols": [
+          "ftps",
+          "basic-auth-scm"
+        ]
+      },
+      "depends_on": [
+        {
+          "kind": "pki",
+          "label": "Corporate CA",
+          "criticality": "required"
+        }
+      ]
+    },
+    {
+      "name": "db",
+      "label": "Orders Database",
+      "type": "database",
+      "zone": "app",
+      "data_classification": "restricted",
+      "cloud": {
+        "provider": "azure",
+        "service": "Azure SQL",
+        "exposure": "internet"
+      }
+    },
+    {
+      "name": "plc",
+      "label": "Line Controller",
+      "type": "ot",
+      "zone": "plant"
+    }
+  ],
+  "flows": [
+    {
+      "name": "f-customer-web",
+      "label": "Browse",
+      "from": "customer",
+      "to": "web/site",
+      "kind": "data",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "internal"
+    },
+    {
+      "name": "f-customer-api",
+      "label": "Orders",
+      "from": "customer",
+      "to": "api",
+      "kind": "data",
+      "auth": "password",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "encrypted": true,
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ]
+    },
+    {
+      "name": "f-web-api",
+      "label": "Render",
+      "from": "web/site",
+      "to": "api",
+      "kind": "data",
+      "auth": "api-key",
+      "protocol": "HTTPS",
+      "port": "8443/tcp",
+      "encrypted": true,
+      "data_classification": "confidential"
+    },
+    {
+      "name": "f-api-db",
+      "label": "Query",
+      "from": "api",
+      "to": "db",
+      "kind": "data",
+      "auth": "password",
+      "protocol": "TDS",
+      "port": "1433/tcp",
+      "encrypted": false,
+      "data_classification": "restricted",
+      "data_tags": [
+        "pii",
+        "financial"
+      ]
+    },
+    {
+      "name": "f-api-crm",
+      "label": "Sync",
+      "from": "api",
+      "to": "crm",
+      "kind": "data",
+      "auth": "api-key",
+      "protocol": "HTTPS",
+      "port": "443/tcp",
+      "data_classification": "confidential",
+      "data_tags": [
+        "pii"
+      ],
+      "transport": {
+        "security_protocol": "tls-1.0",
+        "certificate_validation": "disabled"
+      },
+      "authentication": {
+        "client": {
+          "method": "api-key",
+          "credential_storage": "config-file-plaintext"
+        }
+      },
+      "path_controls": {
+        "logged": false
+      },
+      "availability": {
+        "single_point_of_failure": true
+      }
+    },
+    {
+      "name": "f-admin-web",
+      "label": "Remote Desktop",
+      "from": "admin",
+      "to": "web",
+      "kind": "data",
+      "auth": "password",
+      "protocol": "RDP",
+      "port": "3389/tcp",
+      "encrypted": true,
+      "data_classification": "internal",
+      "connection": {
+        "type": "remote-session"
+      },
+      "path_controls": {
+        "logged": false
+      }
+    },
+    {
+      "name": "f-web-plc",
+      "label": "Line Status",
+      "from": "web/site",
+      "to": "plc",
+      "kind": "control",
+      "auth": "anonymous",
+      "protocol": "Modbus/TCP",
+      "port": "502/tcp",
+      "encrypted": false,
+      "data_classification": "internal"
+    }
+  ],
+  "steps": [],
+  "controls": [],
+  "threats": []
+}

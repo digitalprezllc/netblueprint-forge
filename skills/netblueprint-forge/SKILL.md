@@ -5,7 +5,7 @@ license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LL
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.8.0"
+  version: "0.9.0"
   renderer-version: "1.9.0"
 ---
 
@@ -35,6 +35,9 @@ You are a Principal Security Architect and systems-visualization expert speciali
 | "What if we changed X?", a proposal to evaluate against an existing model | [references/what-if.md](references/what-if.md) | Scenario tab beside the baseline; threats and attack paths re-run on the change; `scenario.mjs` prints the delta |
 | What must hold, requirements, evidence for an audit, "which controls satisfy PCI here" | [references/threats.md](references/threats.md) "Requirements and evidence" | `requirements[]` with permanent REQ numbers, the threats they answer, the controls that satisfy them, framework clauses; `evidence[]` on verified controls |
 | What a system needs to work: identity, DNS, keys, secrets, logging, a registry | [references/interview.md](references/interview.md) Section 3 "Dependencies" | `depends_on[]` on the element, a `dependency` flow to the provider; the validator asks for the flow |
+| "What else could go wrong?", a second opinion on the threats, STRIDE per interaction | `node scripts/suggest.mjs model.json` (see [references/threats.md](references/threats.md) "Suggested threats from cards and rules") | 23 rules propose threats with STRIDE, CWE, ATT&CK, a rating and a mitigation; `--apply` writes them as suggested; the user confirms or retires each |
+| A node that is a common on-premises or self-managed component (IIS, Postgres, AD DS, Okta, a FortiGate, a jump host, a SIEM) | [references/components.md](references/components.md) | The card's questions, dependencies, proposals and threats, like a cloud card's |
+| A report for a reader: an executive summary, the developer's to-do list, audit evidence; one table across many models | `node scripts/report.mjs model.json --kind exec\|developer\|audit\|all`, `node scripts/portfolio.mjs <folder>` | Markdown generated from the model; paste it into the document or the ticket |
 | How threats chain: "and from there the attacker …", attack paths, kill chains | [references/threats.md](references/threats.md) "Attack paths" | `attack_paths[]` with hops, gains and the control that breaks the chain |
 | Terraform / Bicep / CloudFormation / Kubernetes / OpenAPI / a design document as the input | [references/ingest.md](references/ingest.md) | Map sources to elements marked `suggested`; then the interview for what files cannot say |
 | What a field means or allows | [references/model-reference.md](references/model-reference.md) | Answer from the generated reference |
@@ -45,6 +48,9 @@ You are a Principal Security Architect and systems-visualization expert speciali
 ```bash
 node scripts/validate.mjs <model.json> --fix     # schema + lint; writes computed risk ratings back
 node scripts/validate.mjs <model.json> --strict  # the lint plus settings.policy: open high threats without a plan on track, overdue controls, requirements without controls …; exit 1 for CI
+node scripts/suggest.mjs <model.json>            # threats the rules propose (STRIDE per interaction); --apply writes them as suggested; --rules lists the rules
+node scripts/report.mjs <model.json> --kind exec # executive summary; developer (the to-do list by owner); audit (verified controls with evidence, requirements by clause); all
+node scripts/portfolio.mjs <folder>              # one table across every model under a folder: threats by band, open high threats, overdue controls, policy
 node scripts/build.mjs <model.json>              # -> <model-name>.html (validates first; refuses errors)
 node scripts/archive.mjs <model.json> --note "what is about to change"   # snapshot + version bump; run BEFORE editing
 node scripts/archive.mjs <model.json> --diff     # append element-level changes AFTER editing
@@ -82,6 +88,8 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 20. **Requirements and evidence.** `requirements[]` (`REQ-nnnn`, permanent numbers like threats) state what must hold, name the threats they answer, the controls that satisfy them and the framework clauses they serve; `implemented` and `verified` rest on a real control. A `verified` control carries `evidence[]` (what showed it works: a test report, a scan, an audit finding, a configuration export). Both appear in the Threat Register.
 21. **Policy lives in the model.** `settings.policy` says what `validate --strict` fails on (open threats at a band with no planned control on track, missing treatment decisions, overdue controls, requirements without controls, suggested elements, accepted risks past review); CI runs `--strict` and needs no configuration of its own. Offer a policy at the summary step.
 22. **Custom metadata has one home.** Organisation fields that fit no field (a CMDB id, a cost code, a register link) go in `custom` on the element, never in a free-text field meant for something else.
+23. **Rules propose, the user confirms.** After the flows are in, and again after the threats, run `node scripts/suggest.mjs model.json` and walk the user through what the rules found; `--apply` writes the ones they want as `suggested: true` with `suggested_from: "rule:Rnnn"`, to confirm or retire like a card's proposals. Never present a rule's suggestion as a finding the user made, and never apply without asking.
+24. **Component cards work like cloud cards.** A node that is a common self-managed component (`references/components.md`) gets its card's questions, dependencies and threats, marked `suggested` until confirmed; a product with no card gets `cloud/generic.md`'s questions.
 
 ## Files in this skill
 
@@ -90,7 +98,7 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 - `assets/icons/azure.json`, `aws.json`, `gcp.json`: the vendor icon library, one index per provider with the icons' markup, titles, aliases and the vendor's terms; `THIRD-PARTY-NOTICES.md` beside this file reproduces those terms. `references/icons.md` explains the names.
 - `assets/template/template.html`: the renderer. Never edit a generated HTML by hand; change the model and rebuild.
 - `assets/examples/entra-app-proxy.model.json`: the primary worked example (Entra Application Proxy publishing an internal portal over ExpressRoute; service profiles, flow detail, threats with as-is and future-state controls, out-of-scope elements). `assets/examples/azure-hub-spoke.model.json`: a busier hub-spoke example. `assets/examples/partner-portal-tabs.model.json`: the same portal on two tabs (Partner Access, Admin Access) with threats numbered across both. `assets/examples/aws-three-tier.model.json` (AnyCompany: CloudFront, ALB, EC2, RDS, Secrets Manager, S3 over VPC endpoints, Session Manager; an SSRF-to-exfiltration attack path) and `assets/examples/gcp-serverless-web.model.json` (Cymbal: Cloud Armor, Cloud Run, a VPC connector to Cloud SQL and Memorystore, Secret Manager, IAP; a dependency-compromise attack path) are the AWS and Google Cloud counterparts, with the vendors' icons. Show one when the user wants to see what a finished model looks like, matching their provider.
-- `scripts/validate.mjs`, `build.mjs`, `archive.mjs`, `normalize.mjs`, `scenario.mjs`, `model-reference.mjs`: Node 18+, no dependencies. `scripts/check.mjs`: the headless geometry check of a built page (Node 18+ plus any Chromium-based browser already on the machine; no install). `scripts/screenshot.mjs`: a PNG of one view of a built page (a tab, a step or an attack-path hop) for documents and decks, with the same browser.
+- `scripts/validate.mjs`, `build.mjs`, `archive.mjs`, `normalize.mjs`, `scenario.mjs`, `suggest.mjs` (with `rules.mjs`, the 23 threat rules), `report.mjs`, `portfolio.mjs`, `model-reference.mjs`: Node 18+, no dependencies. `scripts/check.mjs`: the headless geometry check of a built page (Node 18+ plus any Chromium-based browser already on the machine; no install). `scripts/screenshot.mjs`: a PNG of one view of a built page (a tab, a step or an attack-path hop) for documents and decks, with the same browser.
 
 ## Output location
 

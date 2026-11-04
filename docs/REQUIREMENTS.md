@@ -133,6 +133,12 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 ### 2.25 Custom metadata
 - Every element, threat, control, requirement, attack path, tab and the meta block accept a `custom` object (up to 40 keys) for organisation metadata with no field of its own; the schema validates the key names, the validator leaves the values alone, the Attributes card lists them under Custom.
 
+### 2.26 Threat rules
+- `scripts/suggest.mjs` runs the rules of `scripts/rules.mjs` (23 at 0.9.0: STRIDE per interaction over flows and elements) and lists candidate threats with targets, STRIDE, the weakness and its CWE, ATT&CK tactics and techniques, an adversary, default likelihood and impact, a boundary where one is crossed and a mitigation written as an engineering action. A candidate already covered (a threat with `suggested_from: "rule:<id>"` on the same target, or any threat on the same target with the same weakness or an overlapping STRIDE category) is reported as skipped. `--apply` appends the rest with the next free THR numbers as `suggested: true`, `provenance.discovered_by: "rule"`, status identified, treatment undecided; what-if scenario tabs are skipped. Rules are code, not a rules language, so each is testable; `tests/fixtures/rules.model.json` triggers every one.
+
+### 2.27 Reports and portfolio
+- `scripts/report.mjs` writes Markdown from the model for three readers: executive (risk at a glance by band for inherent, current and projected; open threats in order; attack paths; accepted risks with review dates; requirements and controls by status; the policy result), developer (planned and in-progress controls by owner with due date, ticket, the threats they close and the requirements they satisfy; suggested mitigations not converted; open threats with no plan; validator warnings) and audit (verified controls with verification and evidence; implemented-but-unverified controls; requirements and controls by framework clause; accepted risks; every threat with status and controls; policy). `scripts/portfolio.mjs` finds every model under a folder and tabulates threats by band, open threats at high or above, attack paths, planned and overdue controls, requirements verified, policy and validator results, with totals.
+
 ## 3. Renderer
 
 ### 3.1 Output
@@ -263,6 +269,9 @@ Many users know they are deploying "an App Service" or "an S3 bucket" without kn
 - **Mode A, baseline:** the interview, or sources the user hands over (Terraform, Bicep, ARM, CloudFormation, Kubernetes manifests, OpenAPI, design documents) read per `references/ingest.md` into `suggested` elements, then the interview for what files cannot say.
 - **Mode B, what-if:** a change statement against an existing model becomes a scenario tab (`references/what-if.md`): copy the baseline, apply the change, re-run threats and attack paths on what changed, print the delta, promote or drop.
 - The persona traces assets across boundaries and chains threats (SKILL.md, persona point 4); Section 7b of the interview asks for attack paths after the threats.
+
+### 4.3 Component cards
+- `references/components.md` holds cards for the common self-managed components (web server, reverse proxy, application server, API gateway, relational database, cache, message broker, file share, identity provider, directory, VPN gateway, jump host, mail, DNS, CI/CD runner, secrets vault, backup, workstation, SIEM, firewall, WAF) in the cloud-card format: icon, what, attaches to, default exposure, disable unless needed, depends on (as `depends_on` proposals), ask, propose, threats with STRIDE, category, CWE, ATT&CK and a control. The skill routes to them as it routes to cloud cards; everything proposed stays `suggested` until confirmed.
 
 ## 5. Revisions and archive
 
