@@ -34,6 +34,46 @@ Every release on the repository's Releases page carries `netblueprint-forge-<ver
 
 Amp, OpenCode, Goose, Roo Code, JetBrains Junie, Factory and others also read `.agents/skills/`, so they are covered by the same link. Microsoft 365 Copilot / Copilot Studio declarative agents use a different packaging (manifest + instructions) and are out of scope; GitHub Copilot in Visual Studio is covered by the Copilot row.
 
+## Sample sessions
+
+Two sessions in the same shape as the README's payments example: what you want, what you say, which interview sections carry it, what the page shows, and the next move. The skill is the same folder in every tool; output lands in `netblueprint/<model-name>/` in your project whichever tool you use.
+
+### Cursor: a second tab added to an existing model
+
+The portal model `hr-portal` exists; operations wants a view of how administrators reach the servers from the office network.
+
+```text
+You:    /netblueprint-forge add a tab admin-access to hr-portal: how operators reach the portal servers from the office.
+
+Skill:  Archived v1.2.0 -> now v1.3.0 (note: add the admin-access tab). The new tab has its own zones, nodes, flows
+        and steps; threat numbers continue at THR-0007. Who are the operators, and from which device? …
+        Is the direct RDP path from the office blocked or allowed? Blocked paths are drawn with a ✕. …
+        Built hr-portal.html: two diagram tabs and the Threat Register; the geometry check passed on both.
+        Logged to archive/CHANGELOG.md: +1 tab, +3 zones, +4 nodes, +5 flows, +4 steps, +2 threats, +3 controls.
+```
+
+- **Interview path:** [revise and archive](../skills/netblueprint-forge/references/revise-and-archive.md): archive first, Section 0b for the tab, the usual sections for its contents, validate with `--fix`, build, log the diff. Every edit is by name.
+- **The page:** a tab strip under the canvas, the new tab with its own phases (Sign In, Broker, Maintain), the jump host behind its own ACL, and one register across both tabs, as in the [Partner Portal example](../examples/partner-portal-tabs/README.md).
+- **Next:** `hr-portal.html#tab=admin-access&step=2` is the link to send the operators' lead.
+
+### Kiro: a what-if scenario beside a baseline
+
+An analytics vendor asks for a public endpoint on the orders database. Nobody wants to edit the baseline to find out what that would cost.
+
+```text
+You:    /netblueprint-forge what if the orders database gets a public endpoint for the analytics vendor?
+
+Skill:  Deriving the scenario tab whatif-public-db from main (archived v1.4.0 -> now v1.5.0). The change, in one
+        sentence? … The vendor: an actor on the Internet side; how does it authenticate to the database? …
+        Re-running the threats on the change: a new boundary crossing (Internet → Data), a weakened flow
+        (SQL login over the Internet), two threats, one attack path to the orders data. Keep them? …
+        Delta: +1 node, +1 flow, +2 threats, +1 attack path; CTL-0003 (private endpoint only) is invalidated.
+```
+
+- **Interview path:** [what-if](../skills/netblueprint-forge/references/what-if.md): the scenario tab names its baseline and the change, repeats only what the change touches, and re-runs threats and attack paths on it; the baseline stays untouched.
+- **The page:** a What-If tag on the tab, a banner with the change statement and a link back to the baseline, the vendor's weak-auth flow with a `!` badge, new threat circles on the database, and the new path as a red phase.
+- **Next:** promote the scenario into the baseline once the change is approved, or drop the tab; either way `scenario.mjs` has written the delta.
+
 ## Sources
 
 - Agent Skills specification: https://agentskills.io/specification
