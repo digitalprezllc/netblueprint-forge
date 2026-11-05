@@ -2,9 +2,9 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
-## Unreleased
+## 0.10.1 (2026-11-04)
 
-Renderer 1.10.1.
+Skill 0.10.1, renderer 1.10.1. Download: [netblueprint-forge-0.10.1.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.10.1.zip), sha256 `af4a63578ef694c27f29320e3967d997116e66db29c70327a4ee3a6f04a31aff`.
 
 - The legend is grouped under captions (Flows, Authentication, Elements, Threats), every entry stays on one line, and the Threat Register's legend takes the same shape.
 - Every Threat Register section has an eye button in the register's head, blue while the section shows and grey while it is hidden; Threats and Attack Paths start shown, Requirements and Framework Coverage hidden; the browser remembers the choice per document, and `#tab=threat-register&sections=all` (or `none`, or a comma list of `threats`, `paths`, `requirements`, `coverage`) opens a page with a chosen set shown (`scripts/screenshot.mjs --sections all` for pictures).

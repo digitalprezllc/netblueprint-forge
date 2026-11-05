@@ -5,8 +5,8 @@ license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LL
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.10.0"
-  renderer-version: "1.10.0"
+  version: "0.10.1"
+  renderer-version: "1.10.1"
 ---
 
 # NetBlueprint Forge
