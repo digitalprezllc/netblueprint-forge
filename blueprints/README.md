@@ -2,7 +2,7 @@
 
 Working models produced with the skill in this repository (dogfooding). In a user's own project the same layout lives under `netblueprint/`.
 
-```
+```text
 blueprints/
 └── <model-name>/
     ├── model.json                 current model
