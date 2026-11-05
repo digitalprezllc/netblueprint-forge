@@ -11,6 +11,8 @@ What it shows:
 - Every flow that matters carries the full detail: connection type and initiator, what each side sends, data sensitivity and labels, transport security and what it provides, how client and server authenticate and where their credentials live, logging.
 - **Service profiles** on the connector, portal, SQL, AD DS and the proxy service: ownership, platform and support status, location, device authentication, elevated access model, patching, hardening baseline, sourcing (COTS / custom / SaaS).
 - A nine-step story and four **illustrative threats** with a vulnerability category, a threat statement, consequence, inherent / current / projected risk, **as-is and future-state controls** and suggested mitigations.
+- **Dependencies as structure:** the connector group depends on AD DS (directory) and on the Application Proxy service (identity), and Entra ID on AD DS through Entra Connect sync, drawn as a dashed `dependency` flow on its own layer. The Attributes card lists what each element depends on and what depends on it.
+- **Evidence on verified controls:** each of the five verified controls cites what shows it is in place and who produced it: the Conditional Access and NSG configuration exports, the connector VMs' scan result, the delegation audit finding and the firewall baseline export.
 
 Files:
 

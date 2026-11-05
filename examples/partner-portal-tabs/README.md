@@ -8,6 +8,7 @@ The same portal as the Entra Application Proxy example, drawn as two diagrams of
 What it shows:
 
 - Each tab has its own zones, nodes, flows, steps, threats and controls; threat numbers continue across tabs (THR-0001 to THR-0004 on Partner Access, THR-0005 and THR-0006 on Admin Access), and the Threat Register lists both diagrams with a Diagram column.
+- Partner Access carries the same dependencies and evidence as the Entra Application Proxy example: the connector group depends on AD DS and on the proxy service, Entra Connect sync is a dashed `dependency` flow on its own layer, and the five verified controls cite their configuration exports, scan result and audit finding. On Admin Access the jump host's Credential Guard and session recording control is verified with a configuration export.
 - The tab strip under the canvas; PageUp / PageDown switch tabs; `partner-portal-tabs.html#tab=admin-access` opens the second tab directly, `#tab=admin-access&step=2` opens it at its second step.
 
 Files:
