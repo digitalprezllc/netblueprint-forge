@@ -1,6 +1,6 @@
 {
   "netblueprint_crosswalk": 1,
-  "note": "DigitalPrez's working crosswalk from NIST SP 800-53 Rev. 5 controls to the clauses of other frameworks, used by scripts/coverage.mjs to answer which controls of a model touch which clause. It is a working aid written by DigitalPrez, LLC, not an official mapping by any of the publishers: a control listed under a clause contributes to it, it does not by itself satisfy it. Clause numbers and the short titles beside them are given for navigation; the standards themselves are the publishers'. The CIS Controls are deliberately absent because their licence does not permit redistribution in a commercially licensed product. A model can extend or override this file with a frameworks.json of the same shape beside it (merged by control id and by clause); an organisation that holds the publishers' own mapping tables puts them there.",
+  "note": "DigitalPrez's working crosswalk from NIST SP 800-53 Rev. 5 controls to the clauses of other frameworks, used by scripts/coverage.mjs to answer which controls of a model touch which clause. It is a working aid written by DigitalPrez, LLC, not an official mapping by any of the publishers: a control listed under a clause contributes to it, it does not by itself satisfy it. Clause numbers and the short titles beside them are given for navigation; the standards themselves are the publishers'. The CIS Controls are deliberately absent because their licence does not permit redistribution in a commercially licensed product. A model can extend or override this file with a frameworks.json of the same shape beside it (merged by control id and by clause); an organisation that holds the publishers' own mapping tables puts them there. NIST SP 800-171 Rev. 2 entries follow NIST's own Appendix D mapping of each requirement to SP 800-53 controls, with the Rev. 4 identifiers that Rev. 5 withdrew carried to their Rev. 5 successors (AU-2(3) to AU-2, AU-8(1) to SC-45(1), IA-2(3) to IA-2(1), IA-2(9) to IA-2(8), MP-5(4) to SC-28(1), MP-7(1) to MP-7) and SC-19 dropped, so requirement 3.13.14 is reached only by direct citation. CMMC 2.0 entries carry the Level 2 identifiers, the requirement number behind its family (AC.L2-3.1.1), and the Level 1 identifiers with the requirements Table 2 to 32 CFR 170.15(c)(1)(ii) maps them to; Level 3 (SP 800-172) is not included.",
   "frameworks": {
     "nist-800-53-r5": {
       "title": "NIST SP 800-53 Revision 5, Security and Privacy Controls",
@@ -30,6 +30,16 @@
     "hipaa-security-rule": {
       "title": "HIPAA Security Rule, 45 CFR Part 164 Subpart C",
       "publisher": "US Department of Health and Human Services",
+      "terms": "US federal regulation, public domain"
+    },
+    "nist-800-171-r2": {
+      "title": "NIST SP 800-171 Revision 2, Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations",
+      "publisher": "NIST",
+      "terms": "US government work, public domain"
+    },
+    "cmmc-2.0": {
+      "title": "CMMC 2.0 Level 1 and Level 2 security requirements (32 CFR Part 170)",
+      "publisher": "US Department of Defense",
       "terms": "US federal regulation, public domain"
     }
   },
@@ -213,6 +223,245 @@
       "PR.PS-06": "Secure software development practices",
       "RC.RP-01": "Recovery plan executed",
       "RS.MA-01": "Incident response plan executed"
+    },
+    "nist-800-171-r2": {
+      "3.1.1": "Limit system access to authorized users, processes and devices",
+      "3.1.2": "Limit access to permitted transactions and functions",
+      "3.1.3": "Control the flow of CUI per approved authorizations",
+      "3.1.4": "Separate duties to reduce the risk of malevolent activity",
+      "3.1.5": "Least privilege, including security functions and privileged accounts",
+      "3.1.6": "Non-privileged accounts for nonsecurity functions",
+      "3.1.7": "Prevent non-privileged users from executing privileged functions; log them",
+      "3.1.8": "Limit unsuccessful logon attempts",
+      "3.1.9": "Privacy and security notices consistent with CUI rules",
+      "3.1.10": "Session lock with pattern-hiding displays",
+      "3.1.11": "Automatic session termination after a defined condition",
+      "3.1.12": "Monitor and control remote access sessions",
+      "3.1.13": "Cryptographic protection of remote access sessions",
+      "3.1.14": "Route remote access through managed access control points",
+      "3.1.15": "Authorize remote execution of privileged commands and access to security data",
+      "3.1.16": "Authorize wireless access before connections are allowed",
+      "3.1.17": "Protect wireless access with authentication and encryption",
+      "3.1.18": "Control the connection of mobile devices",
+      "3.1.19": "Encrypt CUI on mobile devices and mobile computing platforms",
+      "3.1.20": "Verify and control connections to and use of external systems",
+      "3.1.21": "Limit the use of portable storage devices on external systems",
+      "3.1.22": "Control CUI posted or processed on publicly accessible systems",
+      "3.2.1": "Make managers, administrators and users aware of security risks and policies",
+      "3.2.2": "Train personnel for their assigned security duties",
+      "3.2.3": "Security awareness on recognizing and reporting insider threat",
+      "3.3.1": "Create and retain audit logs and records for monitoring and investigation",
+      "3.3.2": "Trace the actions of individual users for accountability",
+      "3.3.3": "Review and update logged events",
+      "3.3.4": "Alert on audit logging process failure",
+      "3.3.5": "Correlate audit record review, analysis and reporting",
+      "3.3.6": "Audit record reduction and report generation on demand",
+      "3.3.7": "Synchronize system clocks with an authoritative time source",
+      "3.3.8": "Protect audit information and tools from unauthorized access and change",
+      "3.3.9": "Limit audit logging management to a privileged subset of users",
+      "3.4.1": "Baseline configurations and inventories across the system lifecycle",
+      "3.4.2": "Establish and enforce security configuration settings",
+      "3.4.3": "Track, review, approve and log changes to systems",
+      "3.4.4": "Analyze the security impact of changes before implementation",
+      "3.4.5": "Restrict and audit physical and logical access for changes",
+      "3.4.6": "Least functionality: essential capabilities only",
+      "3.4.7": "Restrict nonessential programs, functions, ports, protocols and services",
+      "3.4.8": "Deny-by-exception or permit-by-exception software execution policy",
+      "3.4.9": "Control and monitor user-installed software",
+      "3.5.1": "Identify system users, processes and devices",
+      "3.5.2": "Authenticate users, processes and devices before access",
+      "3.5.3": "Multifactor authentication for privileged accounts and network access",
+      "3.5.4": "Replay-resistant authentication for network access",
+      "3.5.5": "Prevent reuse of identifiers for a defined period",
+      "3.5.6": "Disable identifiers after a period of inactivity",
+      "3.5.7": "Minimum password complexity and change of characters",
+      "3.5.8": "Prohibit password reuse for a number of generations",
+      "3.5.9": "Temporary passwords changed immediately to permanent ones",
+      "3.5.10": "Store and transmit only cryptographically protected passwords",
+      "3.5.11": "Obscure feedback of authentication information",
+      "3.6.1": "Operational incident-handling capability, preparation through response",
+      "3.6.2": "Track, document and report incidents to officials and authorities",
+      "3.6.3": "Test the incident response capability",
+      "3.7.1": "Perform maintenance on organizational systems",
+      "3.7.2": "Control the tools, techniques, mechanisms and personnel used for maintenance",
+      "3.7.3": "Sanitize equipment removed for off-site maintenance",
+      "3.7.4": "Check media with diagnostic and test programs for malicious code",
+      "3.7.5": "Multifactor authentication for nonlocal maintenance; terminate when complete",
+      "3.7.6": "Supervise maintenance personnel without required access authorization",
+      "3.8.1": "Protect system media containing CUI, paper and digital",
+      "3.8.2": "Limit access to CUI on system media to authorized users",
+      "3.8.3": "Sanitize or destroy media containing CUI before disposal or reuse",
+      "3.8.4": "Mark media with CUI markings and distribution limitations",
+      "3.8.5": "Control access to and accountability for media during transport",
+      "3.8.6": "Encrypt CUI on digital media during transport unless physically protected",
+      "3.8.7": "Control the use of removable media on system components",
+      "3.8.8": "Prohibit portable storage devices with no identifiable owner",
+      "3.8.9": "Protect the confidentiality of backup CUI at storage locations",
+      "3.9.1": "Screen individuals before authorizing access to systems with CUI",
+      "3.9.2": "Protect systems and CUI during and after personnel actions",
+      "3.10.1": "Limit physical access to systems, equipment and operating environments",
+      "3.10.2": "Protect and monitor the physical facility and support infrastructure",
+      "3.10.3": "Escort visitors and monitor visitor activity",
+      "3.10.4": "Maintain audit logs of physical access",
+      "3.10.5": "Control and manage physical access devices",
+      "3.10.6": "Safeguarding measures for CUI at alternate work sites",
+      "3.11.1": "Periodically assess risk from system operation and CUI processing",
+      "3.11.2": "Scan for vulnerabilities periodically and when new ones are identified",
+      "3.11.3": "Remediate vulnerabilities in accordance with risk assessments",
+      "3.12.1": "Periodically assess security controls for effectiveness",
+      "3.12.2": "Plans of action to correct deficiencies and reduce vulnerabilities",
+      "3.12.3": "Monitor security controls on an ongoing basis",
+      "3.12.4": "System security plans: boundaries, environments, requirements, connections",
+      "3.13.1": "Monitor, control and protect communications at external and key internal boundaries",
+      "3.13.2": "Security engineering principles in architecture, design and development",
+      "3.13.3": "Separate user functionality from system management functionality",
+      "3.13.4": "Prevent unauthorized information transfer via shared resources",
+      "3.13.5": "Subnetworks for publicly accessible components, separated from internal networks",
+      "3.13.6": "Deny network communications by default; allow by exception",
+      "3.13.7": "Prevent split tunneling on remote devices",
+      "3.13.8": "Cryptographic protection of CUI in transit unless physically protected",
+      "3.13.9": "Terminate network connections after sessions end or on inactivity",
+      "3.13.10": "Establish and manage cryptographic keys",
+      "3.13.11": "FIPS-validated cryptography to protect the confidentiality of CUI",
+      "3.13.12": "No remote activation of collaborative computing devices; indicate use",
+      "3.13.13": "Control and monitor the use of mobile code",
+      "3.13.14": "Control and monitor the use of Voice over Internet Protocol",
+      "3.13.15": "Protect the authenticity of communications sessions",
+      "3.13.16": "Protect the confidentiality of CUI at rest",
+      "3.14.1": "Identify, report and correct system flaws in a timely manner",
+      "3.14.2": "Protection from malicious code at designated locations",
+      "3.14.3": "Monitor security alerts and advisories and take action",
+      "3.14.4": "Update malicious code protection when new releases are available",
+      "3.14.5": "Periodic system scans and real-time scans of files from external sources",
+      "3.14.6": "Monitor systems and communications for attacks and indicators",
+      "3.14.7": "Identify unauthorized use of organizational systems"
+    },
+    "cmmc-2.0": {
+      "AC.L1-b.1.i": "Limit system access to authorized users, processes and devices",
+      "AC.L1-b.1.ii": "Limit access to permitted transactions and functions",
+      "AC.L1-b.1.iii": "Verify and control connections to and use of external systems",
+      "AC.L1-b.1.iv": "Control CUI posted or processed on publicly accessible systems",
+      "IA.L1-b.1.v": "Identify system users, processes and devices",
+      "IA.L1-b.1.vi": "Authenticate users, processes and devices before access",
+      "MP.L1-b.1.vii": "Sanitize or destroy media containing CUI before disposal or reuse",
+      "PE.L1-b.1.viii": "Limit physical access to systems, equipment and operating environments",
+      "PE.L1-b.1.ix": "Escort visitors and monitor visitor activity; Maintain audit logs of physical access; Control and manage physical access devices",
+      "SC.L1-b.1.x": "Monitor, control and protect communications at external and key internal boundaries",
+      "SC.L1-b.1.xi": "Subnetworks for publicly accessible components, separated from internal networks",
+      "SI.L1-b.1.xii": "Identify, report and correct system flaws in a timely manner",
+      "SI.L1-b.1.xiii": "Protection from malicious code at designated locations",
+      "SI.L1-b.1.xiv": "Update malicious code protection when new releases are available",
+      "SI.L1-b.1.xv": "Periodic system scans and real-time scans of files from external sources",
+      "AC.L2-3.1.1": "Limit system access to authorized users, processes and devices",
+      "AC.L2-3.1.2": "Limit access to permitted transactions and functions",
+      "AC.L2-3.1.3": "Control the flow of CUI per approved authorizations",
+      "AC.L2-3.1.4": "Separate duties to reduce the risk of malevolent activity",
+      "AC.L2-3.1.5": "Least privilege, including security functions and privileged accounts",
+      "AC.L2-3.1.6": "Non-privileged accounts for nonsecurity functions",
+      "AC.L2-3.1.7": "Prevent non-privileged users from executing privileged functions; log them",
+      "AC.L2-3.1.8": "Limit unsuccessful logon attempts",
+      "AC.L2-3.1.9": "Privacy and security notices consistent with CUI rules",
+      "AC.L2-3.1.10": "Session lock with pattern-hiding displays",
+      "AC.L2-3.1.11": "Automatic session termination after a defined condition",
+      "AC.L2-3.1.12": "Monitor and control remote access sessions",
+      "AC.L2-3.1.13": "Cryptographic protection of remote access sessions",
+      "AC.L2-3.1.14": "Route remote access through managed access control points",
+      "AC.L2-3.1.15": "Authorize remote execution of privileged commands and access to security data",
+      "AC.L2-3.1.16": "Authorize wireless access before connections are allowed",
+      "AC.L2-3.1.17": "Protect wireless access with authentication and encryption",
+      "AC.L2-3.1.18": "Control the connection of mobile devices",
+      "AC.L2-3.1.19": "Encrypt CUI on mobile devices and mobile computing platforms",
+      "AC.L2-3.1.20": "Verify and control connections to and use of external systems",
+      "AC.L2-3.1.21": "Limit the use of portable storage devices on external systems",
+      "AC.L2-3.1.22": "Control CUI posted or processed on publicly accessible systems",
+      "AT.L2-3.2.1": "Make managers, administrators and users aware of security risks and policies",
+      "AT.L2-3.2.2": "Train personnel for their assigned security duties",
+      "AT.L2-3.2.3": "Security awareness on recognizing and reporting insider threat",
+      "AU.L2-3.3.1": "Create and retain audit logs and records for monitoring and investigation",
+      "AU.L2-3.3.2": "Trace the actions of individual users for accountability",
+      "AU.L2-3.3.3": "Review and update logged events",
+      "AU.L2-3.3.4": "Alert on audit logging process failure",
+      "AU.L2-3.3.5": "Correlate audit record review, analysis and reporting",
+      "AU.L2-3.3.6": "Audit record reduction and report generation on demand",
+      "AU.L2-3.3.7": "Synchronize system clocks with an authoritative time source",
+      "AU.L2-3.3.8": "Protect audit information and tools from unauthorized access and change",
+      "AU.L2-3.3.9": "Limit audit logging management to a privileged subset of users",
+      "CM.L2-3.4.1": "Baseline configurations and inventories across the system lifecycle",
+      "CM.L2-3.4.2": "Establish and enforce security configuration settings",
+      "CM.L2-3.4.3": "Track, review, approve and log changes to systems",
+      "CM.L2-3.4.4": "Analyze the security impact of changes before implementation",
+      "CM.L2-3.4.5": "Restrict and audit physical and logical access for changes",
+      "CM.L2-3.4.6": "Least functionality: essential capabilities only",
+      "CM.L2-3.4.7": "Restrict nonessential programs, functions, ports, protocols and services",
+      "CM.L2-3.4.8": "Deny-by-exception or permit-by-exception software execution policy",
+      "CM.L2-3.4.9": "Control and monitor user-installed software",
+      "IA.L2-3.5.1": "Identify system users, processes and devices",
+      "IA.L2-3.5.2": "Authenticate users, processes and devices before access",
+      "IA.L2-3.5.3": "Multifactor authentication for privileged accounts and network access",
+      "IA.L2-3.5.4": "Replay-resistant authentication for network access",
+      "IA.L2-3.5.5": "Prevent reuse of identifiers for a defined period",
+      "IA.L2-3.5.6": "Disable identifiers after a period of inactivity",
+      "IA.L2-3.5.7": "Minimum password complexity and change of characters",
+      "IA.L2-3.5.8": "Prohibit password reuse for a number of generations",
+      "IA.L2-3.5.9": "Temporary passwords changed immediately to permanent ones",
+      "IA.L2-3.5.10": "Store and transmit only cryptographically protected passwords",
+      "IA.L2-3.5.11": "Obscure feedback of authentication information",
+      "IR.L2-3.6.1": "Operational incident-handling capability, preparation through response",
+      "IR.L2-3.6.2": "Track, document and report incidents to officials and authorities",
+      "IR.L2-3.6.3": "Test the incident response capability",
+      "MA.L2-3.7.1": "Perform maintenance on organizational systems",
+      "MA.L2-3.7.2": "Control the tools, techniques, mechanisms and personnel used for maintenance",
+      "MA.L2-3.7.3": "Sanitize equipment removed for off-site maintenance",
+      "MA.L2-3.7.4": "Check media with diagnostic and test programs for malicious code",
+      "MA.L2-3.7.5": "Multifactor authentication for nonlocal maintenance; terminate when complete",
+      "MA.L2-3.7.6": "Supervise maintenance personnel without required access authorization",
+      "MP.L2-3.8.1": "Protect system media containing CUI, paper and digital",
+      "MP.L2-3.8.2": "Limit access to CUI on system media to authorized users",
+      "MP.L2-3.8.3": "Sanitize or destroy media containing CUI before disposal or reuse",
+      "MP.L2-3.8.4": "Mark media with CUI markings and distribution limitations",
+      "MP.L2-3.8.5": "Control access to and accountability for media during transport",
+      "MP.L2-3.8.6": "Encrypt CUI on digital media during transport unless physically protected",
+      "MP.L2-3.8.7": "Control the use of removable media on system components",
+      "MP.L2-3.8.8": "Prohibit portable storage devices with no identifiable owner",
+      "MP.L2-3.8.9": "Protect the confidentiality of backup CUI at storage locations",
+      "PS.L2-3.9.1": "Screen individuals before authorizing access to systems with CUI",
+      "PS.L2-3.9.2": "Protect systems and CUI during and after personnel actions",
+      "PE.L2-3.10.1": "Limit physical access to systems, equipment and operating environments",
+      "PE.L2-3.10.2": "Protect and monitor the physical facility and support infrastructure",
+      "PE.L2-3.10.3": "Escort visitors and monitor visitor activity",
+      "PE.L2-3.10.4": "Maintain audit logs of physical access",
+      "PE.L2-3.10.5": "Control and manage physical access devices",
+      "PE.L2-3.10.6": "Safeguarding measures for CUI at alternate work sites",
+      "RA.L2-3.11.1": "Periodically assess risk from system operation and CUI processing",
+      "RA.L2-3.11.2": "Scan for vulnerabilities periodically and when new ones are identified",
+      "RA.L2-3.11.3": "Remediate vulnerabilities in accordance with risk assessments",
+      "CA.L2-3.12.1": "Periodically assess security controls for effectiveness",
+      "CA.L2-3.12.2": "Plans of action to correct deficiencies and reduce vulnerabilities",
+      "CA.L2-3.12.3": "Monitor security controls on an ongoing basis",
+      "CA.L2-3.12.4": "System security plans: boundaries, environments, requirements, connections",
+      "SC.L2-3.13.1": "Monitor, control and protect communications at external and key internal boundaries",
+      "SC.L2-3.13.2": "Security engineering principles in architecture, design and development",
+      "SC.L2-3.13.3": "Separate user functionality from system management functionality",
+      "SC.L2-3.13.4": "Prevent unauthorized information transfer via shared resources",
+      "SC.L2-3.13.5": "Subnetworks for publicly accessible components, separated from internal networks",
+      "SC.L2-3.13.6": "Deny network communications by default; allow by exception",
+      "SC.L2-3.13.7": "Prevent split tunneling on remote devices",
+      "SC.L2-3.13.8": "Cryptographic protection of CUI in transit unless physically protected",
+      "SC.L2-3.13.9": "Terminate network connections after sessions end or on inactivity",
+      "SC.L2-3.13.10": "Establish and manage cryptographic keys",
+      "SC.L2-3.13.11": "FIPS-validated cryptography to protect the confidentiality of CUI",
+      "SC.L2-3.13.12": "No remote activation of collaborative computing devices; indicate use",
+      "SC.L2-3.13.13": "Control and monitor the use of mobile code",
+      "SC.L2-3.13.14": "Control and monitor the use of Voice over Internet Protocol",
+      "SC.L2-3.13.15": "Protect the authenticity of communications sessions",
+      "SC.L2-3.13.16": "Protect the confidentiality of CUI at rest",
+      "SI.L2-3.14.1": "Identify, report and correct system flaws in a timely manner",
+      "SI.L2-3.14.2": "Protection from malicious code at designated locations",
+      "SI.L2-3.14.3": "Monitor security alerts and advisories and take action",
+      "SI.L2-3.14.4": "Update malicious code protection when new releases are available",
+      "SI.L2-3.14.5": "Periodic system scans and real-time scans of files from external sources",
+      "SI.L2-3.14.6": "Monitor systems and communications for attacks and indicators",
+      "SI.L2-3.14.7": "Identify unauthorized use of organizational systems"
     }
   },
   "controls": {
@@ -239,6 +488,16 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.1.1",
+        "3.1.2"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.i",
+        "AC.L2-3.1.1",
+        "AC.L1-b.1.ii",
+        "AC.L2-3.1.2"
       ]
     },
     "AC-2(7)": {
@@ -277,6 +536,16 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-05"
+      ],
+      "nist-800-171-r2": [
+        "3.1.1",
+        "3.1.2"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.i",
+        "AC.L2-3.1.1",
+        "AC.L1-b.1.ii",
+        "AC.L2-3.1.2"
       ]
     },
     "AC-4": {
@@ -298,6 +567,12 @@
       ],
       "nist-csf-2.0": [
         "PR.IR-01"
+      ],
+      "nist-800-171-r2": [
+        "3.1.3"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.3"
       ]
     },
     "AC-5": {
@@ -316,6 +591,12 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-05"
+      ],
+      "nist-800-171-r2": [
+        "3.1.4"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.4"
       ]
     },
     "AC-6": {
@@ -335,6 +616,12 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-05"
+      ],
+      "nist-800-171-r2": [
+        "3.1.5"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.5"
       ]
     },
     "AC-6(1)": {
@@ -354,6 +641,21 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-05"
+      ],
+      "nist-800-171-r2": [
+        "3.1.5"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.5"
+      ]
+    },
+    "AC-6(2)": {
+      "title": "Non-privileged Access for Nonsecurity Functions",
+      "nist-800-171-r2": [
+        "3.1.6"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.6"
       ]
     },
     "AC-6(5)": {
@@ -373,6 +675,30 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-05"
+      ],
+      "nist-800-171-r2": [
+        "3.1.5"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.5"
+      ]
+    },
+    "AC-6(9)": {
+      "title": "Log Use of Privileged Functions",
+      "nist-800-171-r2": [
+        "3.1.7"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.7"
+      ]
+    },
+    "AC-6(10)": {
+      "title": "Prohibit Non-privileged Users from Executing Privileged Functions",
+      "nist-800-171-r2": [
+        "3.1.7"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.7"
       ]
     },
     "AC-7": {
@@ -391,6 +717,48 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-03"
+      ],
+      "nist-800-171-r2": [
+        "3.1.8"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.8"
+      ]
+    },
+    "AC-8": {
+      "title": "System Use Notification",
+      "nist-800-171-r2": [
+        "3.1.9"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.9"
+      ]
+    },
+    "AC-11": {
+      "title": "Device Lock",
+      "nist-800-171-r2": [
+        "3.1.10"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.10"
+      ]
+    },
+    "AC-11(1)": {
+      "title": "Pattern-hiding Displays",
+      "nist-800-171-r2": [
+        "3.1.10"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.10"
+      ]
+    },
+    "AC-12": {
+      "title": "Session Termination",
+      "nist-800-171-r2": [
+        "3.1.11"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.11"
       ]
     },
     "AC-17": {
@@ -413,6 +781,70 @@
       "nist-csf-2.0": [
         "PR.AA-03",
         "PR.IR-01"
+      ],
+      "nist-800-171-r2": [
+        "3.1.1",
+        "3.1.2"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.i",
+        "AC.L2-3.1.1",
+        "AC.L1-b.1.ii",
+        "AC.L2-3.1.2"
+      ]
+    },
+    "AC-17(1)": {
+      "title": "Monitoring and Control",
+      "nist-800-171-r2": [
+        "3.1.12"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.12"
+      ]
+    },
+    "AC-17(2)": {
+      "title": "Protection of Confidentiality and Integrity Using Encryption",
+      "nist-800-171-r2": [
+        "3.1.13"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.13"
+      ]
+    },
+    "AC-17(3)": {
+      "title": "Managed Access Control Points",
+      "nist-800-171-r2": [
+        "3.1.14"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.14"
+      ]
+    },
+    "AC-17(4)": {
+      "title": "Privileged Commands and Access",
+      "nist-800-171-r2": [
+        "3.1.15"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.15"
+      ]
+    },
+    "AC-18": {
+      "title": "Wireless Access",
+      "nist-800-171-r2": [
+        "3.1.16"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.16"
+      ]
+    },
+    "AC-18(1)": {
+      "title": "Authentication and Encryption",
+      "nist-800-171-r2": [
+        "3.1.17"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.17"
       ]
     },
     "AC-19": {
@@ -429,6 +861,60 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.1.18"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.18"
+      ]
+    },
+    "AC-19(5)": {
+      "title": "Full Device or Container-based Encryption",
+      "nist-800-171-r2": [
+        "3.1.19"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.19"
+      ]
+    },
+    "AC-20": {
+      "title": "Use of External Systems",
+      "nist-800-171-r2": [
+        "3.1.20"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.iii",
+        "AC.L2-3.1.20"
+      ]
+    },
+    "AC-20(1)": {
+      "title": "Limits on Authorized Use",
+      "nist-800-171-r2": [
+        "3.1.20"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.iii",
+        "AC.L2-3.1.20"
+      ]
+    },
+    "AC-20(2)": {
+      "title": "Portable Storage Devices — Restricted Use",
+      "nist-800-171-r2": [
+        "3.1.21"
+      ],
+      "cmmc-2.0": [
+        "AC.L2-3.1.21"
+      ]
+    },
+    "AC-22": {
+      "title": "Publicly Accessible Content",
+      "nist-800-171-r2": [
+        "3.1.22"
+      ],
+      "cmmc-2.0": [
+        "AC.L1-b.1.iv",
+        "AC.L2-3.1.22"
       ]
     },
     "AT-2": {
@@ -447,6 +933,34 @@
       ],
       "nist-csf-2.0": [
         "PR.AT-01"
+      ],
+      "nist-800-171-r2": [
+        "3.2.1",
+        "3.2.2"
+      ],
+      "cmmc-2.0": [
+        "AT.L2-3.2.1",
+        "AT.L2-3.2.2"
+      ]
+    },
+    "AT-2(2)": {
+      "title": "Insider Threat",
+      "nist-800-171-r2": [
+        "3.2.3"
+      ],
+      "cmmc-2.0": [
+        "AT.L2-3.2.3"
+      ]
+    },
+    "AT-3": {
+      "title": "Role-based Training",
+      "nist-800-171-r2": [
+        "3.2.1",
+        "3.2.2"
+      ],
+      "cmmc-2.0": [
+        "AT.L2-3.2.1",
+        "AT.L2-3.2.2"
       ]
     },
     "AU-2": {
@@ -466,6 +980,47 @@
       "nist-csf-2.0": [
         "DE.CM-01",
         "DE.CM-09"
+      ],
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2",
+        "3.3.3"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2",
+        "AU.L2-3.3.3"
+      ]
+    },
+    "AU-3": {
+      "title": "Content of Audit Records",
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2"
+      ]
+    },
+    "AU-3(1)": {
+      "title": "Additional Audit Information",
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2"
+      ]
+    },
+    "AU-5": {
+      "title": "Response to Audit Logging Process Failures",
+      "nist-800-171-r2": [
+        "3.3.4"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.4"
       ]
     },
     "AU-6": {
@@ -486,6 +1041,41 @@
       ],
       "nist-csf-2.0": [
         "DE.AE-02"
+      ],
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2"
+      ]
+    },
+    "AU-6(3)": {
+      "title": "Correlate Audit Record Repositories",
+      "nist-800-171-r2": [
+        "3.3.5"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.5"
+      ]
+    },
+    "AU-7": {
+      "title": "Audit Record Reduction and Report Generation",
+      "nist-800-171-r2": [
+        "3.3.6"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.6"
+      ]
+    },
+    "AU-8": {
+      "title": "Time Stamps",
+      "nist-800-171-r2": [
+        "3.3.7"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.7"
       ]
     },
     "AU-9": {
@@ -507,6 +1097,32 @@
       ],
       "nist-csf-2.0": [
         "PR.DS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.3.8"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.8"
+      ]
+    },
+    "AU-9(4)": {
+      "title": "Access by Subset of Privileged Users",
+      "nist-800-171-r2": [
+        "3.3.9"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.9"
+      ]
+    },
+    "AU-11": {
+      "title": "Audit Record Retention",
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2"
       ]
     },
     "AU-12": {
@@ -526,6 +1142,36 @@
       "nist-csf-2.0": [
         "DE.CM-01",
         "DE.CM-09"
+      ],
+      "nist-800-171-r2": [
+        "3.3.1",
+        "3.3.2"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.1",
+        "AU.L2-3.3.2"
+      ]
+    },
+    "CA-2": {
+      "title": "Control Assessments",
+      "nist-800-171-r2": [
+        "3.12.1"
+      ],
+      "cmmc-2.0": [
+        "CA.L2-3.12.1"
+      ]
+    },
+    "CA-5": {
+      "title": "Plan of Action and Milestones",
+      "nist-800-171-r2": [
+        "3.12.2",
+        "3.12.3",
+        "3.12.4"
+      ],
+      "cmmc-2.0": [
+        "CA.L2-3.12.2",
+        "CA.L2-3.12.3",
+        "CA.L2-3.12.4"
       ]
     },
     "CA-7": {
@@ -546,6 +1192,16 @@
       "nist-csf-2.0": [
         "DE.CM-01",
         "DE.CM-09"
+      ],
+      "nist-800-171-r2": [
+        "3.12.2",
+        "3.12.3",
+        "3.12.4"
+      ],
+      "cmmc-2.0": [
+        "CA.L2-3.12.2",
+        "CA.L2-3.12.3",
+        "CA.L2-3.12.4"
       ]
     },
     "CM-2": {
@@ -562,6 +1218,14 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.4.1",
+        "3.4.2"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.1",
+        "CM.L2-3.4.2"
       ]
     },
     "CM-3": {
@@ -577,6 +1241,30 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.4.3"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.3"
+      ]
+    },
+    "CM-4": {
+      "title": "Impact Analyses",
+      "nist-800-171-r2": [
+        "3.4.4"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.4"
+      ]
+    },
+    "CM-5": {
+      "title": "Access Restrictions for Change",
+      "nist-800-171-r2": [
+        "3.4.5"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.5"
       ]
     },
     "CM-6": {
@@ -592,6 +1280,14 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.4.1",
+        "3.4.2"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.1",
+        "CM.L2-3.4.2"
       ]
     },
     "CM-7": {
@@ -609,6 +1305,48 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.4.6"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.6"
+      ]
+    },
+    "CM-7(1)": {
+      "title": "Periodic Review",
+      "nist-800-171-r2": [
+        "3.4.7"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.7"
+      ]
+    },
+    "CM-7(2)": {
+      "title": "Prevent Program Execution",
+      "nist-800-171-r2": [
+        "3.4.7"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.7"
+      ]
+    },
+    "CM-7(4)": {
+      "title": "Unauthorized Software — Deny-by-exception",
+      "nist-800-171-r2": [
+        "3.4.8"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.8"
+      ]
+    },
+    "CM-7(5)": {
+      "title": "Authorized Software — Allow-by-exception",
+      "nist-800-171-r2": [
+        "3.4.8"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.8"
       ]
     },
     "CM-8": {
@@ -628,6 +1366,34 @@
       "nist-csf-2.0": [
         "ID.AM-01",
         "ID.AM-02"
+      ],
+      "nist-800-171-r2": [
+        "3.4.1",
+        "3.4.2"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.1",
+        "CM.L2-3.4.2"
+      ]
+    },
+    "CM-8(1)": {
+      "title": "Updates During Installation and Removal",
+      "nist-800-171-r2": [
+        "3.4.1",
+        "3.4.2"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.1",
+        "CM.L2-3.4.2"
+      ]
+    },
+    "CM-11": {
+      "title": "User-installed Software",
+      "nist-800-171-r2": [
+        "3.4.9"
+      ],
+      "cmmc-2.0": [
+        "CM.L2-3.4.9"
       ]
     },
     "CM-14": {
@@ -664,6 +1430,12 @@
       ],
       "nist-csf-2.0": [
         "PR.DS-11"
+      ],
+      "nist-800-171-r2": [
+        "3.8.9"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.9"
       ]
     },
     "CP-10": {
@@ -703,6 +1475,13 @@
       "nist-csf-2.0": [
         "PR.AA-01",
         "PR.AA-03"
+      ],
+      "nist-800-171-r2": [
+        "3.5.1"
+      ],
+      "cmmc-2.0": [
+        "IA.L1-b.1.v",
+        "IA.L2-3.5.1"
       ]
     },
     "IA-2(1)": {
@@ -722,6 +1501,40 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-03"
+      ],
+      "nist-800-171-r2": [
+        "3.5.3"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.3"
+      ]
+    },
+    "IA-2(2)": {
+      "title": "Multi-factor Authentication to Non-privileged Accounts",
+      "nist-800-171-r2": [
+        "3.5.3"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.3"
+      ]
+    },
+    "IA-2(8)": {
+      "title": "Access to Accounts — Replay Resistant",
+      "nist-800-171-r2": [
+        "3.5.4"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.4"
+      ]
+    },
+    "IA-3": {
+      "title": "Device Identification and Authentication",
+      "nist-800-171-r2": [
+        "3.5.2"
+      ],
+      "cmmc-2.0": [
+        "IA.L1-b.1.vi",
+        "IA.L2-3.5.2"
       ]
     },
     "IA-4": {
@@ -740,6 +1553,14 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.5.5",
+        "3.5.6"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.5",
+        "IA.L2-3.5.6"
       ]
     },
     "IA-5": {
@@ -759,6 +1580,13 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.5.2"
+      ],
+      "cmmc-2.0": [
+        "IA.L1-b.1.vi",
+        "IA.L2-3.5.2"
       ]
     },
     "IA-5(1)": {
@@ -777,6 +1605,18 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.5.7",
+        "3.5.8",
+        "3.5.9",
+        "3.5.10"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.7",
+        "IA.L2-3.5.8",
+        "IA.L2-3.5.9",
+        "IA.L2-3.5.10"
       ]
     },
     "IA-5(7)": {
@@ -796,6 +1636,35 @@
         "PR.AA-01"
       ]
     },
+    "IA-6": {
+      "title": "Authentication Feedback",
+      "nist-800-171-r2": [
+        "3.5.11"
+      ],
+      "cmmc-2.0": [
+        "IA.L2-3.5.11"
+      ]
+    },
+    "IR-2": {
+      "title": "Incident Response Training",
+      "nist-800-171-r2": [
+        "3.6.1",
+        "3.6.2"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.1",
+        "IR.L2-3.6.2"
+      ]
+    },
+    "IR-3": {
+      "title": "Incident Response Testing",
+      "nist-800-171-r2": [
+        "3.6.3"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.3"
+      ]
+    },
     "IR-4": {
       "title": "Incident Handling",
       "iso-27001-2022": [
@@ -813,6 +1682,25 @@
       ],
       "nist-csf-2.0": [
         "RS.MA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.6.1",
+        "3.6.2"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.1",
+        "IR.L2-3.6.2"
+      ]
+    },
+    "IR-5": {
+      "title": "Incident Monitoring",
+      "nist-800-171-r2": [
+        "3.6.1",
+        "3.6.2"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.1",
+        "IR.L2-3.6.2"
       ]
     },
     "IR-6": {
@@ -831,6 +1719,165 @@
       ],
       "nist-csf-2.0": [
         "RS.MA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.6.1",
+        "3.6.2"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.1",
+        "IR.L2-3.6.2"
+      ]
+    },
+    "IR-7": {
+      "title": "Incident Response Assistance",
+      "nist-800-171-r2": [
+        "3.6.1",
+        "3.6.2"
+      ],
+      "cmmc-2.0": [
+        "IR.L2-3.6.1",
+        "IR.L2-3.6.2"
+      ]
+    },
+    "MA-2": {
+      "title": "Controlled Maintenance",
+      "nist-800-171-r2": [
+        "3.7.1",
+        "3.7.2",
+        "3.7.3"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.1",
+        "MA.L2-3.7.2",
+        "MA.L2-3.7.3"
+      ]
+    },
+    "MA-3": {
+      "title": "Maintenance Tools",
+      "nist-800-171-r2": [
+        "3.7.1",
+        "3.7.2"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.1",
+        "MA.L2-3.7.2"
+      ]
+    },
+    "MA-3(1)": {
+      "title": "Inspect Tools",
+      "nist-800-171-r2": [
+        "3.7.1",
+        "3.7.2"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.1",
+        "MA.L2-3.7.2"
+      ]
+    },
+    "MA-3(2)": {
+      "title": "Inspect Media",
+      "nist-800-171-r2": [
+        "3.7.1",
+        "3.7.2",
+        "3.7.4"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.1",
+        "MA.L2-3.7.2",
+        "MA.L2-3.7.4"
+      ]
+    },
+    "MA-4": {
+      "title": "Nonlocal Maintenance",
+      "nist-800-171-r2": [
+        "3.7.5"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.5"
+      ]
+    },
+    "MA-5": {
+      "title": "Maintenance Personnel",
+      "nist-800-171-r2": [
+        "3.7.6"
+      ],
+      "cmmc-2.0": [
+        "MA.L2-3.7.6"
+      ]
+    },
+    "MP-2": {
+      "title": "Media Access",
+      "nist-800-171-r2": [
+        "3.8.1"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.1"
+      ]
+    },
+    "MP-3": {
+      "title": "Media Marking",
+      "nist-800-171-r2": [
+        "3.8.4"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.4"
+      ]
+    },
+    "MP-4": {
+      "title": "Media Storage",
+      "nist-800-171-r2": [
+        "3.8.2",
+        "3.8.3"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.2",
+        "MP.L1-b.1.vii",
+        "MP.L2-3.8.3"
+      ]
+    },
+    "MP-5": {
+      "title": "Media Transport",
+      "nist-800-171-r2": [
+        "3.8.5"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.5"
+      ]
+    },
+    "MP-6": {
+      "title": "Media Sanitization",
+      "nist-800-171-r2": [
+        "3.8.2",
+        "3.8.3"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.2",
+        "MP.L1-b.1.vii",
+        "MP.L2-3.8.3"
+      ]
+    },
+    "MP-7": {
+      "title": "Media Use",
+      "nist-800-171-r2": [
+        "3.8.7",
+        "3.8.8"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.7",
+        "MP.L2-3.8.8"
+      ]
+    },
+    "PE-2": {
+      "title": "Physical Access Authorizations",
+      "nist-800-171-r2": [
+        "3.10.1",
+        "3.10.2"
+      ],
+      "cmmc-2.0": [
+        "PE.L1-b.1.viii",
+        "PE.L2-3.10.1",
+        "PE.L2-3.10.2"
       ]
     },
     "PE-3": {
@@ -850,6 +1897,75 @@
       ],
       "nist-csf-2.0": [
         "PR.AA-06"
+      ],
+      "nist-800-171-r2": [
+        "3.10.3",
+        "3.10.4",
+        "3.10.5"
+      ],
+      "cmmc-2.0": [
+        "PE.L1-b.1.ix",
+        "PE.L2-3.10.3",
+        "PE.L2-3.10.4",
+        "PE.L2-3.10.5"
+      ]
+    },
+    "PE-4": {
+      "title": "Access Control for Transmission",
+      "nist-800-171-r2": [
+        "3.10.1",
+        "3.10.2"
+      ],
+      "cmmc-2.0": [
+        "PE.L1-b.1.viii",
+        "PE.L2-3.10.1",
+        "PE.L2-3.10.2"
+      ]
+    },
+    "PE-5": {
+      "title": "Access Control for Output Devices",
+      "nist-800-171-r2": [
+        "3.10.1",
+        "3.10.2"
+      ],
+      "cmmc-2.0": [
+        "PE.L1-b.1.viii",
+        "PE.L2-3.10.1",
+        "PE.L2-3.10.2"
+      ]
+    },
+    "PE-6": {
+      "title": "Monitoring Physical Access",
+      "nist-800-171-r2": [
+        "3.10.1",
+        "3.10.2"
+      ],
+      "cmmc-2.0": [
+        "PE.L1-b.1.viii",
+        "PE.L2-3.10.1",
+        "PE.L2-3.10.2"
+      ]
+    },
+    "PE-17": {
+      "title": "Alternate Work Site",
+      "nist-800-171-r2": [
+        "3.10.6"
+      ],
+      "cmmc-2.0": [
+        "PE.L2-3.10.6"
+      ]
+    },
+    "PL-2": {
+      "title": "System Security and Privacy Plans",
+      "nist-800-171-r2": [
+        "3.12.2",
+        "3.12.3",
+        "3.12.4"
+      ],
+      "cmmc-2.0": [
+        "CA.L2-3.12.2",
+        "CA.L2-3.12.3",
+        "CA.L2-3.12.4"
       ]
     },
     "PL-8": {
@@ -862,6 +1978,48 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-06"
+      ]
+    },
+    "PS-3": {
+      "title": "Personnel Screening",
+      "nist-800-171-r2": [
+        "3.9.1",
+        "3.9.2"
+      ],
+      "cmmc-2.0": [
+        "PS.L2-3.9.1",
+        "PS.L2-3.9.2"
+      ]
+    },
+    "PS-4": {
+      "title": "Personnel Termination",
+      "nist-800-171-r2": [
+        "3.9.1",
+        "3.9.2"
+      ],
+      "cmmc-2.0": [
+        "PS.L2-3.9.1",
+        "PS.L2-3.9.2"
+      ]
+    },
+    "PS-5": {
+      "title": "Personnel Transfer",
+      "nist-800-171-r2": [
+        "3.9.1",
+        "3.9.2"
+      ],
+      "cmmc-2.0": [
+        "PS.L2-3.9.1",
+        "PS.L2-3.9.2"
+      ]
+    },
+    "RA-3": {
+      "title": "Risk Assessment",
+      "nist-800-171-r2": [
+        "3.11.1"
+      ],
+      "cmmc-2.0": [
+        "RA.L2-3.11.1"
       ]
     },
     "RA-5": {
@@ -882,6 +2040,23 @@
       ],
       "nist-csf-2.0": [
         "ID.RA-01"
+      ],
+      "nist-800-171-r2": [
+        "3.11.2",
+        "3.11.3"
+      ],
+      "cmmc-2.0": [
+        "RA.L2-3.11.2",
+        "RA.L2-3.11.3"
+      ]
+    },
+    "RA-5(5)": {
+      "title": "Privileged Access",
+      "nist-800-171-r2": [
+        "3.11.2"
+      ],
+      "cmmc-2.0": [
+        "RA.L2-3.11.2"
       ]
     },
     "SA-8": {
@@ -898,6 +2073,15 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-06"
+      ],
+      "nist-800-171-r2": [
+        "3.13.1",
+        "3.13.2"
+      ],
+      "cmmc-2.0": [
+        "SC.L1-b.1.x",
+        "SC.L2-3.13.1",
+        "SC.L2-3.13.2"
       ]
     },
     "SA-10": {
@@ -954,6 +2138,24 @@
         "GV.SC-07"
       ]
     },
+    "SC-2": {
+      "title": "Separation of System and User Functionality",
+      "nist-800-171-r2": [
+        "3.13.3"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.3"
+      ]
+    },
+    "SC-4": {
+      "title": "Information in Shared System Resources",
+      "nist-800-171-r2": [
+        "3.13.4"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.4"
+      ]
+    },
     "SC-7": {
       "title": "Boundary Protection",
       "iso-27001-2022": [
@@ -974,6 +2176,18 @@
       ],
       "nist-csf-2.0": [
         "PR.IR-01"
+      ],
+      "nist-800-171-r2": [
+        "3.13.1",
+        "3.13.2",
+        "3.13.5"
+      ],
+      "cmmc-2.0": [
+        "SC.L1-b.1.x",
+        "SC.L2-3.13.1",
+        "SC.L2-3.13.2",
+        "SC.L1-b.1.xi",
+        "SC.L2-3.13.5"
       ]
     },
     "SC-7(5)": {
@@ -992,6 +2206,21 @@
       ],
       "nist-csf-2.0": [
         "PR.IR-01"
+      ],
+      "nist-800-171-r2": [
+        "3.13.6"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.6"
+      ]
+    },
+    "SC-7(7)": {
+      "title": "Split Tunneling for Remote Devices",
+      "nist-800-171-r2": [
+        "3.13.7"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.7"
       ]
     },
     "SC-7(11)": {
@@ -1030,6 +2259,30 @@
       ],
       "nist-csf-2.0": [
         "PR.DS-02"
+      ],
+      "nist-800-171-r2": [
+        "3.13.8"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.8"
+      ]
+    },
+    "SC-8(1)": {
+      "title": "Cryptographic Protection",
+      "nist-800-171-r2": [
+        "3.13.8"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.8"
+      ]
+    },
+    "SC-10": {
+      "title": "Network Disconnect",
+      "nist-800-171-r2": [
+        "3.13.9"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.9"
       ]
     },
     "SC-12": {
@@ -1049,6 +2302,12 @@
       ],
       "nist-csf-2.0": [
         "PR.DS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.13.10"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.10"
       ]
     },
     "SC-13": {
@@ -1071,6 +2330,39 @@
       "nist-csf-2.0": [
         "PR.DS-01",
         "PR.DS-02"
+      ],
+      "nist-800-171-r2": [
+        "3.13.11"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.11"
+      ]
+    },
+    "SC-15": {
+      "title": "Collaborative Computing Devices and Applications",
+      "nist-800-171-r2": [
+        "3.13.12"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.12"
+      ]
+    },
+    "SC-18": {
+      "title": "Mobile Code",
+      "nist-800-171-r2": [
+        "3.13.13"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.13"
+      ]
+    },
+    "SC-23": {
+      "title": "Session Authenticity",
+      "nist-800-171-r2": [
+        "3.13.15"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.15"
       ]
     },
     "SC-28": {
@@ -1090,6 +2382,30 @@
       ],
       "nist-csf-2.0": [
         "PR.DS-01"
+      ],
+      "nist-800-171-r2": [
+        "3.13.16"
+      ],
+      "cmmc-2.0": [
+        "SC.L2-3.13.16"
+      ]
+    },
+    "SC-28(1)": {
+      "title": "Cryptographic Protection",
+      "nist-800-171-r2": [
+        "3.8.6"
+      ],
+      "cmmc-2.0": [
+        "MP.L2-3.8.6"
+      ]
+    },
+    "SC-45(1)": {
+      "title": "Synchronization with Authoritative Time Source",
+      "nist-800-171-r2": [
+        "3.3.7"
+      ],
+      "cmmc-2.0": [
+        "AU.L2-3.3.7"
       ]
     },
     "SI-2": {
@@ -1105,6 +2421,18 @@
       ],
       "nist-csf-2.0": [
         "PR.PS-02"
+      ],
+      "nist-800-171-r2": [
+        "3.14.1",
+        "3.14.2",
+        "3.14.3"
+      ],
+      "cmmc-2.0": [
+        "SI.L1-b.1.xii",
+        "SI.L2-3.14.1",
+        "SI.L1-b.1.xiii",
+        "SI.L2-3.14.2",
+        "SI.L2-3.14.3"
       ]
     },
     "SI-3": {
@@ -1123,6 +2451,24 @@
       ],
       "nist-csf-2.0": [
         "DE.CM-09"
+      ],
+      "nist-800-171-r2": [
+        "3.14.1",
+        "3.14.2",
+        "3.14.3",
+        "3.14.4",
+        "3.14.5"
+      ],
+      "cmmc-2.0": [
+        "SI.L1-b.1.xii",
+        "SI.L2-3.14.1",
+        "SI.L1-b.1.xiii",
+        "SI.L2-3.14.2",
+        "SI.L2-3.14.3",
+        "SI.L1-b.1.xiv",
+        "SI.L2-3.14.4",
+        "SI.L1-b.1.xv",
+        "SI.L2-3.14.5"
       ]
     },
     "SI-4": {
@@ -1143,6 +2489,38 @@
       "nist-csf-2.0": [
         "DE.CM-01",
         "DE.CM-09"
+      ],
+      "nist-800-171-r2": [
+        "3.14.6",
+        "3.14.7"
+      ],
+      "cmmc-2.0": [
+        "SI.L2-3.14.6",
+        "SI.L2-3.14.7"
+      ]
+    },
+    "SI-4(4)": {
+      "title": "Inbound and Outbound Communications Traffic",
+      "nist-800-171-r2": [
+        "3.14.6"
+      ],
+      "cmmc-2.0": [
+        "SI.L2-3.14.6"
+      ]
+    },
+    "SI-5": {
+      "title": "Security Alerts, Advisories, and Directives",
+      "nist-800-171-r2": [
+        "3.14.1",
+        "3.14.2",
+        "3.14.3"
+      ],
+      "cmmc-2.0": [
+        "SI.L1-b.1.xii",
+        "SI.L2-3.14.1",
+        "SI.L1-b.1.xiii",
+        "SI.L2-3.14.2",
+        "SI.L2-3.14.3"
       ]
     },
     "SI-7": {

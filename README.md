@@ -67,7 +67,7 @@ A page is not a drawing with notes attached. Every element carries the attribute
 - **Dependencies are structure.** Every node, component and appliance lists what it needs to work (identity, DNS, certificates, keys, secrets, logging, time, a package registry) with the provider on the diagram, drawn as a dashed dependency flow on its own layer; the validator asks for the flow when it is missing.
 - **Policy travels with the model.** `settings.policy` says what `validate --strict` fails on (an open high threat with no planned control on track, a missing treatment decision, an overdue control, a requirement without a control, a suggested element, an accepted risk past its review date), so CI gates on the model with one command. Organisation metadata that fits no field goes in `custom`.
 - **Stories make the model readable.** A guided walk through the flows, step by step; attack paths as chains of hops that name the threat, the flow it rides, where it lands, what the adversary gains and which controls it bypasses, with the controls that break the path, walked on the canvas as a red phase; what-if scenarios as tabs derived from a baseline, with a computed delta of what moved; a signature block with prepared, reviewed and approved by, status and classification.
-- **Frameworks by clause.** Controls and requirements cite the clauses they serve (PCI DSS, SOC 2, HIPAA, ISO 27001, NIST CSF, your own); a working crosswalk from NIST SP 800-53 derives the rest, marked as derived; the register shows what cites each clause and `coverage.mjs` answers "which controls satisfy PCI DSS 8.4.2 here" with the gaps.
+- **Frameworks by clause.** Controls and requirements cite the clauses they serve (PCI DSS, SOC 2, HIPAA, ISO 27001, NIST CSF, NIST SP 800-171, CMMC, your own); a working crosswalk from NIST SP 800-53 derives the rest, marked as derived; the register shows what cites each clause and `coverage.mjs` answers "which controls satisfy PCI DSS 8.4.2 here" with the gaps.
 - **Output that lasts.** One HTML file with the model embedded: no server, no dependency, no network call, so it opens the same way in ten years. Deep links to a tab, a step or a hop; a Threat Register across every diagram of the document; a geometry check the page runs on itself; a validator that refuses to build a model with errors.
 
 ## How it works
@@ -301,7 +301,7 @@ The Actions tab of the repository shows each run. Two more workflows: [release.y
 ## Documentation
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): the agreed scope, section by section, with what is in version 1 and what comes later.
-- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D50.
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D51.
 - [docs/PLATFORMS.md](docs/PLATFORMS.md): which tool reads which folder, how to invoke the skill in each, platform-specific extras.
 - Research notes: [threat attributes](docs/research/threat-attributes.md), [service, flow and threat detail](docs/research/service-flow-threat-attributes.md), [cloud service catalogue](docs/research/cloud-service-catalogue.md), [layout and routing](docs/research/layout-routing.md).
 - The skill's own references, loaded on demand by [SKILL.md](skills/netblueprint-forge/SKILL.md): [interview](skills/netblueprint-forge/references/interview.md), [threats](skills/netblueprint-forge/references/threats.md), [risk scoring](skills/netblueprint-forge/references/risk-scoring.md), [what-if](skills/netblueprint-forge/references/what-if.md), [ingest](skills/netblueprint-forge/references/ingest.md), [revise and archive](skills/netblueprint-forge/references/revise-and-archive.md), [render](skills/netblueprint-forge/references/render.md), [layout hints](skills/netblueprint-forge/references/layout-hints.md), [icons](skills/netblueprint-forge/references/icons.md), [model reference](skills/netblueprint-forge/references/model-reference.md), [cloud cards](skills/netblueprint-forge/references/cloud/README.md).
@@ -321,7 +321,7 @@ netblueprint-forge/
 │   ├── scripts/                   validate · build · archive · normalize · scenario · suggest (with rules) · report · portfolio · coverage · check · screenshot · model-reference (Node.js, no dependencies)
 │   ├── assets/schema/             JSON Schema for the context model (draft 2020-12)
 │   ├── assets/icons/              The vendor icon library: Azure (with Entra), AWS, Google Cloud, one index per provider
-│   ├── assets/frameworks/         The working crosswalk from NIST SP 800-53 to ISO 27001, PCI DSS, SOC 2, HIPAA and NIST CSF clauses
+│   ├── assets/frameworks/         The working crosswalk from NIST SP 800-53 to ISO 27001, PCI DSS, SOC 2, HIPAA, NIST CSF, SP 800-171 and CMMC clauses
 │   ├── assets/template/           The HTML renderer
 │   ├── assets/examples/           Copies of the example models
 │   └── agents/openai.yaml         Codex / ChatGPT display metadata
