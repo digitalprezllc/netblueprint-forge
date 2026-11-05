@@ -3,7 +3,7 @@
   "owner": { "name": "DigitalPrez, LLC", "email": "subscriptions@digitalprez.com" },
   "metadata": {
     "description": "NetBlueprint Forge: network flow and threat model diagrams from a guided interview.",
-    "version": "0.10.1"
+    "version": "0.11.0"
   },
   "plugins": [
     {

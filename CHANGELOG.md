@@ -2,8 +2,11 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
-## Unreleased
+## 0.11.0 (2026-11-05)
 
+Skill 0.11.0, renderer 1.10.1. Download: [netblueprint-forge-0.11.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.11.0.zip), sha256 `6dedc04e17fcf631afd05ff94f8446c59942fde7e60fbd560d2d82125ef1decd`.
+
+- The README is reworked as a corporate front page led by compliance coverage: a value proposition, a badge row, an executive summary, six core capabilities, a Mermaid diagram of the one-model workflow, installation, a quickstart with real output, a configuration reference of every `settings` key, security disclosure, governance and the licence with the commercial contact; the examples table is one column per example, told rather than listed; the Cursor and Kiro sample sessions move to `docs/PLATFORMS.md`.
 - The crosswalk gains NIST SP 800-171 Rev. 2, all 110 requirements with NIST's own Appendix D mapping from SP 800-53 inverted and the Rev. 4 identifiers carried to their Rev. 5 successors, and CMMC 2.0, the 110 Level 2 identifiers over the same requirements and the 15 Level 1 identifiers as 32 CFR Part 170 maps them; 135 SP 800-53 controls now carry entries. `coverage.mjs` answers "which controls touch CMMC AC.L2-3.1.12 here" and lists the gaps for both; `tests/check_coverage.mjs` checks the 110 requirements, the identifiers, the Level 1 table and spot checks of NIST's mapping (D51).
 
 ## 0.10.1 (2026-11-04)

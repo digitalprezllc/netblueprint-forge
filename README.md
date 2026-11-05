@@ -386,7 +386,7 @@ netblueprint-forge/
 └── THIRD-PARTY-NOTICES.md         The vendors' terms for the icon library and the standards the crosswalk cites
 ```
 
-Skill 0.10.1, renderer 1.10.1: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
+Skill 0.11.0, renderer 1.10.1: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
 
 ## License and commercial licensing
 
