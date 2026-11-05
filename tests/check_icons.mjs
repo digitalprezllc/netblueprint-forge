@@ -3,7 +3,8 @@
 //   1. the shipped index files in skills/netblueprint-forge/assets/icons parse, hold real icons, and every alias points at one;
 //   2. every cloud card declares an icon that resolves;
 //   3. every example model's icons resolve, no example carries an icons.json of fetched logos, and each built example page carries one <symbol> per distinct icon it uses, with unique ids,
-//      every <style> inside a symbol scoped to prefixed class names, and the symbols within a size budget;
+//      every <style> inside a symbol scoped to prefixed class names, and the symbols within a size budget; the comment at the top of the
+//      file names every icon set the page carries and nothing about them shows on the page;
 //   4. the normalizer prefixes ids, url(#) references and classes, and leaves colours alone;
 //   5. fetch on demand (offline, from a folder): a logo lands in icons.json beside the model, normalized and prefixed, and resolves from
 //      there; an SVG with a script and a name the source lacks are refused.
@@ -12,7 +13,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PROVIDERS, REF_PATTERN, loadIndex, resolveIcon, cardIcons, collectIcons, normalizeSvg, symbolId, fetchIcons, useLocalIndex } from '../skills/netblueprint-forge/scripts/icons.mjs';
+import { PROVIDERS, SOURCES, REF_PATTERN, loadIndex, resolveIcon, cardIcons, collectIcons, normalizeSvg, symbolId, fetchIcons, useLocalIndex } from '../skills/netblueprint-forge/scripts/icons.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let fails = 0;
@@ -60,6 +61,12 @@ for (const e of examples) {
   else if (unscoped.length) fail(`${e.d}: ${unscoped.length} symbol(s) carry an unscoped <style>`);
   else if (bytes > 200 * 1024) fail(`${e.d}: symbols take ${(bytes / 1024).toFixed(0)} KB (budget 200 KB)`);
   else pass(`${e.d}: ${got.length} symbols for ${refs.size} icon references, ${(bytes / 1024).toFixed(0)} KB, ids unique, styles scoped`);
+  const used = new Set([...refs.keys()].map((r) => resolveIcon(r).provider));
+  const notice = (html.match(/^<!--\n  Service icons in this page: ([^\n]*)\.\n/m) || [])[1] || '';
+  const onPage = /Service icons|belong to their owners/.test(html.slice(html.indexOf('<body')));
+  if (used.size && [...used].every((p) => notice.includes(SOURCES[p].name)) && !onPage) pass(`${e.d}: the comment at the top of the file names ${used.size} icon set(s); nothing about them shows on the page`);
+  else if (!used.size && !notice && !onPage) pass(`${e.d}: no vendor icons, no icon notice`);
+  else fail(`${e.d}: icon notice ${notice ? JSON.stringify(notice) : 'missing'} for ${[...used].join(', ') || 'no icons'}${onPage ? '; the page shows an icon credit' : ''}`);
 }
 
 // 4. the normalizer

@@ -75,7 +75,7 @@ The reference example is [examples/azure-hub-spoke/](../examples/azure-hub-spoke
 
 ### 2.9 Other model content
 - Assumptions and out-of-scope lists.
-- Legend definitions are derived from the model, never hand-written.
+- Legend definitions are derived from the model, never hand-written; the legend is grouped (Flows, Authentication, Elements, Threats) with a caption per group, and every entry stays on one line.
 - Colour overrides for any zone or node.
 
 ### 2.10 Service profile
@@ -242,7 +242,7 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 
 ### 3.15 Vendor icons on the page
 - `build.mjs` injects one `<symbol>` per distinct vendor icon the model uses into the page's `<defs>`, plus the ref-to-symbol map and the cards' icons; the page stays self-contained and grows by a few kilobytes per icon.
-- The renderer draws a vendor icon with `<use>` in the same 24 × 22 slot as a line icon (22 × 22, centred, never stretched), on nodes, host title rows, component rows, appliance bars and zone titles; an out-of-scope element dims it. A vendor icon the page does not carry falls back to the built-in icon and is listed in the self-check report (`missingIcons`, informational). The legend names the vendors whose icons the tab shows; the Attributes card shows the icon id. A fetched logo is embedded from `icons.json` beside the model like any vendor icon, and the legend names the collection.
+- The renderer draws a vendor icon with `<use>` in the same 24 × 22 slot as a line icon (22 × 22, centred, never stretched), on nodes, host title rows, component rows, appliance bars and zone titles; an out-of-scope element dims it. A vendor icon the page does not carry falls back to the built-in icon and is listed in the self-check report (`missingIcons`, informational). A comment at the top of the page's source names the icon sets the page carries, so the notice travels with the file without showing on the page; the Attributes card shows the icon id. A fetched logo is embedded from `icons.json` beside the model like any vendor icon, and the comment names the collection.
 
 ### 3.16 Dependencies, requirements and custom fields on the page
 - A `dependency` flow is drawn thin and dashed in grey-blue, routed with the control flows, on the built-in layer `flows-dependency` ("Dependencies"), with its auth badge and a legend entry; it carries hop markers and threat circles like any flow.
@@ -251,6 +251,7 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 
 ### 3.17 Framework coverage on the page
 - The Threat Register gains a Framework Coverage table under the requirements: every clause a control or requirement cites directly, with what cites it and the best control status (verified, implemented, planned, none). Crosswalk-derived coverage stays in the script, so the page shows only what the model states.
+- Every register section has an eye button in the register's head, blue while the section shows and grey while it is hidden; Threats and Attack Paths start shown, Requirements and Framework Coverage hidden; the browser's storage remembers the choice per document, and `&sections=` in the URL hash (`all`, `none` or a comma list of `threats`, `paths`, `requirements`, `coverage`) sets it for a link.
 
 ## 4. Skill (interview)
 

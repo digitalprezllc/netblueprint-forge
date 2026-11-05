@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Renders one view of a built NetBlueprint page to a PNG, with a Chromium-based browser already on the machine.
 //
-//   node scripts/screenshot.mjs <built.html> [-o out.png] [--tab <name>] [--step <n | step name>] [--path AP-nnnn [--hop n]]
+//   node scripts/screenshot.mjs <built.html> [-o out.png] [--tab <name>] [--step <n | step name>] [--path AP-nnnn [--hop n]] [--sections all]
 //                               [--width 1600] [--height auto | N] [--scale 1] [--browser <exe>] [--quiet]
 //
 // The page opens at the tab, walkthrough step or attack-path hop asked for (the deep links any browser understands: #tab=…&step=… or
@@ -21,9 +21,10 @@ const BASE_ARGS = ['--headless=new', '--disable-gpu', '--no-sandbox', '--no-firs
   '--disable-background-networking', '--disable-sync', '--hide-scrollbars', '--allow-file-access-from-files'];
 
 /** The URL hash for a tab / step / attack-path hop, as the page reads it ('' when nothing is asked for). */
-export function deepLinkHash({ tab, step, path: attackPath, hop } = {}) {
+export function deepLinkHash({ tab, step, path: attackPath, hop, sections } = {}) {
   const parts = [];
   if (tab) parts.push('tab=' + encodeURIComponent(tab));
+  if (sections) parts.push('sections=' + encodeURIComponent(sections));
   if (attackPath) { parts.push('path=' + encodeURIComponent(attackPath)); if (hop) parts.push('hop=' + encodeURIComponent(hop)); }
   else if (step) parts.push('step=' + encodeURIComponent(step));
   return parts.length ? '#' + parts.join('&') : '';
@@ -36,10 +37,10 @@ function defaultName(file, { tab, step, path: attackPath, hop }) {
 }
 
 /** Writes the PNG and returns {out, width, height, scale, hash}. height 'auto' measures the page first (one extra browser run). */
-export function screenshot(browser, htmlPath, { out, tab, step, path: attackPath, hop, width = 1600, height = 'auto', scale = 1, timeout = 120000 } = {}) {
+export function screenshot(browser, htmlPath, { out, tab, step, path: attackPath, hop, sections, width = 1600, height = 'auto', scale = 1, timeout = 120000 } = {}) {
   const file = path.resolve(htmlPath);
   if (!fs.existsSync(file)) throw new Error(`not found: ${htmlPath}`);
-  const hash = deepLinkHash({ tab, step, path: attackPath, hop });
+  const hash = deepLinkHash({ tab, step, path: attackPath, hop, sections });
   let w = Math.round(width), h;
   if (height === 'auto' || height == null || height === '') {
     const rep = runReport(browser, file, { width: w, height: 480, timeout, hash });
@@ -67,18 +68,18 @@ export function screenshot(browser, htmlPath, { out, tab, step, path: attackPath
 
 async function main() {
   const args = process.argv.slice(2);
-  const valued = new Set(['-o', '--out', '--tab', '--step', '--path', '--hop', '--width', '--height', '--scale', '--browser']);
+  const valued = new Set(['-o', '--out', '--tab', '--step', '--path', '--hop', '--sections', '--width', '--height', '--scale', '--browser']);
   const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
   const files = args.filter((a, i) => !a.startsWith('-') && !valued.has(args[i - 1]));
   if (files.length !== 1 || args.includes('-h') || args.includes('--help')) {
-    console.error('usage: node scripts/screenshot.mjs <built.html> [-o out.png] [--tab <name>] [--step <n | step name>] [--path AP-nnnn [--hop n]] [--width 1600] [--height auto|N] [--scale 1] [--browser <exe>] [--quiet]');
+    console.error('usage: node scripts/screenshot.mjs <built.html> [-o out.png] [--tab <name>] [--step <n | step name>] [--path AP-nnnn [--hop n]] [--sections all] [--width 1600] [--height auto|N] [--scale 1] [--browser <exe>] [--quiet]');
     process.exit(files.length === 1 ? 0 : 1);
   }
   let browser;
   try { browser = await findBrowser(opt('--browser')); } catch (e) { console.error(`screenshot: ${e.message}`); process.exit(2); }
   if (!browser) { console.error('screenshot: no Chromium-based browser found. Install Chrome, Edge or Chromium, or pass --browser <path> (or set NB_BROWSER).'); process.exit(2); }
   try {
-    const r = screenshot(browser, files[0], { out: opt('-o') || opt('--out'), tab: opt('--tab'), step: opt('--step'), path: opt('--path'), hop: opt('--hop'),
+    const r = screenshot(browser, files[0], { out: opt('-o') || opt('--out'), tab: opt('--tab'), step: opt('--step'), path: opt('--path'), hop: opt('--hop'), sections: opt('--sections'),
       width: +(opt('--width') || 1600), height: opt('--height') || 'auto', scale: +(opt('--scale') || 1) });
     if (!args.includes('--quiet')) console.log(`wrote ${r.out} (${r.width}×${r.height}${r.scale !== 1 ? ` at ${r.scale}×` : ''}${r.hash ? '; ' + decodeURIComponent(r.hash.slice(1)).replace(/&/g, ', ') : ''})`);
   } catch (e) { console.error(`screenshot: ${e.message}`); process.exit(2); }

@@ -60,18 +60,22 @@ if (!template.includes(slot)) { console.error(`build: template has no ${slot} sl
 // model uses go into <defs>, with the ref -> symbol map and the cloud
 // cards' icons, so the page stays self-contained and a few kilobytes per distinct icon larger. A missing icon is reported and drawn as
 // the built-in default by the renderer.
-let symbols = '', vendorMap = {}, cardMap = {};
+// A page that carries vendor icons names their sets in a comment at the top of the file, so the notice travels with the page without
+// showing on it; THIRD-PARTY-NOTICES.md has the terms.
+const iconNotice = (names) => `<!--\n  Service icons in this page: ${names.join('; ')}.\n  The icons belong to their owners and are used under their published terms, unmodified and beside the names of the products they\n  represent. DigitalPrez, LLC does not license them and claims no rights in them; see THIRD-PARTY-NOTICES.md in the NetBlueprint Forge skill.\n-->\n`;
+let symbols = '', vendorMap = {}, cardMap = {}, notice = '';
 try {
   const icons = await import('./icons.mjs');
   icons.useLocalIndex(modelPath);
   cardMap = icons.cardIcons();
   const { refs, missing } = icons.collectIcons(model, cardMap);
-  const emitted = new Set();
+  const emitted = new Set(), providers = new Set();
   for (const ref of refs.keys()) {
     const r = icons.resolveIcon(ref); if (!r) continue;
-    const sym = icons.symbolId(r.provider, r.id); vendorMap[ref] = { sym, viewBox: r.entry.viewBox };
+    providers.add(r.provider); const sym = icons.symbolId(r.provider, r.id); vendorMap[ref] = { sym, viewBox: r.entry.viewBox };
     if (!emitted.has(sym)) { emitted.add(sym); symbols += icons.symbolMarkup(r.provider, r.id, r.entry); }
   }
+  if (providers.size) notice = iconNotice([...providers].sort().map((p) => (icons.SOURCES[p] || { name: p }).name));
   for (const m of missing) { const [p, n] = m.split('/'); const hint = icons.FETCHED_PROVIDERS.includes(p) ? `fetch it: node scripts/icons.mjs fetch ${m} --model ${modelPath}` : `try: node scripts/icons.mjs search "${n.replace(/-/g, ' ')}"`; console.warn(`warning: icon "${m}" (${refs.get(m).join(', ')}) is not in the icon library; the built-in icon is drawn instead (${hint})`); }
 } catch (e) { console.warn(`build: vendor icons unavailable (${e.message}); built-in icons are drawn.`); }
 
@@ -80,6 +84,7 @@ const json = JSON.stringify(model).replace(/</g, '\\u003c');
 const title = `${model.meta && model.meta.title ? model.meta.title : 'NetBlueprint'} · NetBlueprint`;
 const html = template
   .replace(slot, () => json)
+  .replace('<!--__ICON_NOTICE__-->\n', () => notice)
   .replace('<!--__VENDOR_SYMBOLS__-->', () => symbols)
   .replace('/*__VENDOR_ICONS__*/{}', () => JSON.stringify(vendorMap).replace(/</g, '\\u003c'))
   .replace('/*__CARD_ICONS__*/{}', () => JSON.stringify(cardMap).replace(/</g, '\\u003c'))

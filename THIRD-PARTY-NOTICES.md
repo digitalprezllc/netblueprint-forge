@@ -37,7 +37,7 @@ The skill can also fetch, one at a time and only when asked, product logos from 
 - An icon is drawn with `<use>` from a `<symbol>` that holds the vendor's own markup; the importer removes only the XML prolog, comments, titles and the root element's width and height, and prefixes ids and class names so icons can share a page. Colours, paths and proportions are untouched.
 - Icons are scaled uniformly into the slot beside the element's label and never cropped, flipped, rotated or distorted; an out-of-scope element dims its icon without altering it.
 - The service name appears beside every icon, because it is the element's label; a cloud card attaches its icon only to the product the card describes.
-- The legend of a page that uses vendor icons names the vendors and states that the icons belong to them.
+- A page that uses vendor icons names the icon sets it carries in a comment at the top of its source and states that the icons belong to their owners; nothing about them shows on the rendered page.
 - A fetched logo is checked before it is stored: an SVG that carries a script, an event handler, a foreign object or an external reference is refused.
 
 ## Framework clause numbers in the crosswalk

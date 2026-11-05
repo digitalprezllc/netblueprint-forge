@@ -19,7 +19,7 @@ const SHOTS = [
     shows: 'Azure hub-spoke Baseline: attack path AP-0001 at hop 2' },
   { page: 'examples/azure-hub-spoke/azure-hub-spoke.html', out: 'docs/images/azure-hub-spoke-whatif.png', tab: 'whatif-redis', step: 'cache', width: 1900,
     shows: 'Azure hub-spoke What-If tab: the cache step of the proposed change' },
-  { page: 'examples/azure-hub-spoke/azure-hub-spoke.html', out: 'docs/images/threat-register.png', tab: 'threat-register', width: 1600,
+  { page: 'examples/azure-hub-spoke/azure-hub-spoke.html', out: 'docs/images/threat-register.png', tab: 'threat-register', sections: 'all', width: 1600,
     shows: 'Threat Register tab of the hub-spoke document' },
   { page: 'examples/partner-portal-tabs/partner-portal-tabs.html', out: 'docs/images/partner-portal-admin-access.png', tab: 'admin-access', step: 'jump', width: 1600,
     shows: 'Partner Portal, Admin Access tab: the jump host step' },
@@ -38,7 +38,7 @@ async function main() {
   let code = 0;
   for (const s of SHOTS) {
     try {
-      const r = screenshot(browser, path.join(ROOT, s.page), { out: path.join(ROOT, s.out), tab: s.tab, step: s.step, path: s.path, hop: s.hop, width: s.width, height: s.height || 'auto' });
+      const r = screenshot(browser, path.join(ROOT, s.page), { out: path.join(ROOT, s.out), tab: s.tab, step: s.step, path: s.path, hop: s.hop, sections: s.sections, width: s.width, height: s.height || 'auto' });
       console.log(`${s.out}  ${r.width}×${r.height}  ${s.shows}`);
     } catch (e) { console.error(`readme_screenshots: ${s.out}: ${e.message}`); code = 2; }
   }
