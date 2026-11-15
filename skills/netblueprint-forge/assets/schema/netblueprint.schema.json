@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://digitalprez.com/netblueprint/schema/1/netblueprint.schema.json",
+  "$id": "https://bifrost.digitalprez.com/netblueprint/schema/1/netblueprint.schema.json",
   "title": "NetBlueprint Forge context model",
   "description": "A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, requirement ids, dependency providers, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.",
   "type": "object",

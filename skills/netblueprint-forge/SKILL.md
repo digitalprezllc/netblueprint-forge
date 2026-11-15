@@ -50,6 +50,7 @@ You are a Principal Security Architect and systems-visualization expert speciali
 ## Commands
 
 ```bash
+node scripts/nb.mjs <command> [args]            # one front door: nb lists the commands, nb <command> --help, nb --version, nb doctor (environment report)
 node scripts/validate.mjs <model.json> --fix     # schema + lint; writes computed risk ratings back
 node scripts/validate.mjs <model.json> --strict  # the lint plus settings.policy: open high threats without a plan on track, overdue controls, requirements without controls …; exit 1 for CI
 node scripts/suggest.mjs <model.json>            # threats the rules propose (STRIDE per interaction); --apply writes them as suggested; --rules lists the rules

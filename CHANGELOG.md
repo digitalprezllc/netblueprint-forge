@@ -7,6 +7,8 @@ Releases of NetBlueprint Forge, newest first. The release number is the skill's 
 Renderer 1.11.0.
 
 - Attribute display switches: `settings.attributes` hides rows of the Attributes card per element kind, by attribute id (`profile.owner_business`, `flows_through`) or group (`cloud.*`, `custom.*`); everything shows unless named, and a hidden row never reaches the page. An `attributes.json` beside the model is merged in by `build.mjs`. Every row carries a stable id, `scripts/attributes.mjs` lists them from the schema and the renderer, `validate.mjs` warns on one the list lacks, the page's self-check report says what each card shows and hides, and `tests/check_attributes.mjs` checks it all, in CI's layout job (D52).
+- One front door: `scripts/nb.mjs` lists the commands, prints any script's usage with `--help`, answers `--version`, hands arguments through unchanged, and takes several files in one call for build, validate, check and screenshot. `scripts/doctor.mjs` (`nb doctor`) writes an offline environment report for a bug report or a first install. A `package.json` at the repository root names the checks and build steps (`npm test`, `npm run test:validator`, `npm run build:examples`, `npm run pictures`, `npm run package`) and declares Node 18 or later; it adds no dependencies (D53).
+- The version is written once: `tests/check_package.mjs` fails when the plugin manifests, `package.json` or the README's status line disagree with `SKILL.md`, or when the renderer version there disagrees with the template, the README or the assets notes. The plugin manifests gain homepage, repository, category and tags. The schema is published at its `$id`, and new models name that address in `$schema` so editors validate them as they are typed.
 
 ## 0.11.0 (2026-11-05)
 

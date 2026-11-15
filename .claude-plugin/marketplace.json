@@ -9,7 +9,10 @@
     {
       "name": "netblueprint-forge",
       "source": "./",
-      "description": "Interview-driven network flow and threat model diagrams rendered as self-contained interactive HTML."
+      "description": "Interview-driven network flow and threat model diagrams rendered as self-contained interactive HTML: a validated context model, a self-contained page, threat rules, requirements with evidence, a policy gate for CI and clause-level coverage of ISO 27001, PCI DSS, SOC 2, HIPAA, NIST CSF, NIST SP 800-53, NIST SP 800-171 and CMMC.",
+      "homepage": "https://github.com/digitalprezllc/netblueprint-forge",
+      "category": "security",
+      "tags": ["threat-model", "network-diagram", "stride", "data-flow", "compliance", "zero-trust", "architecture"]
     }
   ]
 }

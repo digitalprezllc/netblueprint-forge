@@ -19,7 +19,7 @@ Start from this skeleton:
 
 ```json
 {
-  "$schema": "<relative path to assets/schema/netblueprint.schema.json>",
+  "$schema": "https://bifrost.digitalprez.com/netblueprint/schema/1/netblueprint.schema.json",
   "netblueprint": "1",
   "meta": { "title": "", "author": "", "date": "<today>", "version": "0.1.0" },
   "settings": { "layout": { "min_width": 1280, "min_height": 640 } },

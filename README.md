@@ -87,7 +87,7 @@ Three artefacts, in this order:
 
 1. **The conversation.** The skill runs a sectioned interview ([references/interview.md](skills/netblueprint-forge/references/interview.md)): what is being modelled, one diagram or several tabs, the network shape and its zones, the boundaries and their appliances, nodes and the services on them, users, devices and actors, flows and how each side authenticates, the story in phases and steps, threats and controls, attack paths, layers, then the summary and signature. Mandatory prompts are few (title and author, zones, nodes; for a threat: title, STRIDE, a target, adversary type, risk method and its inputs); everything else is optional and skippable. Typed answers are matched to option lists with `normalize.mjs` and confirmed when the match is unsure. Two other ways in: **ingest** Terraform, Bicep, CloudFormation, Kubernetes manifests, OpenAPI documents or a design document into proposed elements ([references/ingest.md](skills/netblueprint-forge/references/ingest.md)), and **what-if**, where a proposed change becomes a scenario tab derived from the baseline, never an edit of it ([references/what-if.md](skills/netblueprint-forge/references/what-if.md)).
 
-2. **The model** (`model.json`), validated against a [JSON Schema](skills/netblueprint-forge/assets/schema/netblueprint.schema.json) and a cross-reference lint. Names are ids and every reference is by name; there are no coordinates, only optional layout hints. Abridged from the examples (the attack path comes from the hub-spoke document):
+2. **The model** (`model.json`), validated against a [JSON Schema](skills/netblueprint-forge/assets/schema/netblueprint.schema.json) and a cross-reference lint. The schema is published at its own address, `https://bifrost.digitalprez.com/netblueprint/schema/1/netblueprint.schema.json`, so a model that names it in `$schema` is validated and completed by any JSON-aware editor as it is typed. Names are ids and every reference is by name; there are no coordinates, only optional layout hints. Abridged from the examples (the attack path comes from the hub-spoke document):
 
    ```json
    {
@@ -177,7 +177,7 @@ The full list, including what to check after a build and how to fix what you see
 | Requirement | Notes |
 | - | - |
 | An AI tool that reads Agent Skills | Claude Code, Cursor or Kiro, or another tool listed in [docs/PLATFORMS.md](docs/PLATFORMS.md) (OpenAI Codex / ChatGPT, GitHub Copilot, Gemini CLI, Windsurf). |
-| Node.js 18 or later | For the scripts. No `npm install`: there are no dependencies. CI runs Node 22. |
+| Node.js 18 or later | For the scripts. No `npm install`: there are no dependencies, and `package.json` only names the checks and build steps. CI runs Node 22. |
 | Any browser | To open the pages. |
 | Chrome, Chromium or Brave (optional) | For the headless geometry check and the PNG export. Microsoft Edge on Windows hands the page to its running instance and prints nothing, so prefer Chrome there. |
 | Python 3 with `jsonschema` (optional) | Only for the schema development test. |
@@ -258,6 +258,7 @@ The skill writes `netblueprint/<model-name>/model.json`, builds `netblueprint/<m
 
 | Command | Does |
 | - | - |
+| `node scripts/nb.mjs <command> [args]` | One front door: `nb` lists the commands, `nb <command> --help` prints a script's usage, `nb --version` the skill and renderer versions, `nb doctor` an offline environment report for a bug report; build, validate, check and screenshot take several files in one call. |
 | `node scripts/validate.mjs <model.json> --fix` | Schema check plus cross-reference lint; writes computed ratings and Title Case labels back. Exit 1 on errors. |
 | `node scripts/validate.mjs <model.json> --strict` | The same, plus the model's `settings.policy`: exit 1 on an open high threat with no plan on track, a missing treatment decision, an overdue control, a requirement without a control, a suggested element. For CI. |
 | `node scripts/suggest.mjs <model.json>` | What the 23 threat rules find, each with STRIDE, CWE, ATT&CK, a rating and a mitigation; `--apply` writes them as suggested threats. |
@@ -322,7 +323,7 @@ Two environment variables reach the scripts: `NB_BROWSER` names the Chrome, Chro
 
 ## Quality checks
 
-Nine checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
+Nine checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)): `npm test` runs them all, `npm run test:validator` the six that need no browser.
 
 | Check | Command | Covers |
 | - | - | - |
@@ -351,7 +352,7 @@ Report a vulnerability privately, never in a public issue: through the repositor
 ## Documentation
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): the agreed scope, section by section, with what is in version 1 and what comes later.
-- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D52.
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D53.
 - [docs/PLATFORMS.md](docs/PLATFORMS.md): which tool reads which folder, how to invoke the skill in each, platform-specific extras, and two more sample sessions.
 - Research notes: [threat attributes](docs/research/threat-attributes.md), [service, flow and threat detail](docs/research/service-flow-threat-attributes.md), [cloud service catalogue](docs/research/cloud-service-catalogue.md), [layout and routing](docs/research/layout-routing.md).
 - The skill's own references, loaded on demand by [SKILL.md](skills/netblueprint-forge/SKILL.md): [interview](skills/netblueprint-forge/references/interview.md), [threats](skills/netblueprint-forge/references/threats.md), [risk scoring](skills/netblueprint-forge/references/risk-scoring.md), [what-if](skills/netblueprint-forge/references/what-if.md), [ingest](skills/netblueprint-forge/references/ingest.md), [revise and archive](skills/netblueprint-forge/references/revise-and-archive.md), [render](skills/netblueprint-forge/references/render.md), [layout hints](skills/netblueprint-forge/references/layout-hints.md), [icons](skills/netblueprint-forge/references/icons.md), [model reference](skills/netblueprint-forge/references/model-reference.md), [cloud cards](skills/netblueprint-forge/references/cloud/README.md).

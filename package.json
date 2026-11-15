@@ -1,0 +1,23 @@
+{
+  "name": "netblueprint-forge",
+  "version": "0.11.0",
+  "private": true,
+  "description": "NetBlueprint Forge: interview-driven threat modelling that produces a validated context model, a self-contained interactive diagram and clause-level framework coverage. This file only names the checks and build steps; the scripts have no dependencies.",
+  "license": "SEE LICENSE IN LICENSE",
+  "author": "DigitalPrez, LLC",
+  "homepage": "https://github.com/digitalprezllc/netblueprint-forge",
+  "repository": { "type": "git", "url": "https://github.com/digitalprezllc/netblueprint-forge.git" },
+  "bugs": { "url": "https://github.com/digitalprezllc/netblueprint-forge/issues" },
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "npm run test:validator && npm run test:layout",
+    "test:validator": "node tests/check_validate.mjs && node tests/check_icons.mjs && node tests/check_package.mjs && node tests/check_suggest.mjs && node tests/check_reports.mjs && node tests/check_coverage.mjs",
+    "test:layout": "node tests/check_layout.mjs && node tests/check_attributes.mjs",
+    "test:schema": "python -I tests/check_schema.py",
+    "build:examples": "node skills/netblueprint-forge/scripts/nb.mjs build examples/entra-app-proxy/entra-app-proxy.model.json examples/azure-hub-spoke/azure-hub-spoke.model.json examples/partner-portal-tabs/partner-portal-tabs.model.json examples/aws-three-tier/aws-three-tier.model.json examples/gcp-serverless-web/gcp-serverless-web.model.json",
+    "pictures": "node tests/readme_screenshots.mjs",
+    "package": "node platforms/package.mjs",
+    "doctor": "node skills/netblueprint-forge/scripts/nb.mjs doctor",
+    "nb": "node skills/netblueprint-forge/scripts/nb.mjs"
+  }
+}

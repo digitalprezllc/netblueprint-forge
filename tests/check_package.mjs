@@ -89,5 +89,20 @@ try {
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }
+// 4. one version, written in SKILL.md, repeated faithfully everywhere else (the renderer version likewise)
+{
+  const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const text = (rel) => fs.readFileSync(path.join(repo, rel), 'utf8').replace(/^\uFEFF/, '');
+  const skillMd = text('skills/netblueprint-forge/SKILL.md');
+  const v = (skillMd.match(/^\s*version:\s*"([^"]+)"/m) || [])[1], rv = (skillMd.match(/^\s*renderer-version:\s*"([^"]+)"/m) || [])[1];
+  const tv = (text('skills/netblueprint-forge/assets/template/template.html').match(/RENDERER_VERSION='([^']+)'/) || [])[1];
+  const status = text('README.md').match(/^Skill ([0-9.]+), renderer ([0-9.]+)/m) || [];
+  const assets = text('skills/netblueprint-forge/assets/README.md').match(/The renderer \(version ([0-9.]+), stamped in the file\)/) || [];
+  const places = [['.claude-plugin/plugin.json', JSON.parse(text('.claude-plugin/plugin.json')).version], ['.claude-plugin/marketplace.json', JSON.parse(text('.claude-plugin/marketplace.json')).metadata.version], ['package.json', JSON.parse(text('package.json')).version], ['the README status line', status[1]]];
+  const bad = places.filter(([, x]) => x !== v).map(([where, x]) => `${where} says ${x}`);
+  if (v && !bad.length) pass(`skill version ${v} in SKILL.md is repeated faithfully by the plugin manifests, package.json and the README`); else fail(`skill version ${v} in SKILL.md, but ${bad.join('; ') || 'SKILL.md has none'}`);
+  const badR = [['the template', tv], ['the README status line', status[2]], ['the assets notes', assets[1]]].filter(([, x]) => x !== rv).map(([where, x]) => `${where} says ${x}`);
+  if (rv && !badR.length) pass(`renderer version ${rv} in SKILL.md matches the template, the README and the assets notes`); else fail(`renderer version ${rv} in SKILL.md, but ${badR.join('; ') || 'SKILL.md has none'}`);
+}
 console.log(fails ? `check_package: ${fails} failure(s)` : 'check_package: all checks passed');
 process.exit(fails ? 1 : 0);
