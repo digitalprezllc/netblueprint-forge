@@ -376,7 +376,7 @@ netblueprint-forge/
 │   ├── assets/examples/           Copies of the example models
 │   └── agents/openai.yaml         Codex / ChatGPT display metadata
 ├── examples/                      The example models, their rendered pages and a README each
-├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README
+├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README, the brand files (mark and favicon)
 ├── platforms/                     Install scripts for Windows (install.ps1) and macOS / Linux (install.sh); package.mjs builds the release zip
 ├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, rules check, reports check, coverage check, attribute display check, README pictures
 ├── blueprints/                    Working models produced with the skill in this repository

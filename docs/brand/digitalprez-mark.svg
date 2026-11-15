@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="300 115 980 980">
+  <!-- DigitalPrez mark, rebuilt from the bifrost.digitalprez.com logo
+       (14 spheres, orange + silver), rotated 50deg clockwise per owner
+       preference 2026-11-14: at 50deg the orange and silver clusters sit
+       level, side by side. -->
+  <defs>
+    <radialGradient id="dp-silver" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0.03" stop-color="#ffffff"/>
+      <stop offset="0.16" stop-color="#cccccc"/>
+      <stop offset="0.95" stop-color="#999999"/>
+    </radialGradient>
+    <radialGradient id="dp-orange" cx="0.35" cy="0.3" r="0.75">
+      <stop offset="0.03" stop-color="#ffcc99"/>
+      <stop offset="0.95" stop-color="#ff6600"/>
+    </radialGradient>
+  </defs>
+  <g transform="rotate(50 790 605)" fill="url(#dp-silver)">
+    <circle cx="786.73" cy="291.24" r="67.79"/>
+    <circle cx="786.73" cy="451.50" r="67.79"/>
+    <circle cx="957.98" cy="611.75" r="67.79"/>
+    <circle cx="1122.10" cy="533.41" r="67.79"/>
+    <circle cx="1114.96" cy="369.59" r="67.79"/>
+    <circle cx="965.12" cy="276.99" r="67.79"/>
+  </g>
+  <g transform="rotate(50 790 605)" fill="url(#dp-orange)">
+    <circle cx="622.61" cy="932.27" r="67.79"/>
+    <circle cx="786.73" cy="939.39" r="67.79"/>
+    <circle cx="786.73" cy="775.57" r="67.79"/>
+    <circle cx="786.73" cy="611.75" r="67.79"/>
+    <circle cx="786.73" cy="447.94" r="67.79"/>
+    <circle cx="458.50" cy="861.05" r="67.79"/>
+    <circle cx="458.50" cy="697.23" r="67.79"/>
+    <circle cx="615.48" cy="618.88" r="67.79"/>
+  </g>
+</svg>

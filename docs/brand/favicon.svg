@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="330 145 920 920">
+  <!-- DigitalPrez favicon: the 50deg mark with flat fills (gradients muddy at 16-32px). -->
+  <g transform="rotate(50 790 605)" fill="#b3b3b3">
+    <circle cx="786.73" cy="291.24" r="67.79"/>
+    <circle cx="786.73" cy="451.50" r="67.79"/>
+    <circle cx="957.98" cy="611.75" r="67.79"/>
+    <circle cx="1122.10" cy="533.41" r="67.79"/>
+    <circle cx="1114.96" cy="369.59" r="67.79"/>
+    <circle cx="965.12" cy="276.99" r="67.79"/>
+  </g>
+  <g transform="rotate(50 790 605)" fill="#ff6600">
+    <circle cx="622.61" cy="932.27" r="67.79"/>
+    <circle cx="786.73" cy="939.39" r="67.79"/>
+    <circle cx="786.73" cy="775.57" r="67.79"/>
+    <circle cx="786.73" cy="611.75" r="67.79"/>
+    <circle cx="786.73" cy="447.94" r="67.79"/>
+    <circle cx="458.50" cy="861.05" r="67.79"/>
+    <circle cx="458.50" cy="697.23" r="67.79"/>
+    <circle cx="615.48" cy="618.88" r="67.79"/>
+  </g>
+</svg>
