@@ -2,9 +2,9 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
-## Unreleased
+## 0.12.0 (2026-11-15)
 
-Renderer 1.11.0.
+Skill 0.12.0, renderer 1.11.0. Download: [netblueprint-forge-0.12.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.12.0.zip), sha256 `e590604f2a933d37d56210405bea0c5b674c037e3f43290883c2e335e4e5ad93`.
 
 - Attribute display switches: `settings.attributes` hides rows of the Attributes card per element kind, by attribute id (`profile.owner_business`, `flows_through`) or group (`cloud.*`, `custom.*`); everything shows unless named, and a hidden row never reaches the page. An `attributes.json` beside the model is merged in by `build.mjs`. Every row carries a stable id, `scripts/attributes.mjs` lists them from the schema and the renderer, `validate.mjs` warns on one the list lacks, the page's self-check report says what each card shows and hides, and `tests/check_attributes.mjs` checks it all, in CI's layout job (D52).
 - One front door: `scripts/nb.mjs` lists the commands, prints any script's usage with `--help`, answers `--version`, hands arguments through unchanged, and takes several files in one call for build, validate, check and screenshot. `scripts/doctor.mjs` (`nb doctor`) writes an offline environment report for a bug report or a first install. A `package.json` at the repository root names the checks and build steps (`npm test`, `npm run test:validator`, `npm run build:examples`, `npm run pictures`, `npm run package`) and declares Node 18 or later; it adds no dependencies (D53).
