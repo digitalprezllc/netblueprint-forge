@@ -1488,6 +1488,22 @@
             }
           }
         },
+        "attributes": {
+          "description": "Display switches for the Attributes card, by element kind: every row is shown unless named here, and a hidden row never reaches the page. all applies to every kind. An attributes.json beside the model with the same shape (optionally wrapped in {\"attributes\": …}) is merged in by build.mjs, hide lists unioned.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "all": { "$ref": "#/$defs/attributeHide" },
+            "zone": { "$ref": "#/$defs/attributeHide" },
+            "node": { "$ref": "#/$defs/attributeHide" },
+            "component": { "$ref": "#/$defs/attributeHide" },
+            "appliance": { "$ref": "#/$defs/attributeHide" },
+            "flow": { "$ref": "#/$defs/attributeHide" },
+            "threat": { "$ref": "#/$defs/attributeHide" },
+            "path": { "$ref": "#/$defs/attributeHide" },
+            "requirement": { "$ref": "#/$defs/attributeHide" }
+          }
+        },
         "severity_filter_default": {
           "description": "Minimum band shown when the diagram opens.",
           "$ref": "#/$defs/fiveLevel"
@@ -3992,6 +4008,14 @@
         "required": [
           "status_reason"
         ]
+      }
+    },
+    "attributeHide": {
+      "description": "Rows of the Attributes card to hide for one element kind. Each entry is an attribute id (the model field path, such as profile.owner_business or transport.tls_version, or a row the renderer derives, such as flows_through) or a group with a trailing .* (cloud.*, custom.*). node scripts/attributes.mjs lists the ids per kind.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "hide": { "type": "array", "items": { "type": "string", "pattern": "^[a-z0-9_-]+(\\.[a-z0-9_-]+)*(\\.\\*)?$" } }
       }
     },
     "policy": {

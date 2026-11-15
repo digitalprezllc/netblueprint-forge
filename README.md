@@ -165,7 +165,7 @@ A page is not a drawing with notes attached. Every element carries the attribute
 
 - **The band** at the top: title and version, Reset / Back / Next, the phase chips (attack paths are red ones at the end), the document summary (objective, flow, path, access, assumptions, out of scope) and the current step with its flows and their authentication strength. Collapse shrinks it to one strip.
 - **The canvas**: zones with their boundary appliances drawn as bars on the edge they guard, nodes with their components, cloud services with their vendor's official icon, other products with their logo when one was fetched for the model, Internet-side actors on the left, flows as orthogonal lines that leave the initiator, an auth badge on every flow (lock = strong, dot = moderate, ! = weak or none, ? = unspecified), a red ✕ on paths blocked by design, numbered threat circles on their targets (a mitigated one carries a small green shield), green shields where controls are in place, red numbered hop markers while an attack path is walked. Out-of-scope elements stay on the diagram, greyed.
-- **Attributes and layers**: click any zone, node, component, appliance, flow, threat circle or hop and a floating, draggable Attributes card lists every attribute with a filter box; hover anything for a bubble with the essentials. The Layers card holds the built-in layers (zones, boundary appliances, nodes, components, the Internet side, each flow strength, blocked paths, trust relationships, dependencies, threat markers, control badges, auth badges) and the model's own.
+- **Attributes and layers**: click any zone, node, component, appliance, flow, threat circle or hop and a floating, draggable Attributes card lists every attribute with a filter box, minus any rows `settings.attributes` hides; hover anything for a bubble with the essentials. The Layers card holds the built-in layers (zones, boundary appliances, nodes, components, the Internet side, each flow strength, blocked paths, trust relationships, dependencies, threat markers, control badges, auth badges) and the model's own.
 - **Threat Register**: the last tab of every document. One sortable, searchable table of every threat and every attack path across the diagrams, with inherent, current and projected ratings; the severity chips in the toolbar filter it and hide bands on the canvas. A row opens the element on its diagram; an eye per section shows or hides it, and Requirements and Framework Coverage start hidden.
 - **Tabs, keyboard and links**: a tab strip under the canvas when the model has several diagrams, a What-If tag and a banner with the change statement on a scenario tab; ← → step, R resets, C collapses the band, Esc clears a selection, PageUp / PageDown switch tabs; Ctrl+wheel, double-click and drag zoom and pan. `#tab=<name>`, `&step=<n or name>`, `&path=AP-nnnn&hop=<n>` and `&sections=all` in the URL open the page at a point.
 - **Legend and signature block**: the legend lists only what the model uses, grouped under Flows, Authentication, Elements and Threats; the title block shows organization and logo, title, document number, revision, date, prepared / reviewed / approved by, status and classification.
@@ -264,6 +264,7 @@ The skill writes `netblueprint/<model-name>/model.json`, builds `netblueprint/<m
 | `node scripts/report.mjs <model.json> --kind exec` | Markdown reports: `exec`, `developer`, `audit` or `all`. |
 | `node scripts/portfolio.mjs <folder>` | One table across every model under a folder: threats by band, open high threats, overdue controls, requirements verified, policy and validator results. |
 | `node scripts/coverage.mjs <model.json> --framework iso-27001-2022` | Which controls and requirements touch which clause: direct references plus what the crosswalk derives from NIST SP 800-53 ids; `--gaps` lists untouched clauses; `--frameworks` lists the frameworks the crosswalk knows. |
+| `node scripts/attributes.mjs [--kind node]` | The attribute ids the Attributes card can show, per element kind, for `settings.attributes` or an `attributes.json` beside the model. |
 | `node scripts/build.mjs <model.json>` | Validates, then renders `<model-name>.html` next to the model. Refuses a model with errors. |
 | `node scripts/archive.mjs <model.json> --note "…"` / `--diff` | Snapshot and version bump before an edit; element-level changelog entry after it. |
 | `node scripts/scenario.mjs <model.json> --tab <what-if tab>` | The delta of a what-if tab against its baseline, as Markdown (`--json` for data). |
@@ -304,6 +305,7 @@ Everything configurable lives in the model's `settings` object, so a document ca
 | `settings.layers_hidden` | none | Layer names, built-in or custom, that start hidden. |
 | `settings.show.threats`, `.threat_register`, `.layer_panel`, `.signature_block`, `.legend` | `true` | Switches for the threat markers, the register tab, the Layers card, the title block and the legend. |
 | `settings.icons.vendor` | `true` | Draw the official Azure, AWS and Google Cloud icons on cloud nodes that carry a card. |
+| `settings.attributes` | everything shown | Rows to hide from the Attributes card, per element kind (`all`, `zone`, `node`, `component`, `appliance`, `flow`, `threat`, `path`, `requirement`), each a `hide` list of attribute ids such as `profile.owner_business` or `flows_through`, or groups such as `cloud.*` and `custom.*`. `node scripts/attributes.mjs` lists the ids; an `attributes.json` beside the model with the same shape is merged in at build. A hidden row never reaches the page. |
 | `settings.severity_filter_default` | every band | The lowest severity band shown when the diagram opens. |
 | `settings.theme.brand_color`, `settings.theme.zone_colors` | the template's | The accent colour and the default zone colour per zone kind. |
 | `settings.labels.severity`, `settings.labels.auth_strength` | the built-in words | Display labels for the enumerated values; the ids never change. |
@@ -320,7 +322,7 @@ Two environment variables reach the scripts: `NB_BROWSER` names the Chrome, Chro
 
 ## Quality checks
 
-Eight checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
+Nine checks, each one command, all run by CI on every push and pull request to `develop` and `master` ([.github/workflows/checks.yml](.github/workflows/checks.yml)):
 
 | Check | Command | Covers |
 | - | - | - |
@@ -332,6 +334,7 @@ Eight checks, each one command, all run by CI on every push and pull request to 
 | Rules check | `node tests/check_suggest.mjs` | Every threat rule fires on `tests/fixtures/rules.model.json` with the expected counts, `--apply` writes threats the validator accepts and a second run recognises, and the examples get at most a handful of suggestions, none duplicating a threat they have. |
 | Reports check | `node tests/check_reports.mjs` | The three reports hold their sections and list every threat, verified control, planned control and framework clause of the hub-spoke model; the portfolio finds the five examples with the right counts. |
 | Coverage check | `node tests/check_coverage.mjs` | The crosswalk is well formed, every clause it maps to has a title, it carries no CIS mapping, every NIST id the examples cite is in it, the 110 SP 800-171 requirements and the CMMC identifiers are complete and consistent with NIST's mapping and the rule; coverage of the hub-spoke model derives the expected rows; a `frameworks.json` beside a model extends it. |
+| Attribute display check | `node tests/check_attributes.mjs` | The renderer's fixed row ids and the attribute listing agree; the validator warns on a switch that names nothing and the schema rejects a malformed one; `attributes.json` merges by union. With a browser, a copy of the hub-spoke example with switches in its model and in an `attributes.json` beside it hides exactly those rows, and the example itself hides nothing by default. |
 
 The Actions tab of the repository shows each run. Two more workflows: [release.yml](.github/workflows/release.yml) packages the skill and publishes a GitHub Release when a merge to `master` raises the skill version; [pull-requests.yml](.github/workflows/pull-requests.yml) closes a pull request from outside the organization on arrival with a note, since the repository takes reports and not code. `node tests/readme_screenshots.mjs` regenerates the pictures in this README from the built examples. All of it is described in [tests/README.md](tests/README.md).
 
@@ -348,7 +351,7 @@ Report a vulnerability privately, never in a public issue: through the repositor
 ## Documentation
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): the agreed scope, section by section, with what is in version 1 and what comes later.
-- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D51.
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D52.
 - [docs/PLATFORMS.md](docs/PLATFORMS.md): which tool reads which folder, how to invoke the skill in each, platform-specific extras, and two more sample sessions.
 - Research notes: [threat attributes](docs/research/threat-attributes.md), [service, flow and threat detail](docs/research/service-flow-threat-attributes.md), [cloud service catalogue](docs/research/cloud-service-catalogue.md), [layout and routing](docs/research/layout-routing.md).
 - The skill's own references, loaded on demand by [SKILL.md](skills/netblueprint-forge/SKILL.md): [interview](skills/netblueprint-forge/references/interview.md), [threats](skills/netblueprint-forge/references/threats.md), [risk scoring](skills/netblueprint-forge/references/risk-scoring.md), [what-if](skills/netblueprint-forge/references/what-if.md), [ingest](skills/netblueprint-forge/references/ingest.md), [revise and archive](skills/netblueprint-forge/references/revise-and-archive.md), [render](skills/netblueprint-forge/references/render.md), [layout hints](skills/netblueprint-forge/references/layout-hints.md), [icons](skills/netblueprint-forge/references/icons.md), [model reference](skills/netblueprint-forge/references/model-reference.md), [cloud cards](skills/netblueprint-forge/references/cloud/README.md).
@@ -374,11 +377,11 @@ netblueprint-forge/
 ├── examples/                      The example models, their rendered pages and a README each
 ├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README
 ├── platforms/                     Install scripts for Windows (install.ps1) and macOS / Linux (install.sh); package.mjs builds the release zip
-├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, rules check, reports check, coverage check, README pictures
+├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, rules check, reports check, coverage check, attribute display check, README pictures
 ├── blueprints/                    Working models produced with the skill in this repository
 ├── .claude-plugin/                Plugin and marketplace manifests for Claude Code
 ├── .github/ISSUE_TEMPLATE/        Bug report and feature request forms; blank issues are off; the pull request notice sits beside them
-├── .github/workflows/             checks.yml runs the eight checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
+├── .github/workflows/             checks.yml runs the nine checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
 ├── CHANGELOG.md                   What each release holds
 ├── CONTRIBUTING.md                Bug reports and feature requests are welcome; pull requests are not accepted
 ├── LICENSE                        PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms
@@ -386,7 +389,7 @@ netblueprint-forge/
 └── THIRD-PARTY-NOTICES.md         The vendors' terms for the icon library and the standards the crosswalk cites
 ```
 
-Skill 0.11.0, renderer 1.10.1: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
+Skill 0.11.0, renderer 1.11.0: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
 
 ## License and commercial licensing
 

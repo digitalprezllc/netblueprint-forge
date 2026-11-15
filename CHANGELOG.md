@@ -2,6 +2,12 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
+## Unreleased
+
+Renderer 1.11.0.
+
+- Attribute display switches: `settings.attributes` hides rows of the Attributes card per element kind, by attribute id (`profile.owner_business`, `flows_through`) or group (`cloud.*`, `custom.*`); everything shows unless named, and a hidden row never reaches the page. An `attributes.json` beside the model is merged in by `build.mjs`. Every row carries a stable id, `scripts/attributes.mjs` lists them from the schema and the renderer, `validate.mjs` warns on one the list lacks, the page's self-check report says what each card shows and hides, and `tests/check_attributes.mjs` checks it all, in CI's layout job (D52).
+
 ## 0.11.0 (2026-11-05)
 
 Skill 0.11.0, renderer 1.10.1. Download: [netblueprint-forge-0.11.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.11.0.zip), sha256 `6dedc04e17fcf631afd05ff94f8446c59942fde7e60fbd560d2d82125ef1decd`.

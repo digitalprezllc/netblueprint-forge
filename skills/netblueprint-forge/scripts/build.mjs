@@ -11,6 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { mergeAttributes } from './attributes.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -34,6 +35,19 @@ catch (e) { console.error(`build: ${modelPath} is not valid JSON: ${e.message}`)
 if (!/^1(\.\d+)?$/.test(String(model.netblueprint || ''))) {
   console.error(`build: unsupported model format version "${model.netblueprint}" (this renderer understands 1.x)`);
   process.exit(1);
+}
+
+// attributes.json beside the model: display switches for the Attributes card, merged into settings.attributes (hide lists unioned)
+// so the page carries them; the model file itself is not changed.
+const attrFile = path.join(path.dirname(path.resolve(modelPath)), 'attributes.json');
+if (fs.existsSync(attrFile)) {
+  let extra;
+  try { extra = JSON.parse(fs.readFileSync(attrFile, 'utf8').replace(/^\uFEFF/, '')); }
+  catch (e) { console.error(`build: ${attrFile} is not valid JSON: ${e.message}`); process.exit(1); }
+  model.settings = model.settings || {};
+  model.settings.attributes = mergeAttributes(model.settings.attributes, extra);
+  const n = Object.values(extra.attributes && typeof extra.attributes === 'object' ? extra.attributes : extra).reduce((a, v) => a + ((v && v.hide) || []).length, 0);
+  console.log(`attributes.json: ${n} display switch(es) merged into settings.attributes`);
 }
 
 if (!has('--no-validate')) {

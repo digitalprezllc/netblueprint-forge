@@ -1,6 +1,6 @@
 # Model reference
 
-Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-04. Do not edit by hand; change the schema and regenerate.
+Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-15. Do not edit by hand; change the schema and regenerate.
 
 A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, requirement ids, dependency providers, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.
 
@@ -99,6 +99,7 @@ Signature block and document metadata. Title, subtitle and organization are Titl
 | `layers_hidden` | list of names (unique) |  | Layer names (built-in or custom) that start hidden. |
 | `show` | object |  |  |
 | `icons` | object |  | Vendor icons on the page. |
+| `attributes` | object |  | Display switches for the Attributes card, by element kind: every row is shown unless named here, and a hidden row never reaches the page. all applies to every kind. An attributes.json beside the model with the same shape (optionally wrapped in {"attributes": …}) is merged in by build.mjs, hide lists unioned. |
 | `severity_filter_default` | `very-low` · `low` · `moderate` · `high` · `very-high` |  | Minimum band shown when the diagram opens. |
 | `policy` | [policy](#policy) |  |  |
 | `theme` | object |  |  |
@@ -794,6 +795,16 @@ Marks a tab as a what-if scenario of another tab: the same diagram with one chan
 | `date` | date YYYY-MM-DD |  |  |
 | `author` | text ≤200 |  |  |
 | `assumptions` | array of text ≤200 |  |  |
+
+## attributeHide
+
+<a id="attributehide"></a>
+
+Rows of the Attributes card to hide for one element kind. Each entry is an attribute id (the model field path, such as profile.owner_business or transport.tls_version, or a row the renderer derives, such as flows_through) or a group with a trailing .* (cloud.*, custom.*). node scripts/attributes.mjs lists the ids per kind.
+
+| Field | Type / allowed values | Required | Notes |
+| - | - | - | - |
+| `hide` | array of string matching `^[a-z0-9_-]+(\.[a-z0-9_-]+)*(\.\*)?$` |  |  |
 
 ## Reserved names and conventions
 

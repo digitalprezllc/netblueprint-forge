@@ -6,7 +6,7 @@ compatibility: Requires Node.js 18+ for the validate, build and archive scripts.
 metadata:
   author: "DigitalPrez, LLC"
   version: "0.11.0"
-  renderer-version: "1.10.1"
+  renderer-version: "1.11.0"
 ---
 
 # NetBlueprint Forge
@@ -56,6 +56,7 @@ node scripts/suggest.mjs <model.json>            # threats the rules propose (ST
 node scripts/report.mjs <model.json> --kind exec # executive summary; developer (the to-do list by owner); audit (verified controls with evidence, requirements by clause); all
 node scripts/portfolio.mjs <folder>              # one table across every model under a folder: threats by band, open high threats, overdue controls, policy
 node scripts/coverage.mjs <model.json> --framework iso-27001-2022   # which controls and requirements touch which clause; --gaps lists untouched clauses; --frameworks lists the frameworks
+node scripts/attributes.mjs [--kind node]        # the attribute ids the Attributes card can show, for settings.attributes or an attributes.json beside the model
 node scripts/build.mjs <model.json>              # -> <model-name>.html (validates first; refuses errors)
 node scripts/archive.mjs <model.json> --note "what is about to change"   # snapshot + version bump; run BEFORE editing
 node scripts/archive.mjs <model.json> --diff     # append element-level changes AFTER editing
@@ -97,6 +98,7 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 24. **Component cards work like cloud cards.** A node that is a common self-managed component (`references/components.md`), a Kubernetes part (`references/kubernetes.md`), an AI building block (`references/ai.md`) or an OT system (`references/ot.md`) gets its card's questions, dependencies and threats, marked `suggested` until confirmed; a product with no card gets `cloud/generic.md`'s questions.
 25. **OT zones carry a security level.** A plant network zone has `kind: ot` and `security_level` (IEC 62443 SL-T 1 to 4); a flow between two zones is a conduit, and the validator warns when one enters a higher level through a zone with no appliance. Kubernetes clusters are `cluster` zones with `namespace` zones inside.
 26. **Frameworks by clause, honestly.** Controls and requirements cite the clauses they serve in `frameworks[]` (and ISO ids in `iso_27001`); `coverage.mjs` adds what the crosswalk derives from NIST SP 800-53 ids and marks it "via crosswalk". The crosswalk is DigitalPrez's working aid, not a publisher's mapping, and a control that touches a clause does not by itself satisfy it: say so whenever you report coverage. No CIS Controls mapping ships (its licence); an organisation's own mappings go in `frameworks.json` beside the model.
+27. **Attribute display is the model's choice.** `settings.attributes` hides rows of the page's Attributes card per element kind (`all`, `zone`, `node`, `component`, `appliance`, `flow`, `threat`, `path`, `requirement`), each a `hide` list of attribute ids (`profile.owner_business`, `flows_through`) or groups (`cloud.*`, `custom.*`); everything shows unless named, and a hidden row never reaches the page. `node scripts/attributes.mjs` lists the ids; an `attributes.json` beside the model with the same shape is merged in by `build.mjs`. Offer it when a document goes to readers who should not see owners, costs or internal metadata.
 
 ## Files in this skill
 

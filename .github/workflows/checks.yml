@@ -70,6 +70,10 @@ jobs:
         env:
           NB_BROWSER: ${{ steps.chrome.outputs.chrome-path }}
         run: node tests/check_layout.mjs --hard-only
+      - name: Attribute display check
+        env:
+          NB_BROWSER: ${{ steps.chrome.outputs.chrome-path }}
+        run: node tests/check_attributes.mjs
       - name: Keep the rendered pages
         if: always()
         uses: actions/upload-artifact@v7

@@ -118,3 +118,11 @@ node tests/check_coverage.mjs
 ```
 
 Checks `assets/frameworks/crosswalk.json` and `scripts/coverage.mjs`: the crosswalk has its shape and note, every control id is a well-formed NIST SP 800-53 id with a title, every framework it maps to is declared with title, publisher and terms, every clause it maps to has a title, and its data carries no CIS Controls mapping (the note may say why CIS is absent; the data may not carry it). Every NIST id the examples cite is in the crosswalk. Coverage of the hub-spoke model puts REQ-0001 on ISO A.8.5 directly and CTL-0001 there through the crosswalk from IA-2(1), lists CTL-0008 under NIST AC-17 with the control's title, rates PCI DSS 8.4.2 implemented, keeps every level between none and verified, writes the framework headings, the "via crosswalk" marks and the gaps, and limits itself to one framework with `--framework`. A `frameworks.json` beside a model adds a framework, a clause and a mapping while keeping the shipped mappings of the control it extends. CI runs it in the validator job.
+
+## Attribute display check
+
+```bash
+node tests/check_attributes.mjs
+```
+
+Checks the display switches of `settings.attributes` and of an `attributes.json` beside a model: the renderer's fixed row ids and `scripts/attributes.mjs` agree, so the listing names exactly what the Attributes card can show; the validator warns on a switch that names nothing and the schema rejects a malformed one; `attributes.json` merges by union. With a Chromium-based browser on the machine it also builds a copy of the hub-spoke example with switches in the model and in an `attributes.json` beside it, reads what the page's self-check report says each card shows and hides, and requires the hub-spoke example itself to hide nothing by default. CI runs it in the layout job, which has Chrome.

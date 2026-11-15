@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { suggest } from './normalize.mjs';
 import { resolveIcon, useLocalIndex, PROVIDERS as SHIPPED_ICON_PROVIDERS, FETCHED_PROVIDERS } from './icons.mjs';
+import { attributesCheck } from './attributes.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const SCHEMA_PATH = path.join(here, '..', 'assets', 'schema', 'netblueprint.schema.json');
@@ -215,6 +216,8 @@ export function lintModel(model, { fix = false } = {}) {
     if (!model.zones || !model.nodes) errors.push('a model needs zones[] and nodes[] at the top level, or a tabs[] array whose entries have them');
     merge(lintScope(model, { fix }));
   }
+  // settings.attributes: an entry that names nothing the Attributes card shows is a warning (the shape is the schema's)
+  try { warnings.push(...attributesCheck(model)); } catch (e) { warnings.push(`settings.attributes: could not be checked (${e.message})`); }
   return { errors, warnings, fixed };
 }
 

@@ -253,6 +253,12 @@ The arrow leaves the initiator: `from` opens the connection, `to` answers. A req
 - The Threat Register gains a Framework Coverage table under the requirements: every clause a control or requirement cites directly, with what cites it and the best control status (verified, implemented, planned, none). Crosswalk-derived coverage stays in the script, so the page shows only what the model states.
 - Every register section has an eye button in the register's head, blue while the section shows and grey while it is hidden; Threats and Attack Paths start shown, Requirements and Framework Coverage hidden; the browser's storage remembers the choice per document, and `&sections=` in the URL hash (`all`, `none` or a comma list of `threats`, `paths`, `requirements`, `coverage`) sets it for a link.
 
+### 3.18 Attribute display switches
+- `settings.attributes` names rows of the Attributes card to hide, per element kind (`all`, `zone`, `node`, `component`, `appliance`, `flow`, `threat`, `path`, `requirement`), each a `hide` list of attribute ids or groups (`cloud.*`, `custom.*`). Everything shows unless named, and a hidden row is filtered before it reaches the card, so a shared page does not carry it.
+- Every row of the card carries a stable id: the model field path for a flattened field (`profile.owner_business`, `transport.tls_version`, `adversary.type`), a fixed name for a derived row (`flows_through`, `depended_on_by`, `risk.residual`). `scripts/attributes.mjs` lists them per kind from the schema and the renderer's fixed rows; `validate.mjs` warns on an id the list lacks.
+- An `attributes.json` beside the model, of the same shape, is merged into `settings.attributes` by `build.mjs` (hide lists unioned) so the page carries it and the model file stays as written.
+- The page's self-check report lists, per element of each tab and for the first requirement, the ids its card shows and hides; `tests/check_attributes.mjs` reads it.
+
 ## 4. Skill (interview)
 
 - Steers a structured interview in roughly this order: network and zones → boundaries and appliances → nodes and services → users, devices and actors → flows and auth → story steps → threats and controls → layers → signature details.
