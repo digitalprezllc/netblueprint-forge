@@ -5,8 +5,8 @@ contact_links:
     url: https://github.com/digitalprezllc/netblueprint-forge/security/policy
     about: Not as an issue. The security policy says how to report one privately.
   - name: Commercial licence
-    url: https://github.com/digitalprezllc/netblueprint-forge#license
-    about: Using NetBlueprint Forge for a business needs a written licence from DigitalPrez, LLC. The README says how to ask for one.
+    url: https://github.com/digitalprezllc/netblueprint-forge#license-and-commercial-licensing
+    about: Any use of NetBlueprint Forge by or for an organization needs a written licence from DigitalPrez, LLC. The README says how to ask for one.
   - name: Pull requests
     url: https://github.com/digitalprezllc/netblueprint-forge/blob/develop/CONTRIBUTING.md
     about: Not accepted, and closed on arrival; CONTRIBUTING.md says why. Describe the problem in a bug report instead.

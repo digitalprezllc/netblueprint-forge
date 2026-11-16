@@ -2,7 +2,7 @@
 
 Interview-driven threat modelling that produces a validated context model, a self-contained interactive diagram, and clause-level framework coverage an auditor can use.
 
-[![Checks](https://img.shields.io/github/actions/workflow/status/digitalprezllc/netblueprint-forge/checks.yml?branch=develop&style=flat-square&label=checks)](https://github.com/digitalprezllc/netblueprint-forge/actions/workflows/checks.yml) [![Release](https://img.shields.io/github/v/release/digitalprezllc/netblueprint-forge?style=flat-square&label=release)](https://github.com/digitalprezllc/netblueprint-forge/releases) [![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-1f4e79?style=flat-square)](LICENSE) [![Node.js](https://img.shields.io/badge/node-18%2B-339933?style=flat-square)](#installation-and-prerequisites) [![Agent Skills](https://img.shields.io/badge/standard-Agent%20Skills-6d4bc6?style=flat-square)](https://agentskills.io/specification) [![Issues](https://img.shields.io/github/issues/digitalprezllc/netblueprint-forge?style=flat-square)](https://github.com/digitalprezllc/netblueprint-forge/issues)
+[![Checks](https://img.shields.io/github/actions/workflow/status/digitalprezllc/netblueprint-forge/checks.yml?branch=develop&style=flat-square&label=checks)](https://github.com/digitalprezllc/netblueprint-forge/actions/workflows/checks.yml) [![Release](https://img.shields.io/github/v/release/digitalprezllc/netblueprint-forge?style=flat-square&label=release)](https://github.com/digitalprezllc/netblueprint-forge/releases) [![License](https://img.shields.io/badge/license-Personal%20Use%201.0-1f4e79?style=flat-square)](LICENSE) [![Node.js](https://img.shields.io/badge/node-18%2B-339933?style=flat-square)](#installation-and-prerequisites) [![Agent Skills](https://img.shields.io/badge/standard-Agent%20Skills-6d4bc6?style=flat-square)](https://agentskills.io/specification) [![Issues](https://img.shields.io/github/issues/digitalprezllc/netblueprint-forge?style=flat-square)](https://github.com/digitalprezllc/netblueprint-forge/issues)
 
 Architecture diagrams rarely say who authenticates how, which threats apply, which controls exist, or what an assessor can tick off, and the tools that do model threats usually stop at identification and keep the model inside their own server. NetBlueprint Forge is an [Agent Skill](https://agentskills.io/specification) for Claude Code, Cursor, Kiro and the other tools that read the standard: it interviews you about a network or an application, writes one JSON model, and from that model renders an interactive HTML page, runs 23 threat rules, enforces a policy in CI, and reports which controls and requirements touch which clause of ISO 27001, PCI DSS, SOC 2, HIPAA, NIST CSF, NIST SP 800-53, NIST SP 800-171 and CMMC. It is built for security architects, platform teams, auditors and the consultancies that serve them. The skill adds no network traffic of its own: the scripts run locally and reach out only when you ask one to fetch a product logo, and a rendered page has no external dependency, not even a font. The AI tool that hosts the skill still sends your conversation to its model provider under that tool's own data terms, so model a sensitive system only in a tool approved for it.
 
@@ -352,7 +352,7 @@ Report a vulnerability privately, never in a public issue: through the repositor
 ## Documentation
 
 - [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md): the agreed scope, section by section, with what is in version 1 and what comes later.
-- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D53.
+- [docs/DECISIONS.md](docs/DECISIONS.md): every design decision with its reasons, D1 to D54.
 - [docs/PLATFORMS.md](docs/PLATFORMS.md): which tool reads which folder, how to invoke the skill in each, platform-specific extras, and two more sample sessions.
 - Research notes: [threat attributes](docs/research/threat-attributes.md), [service, flow and threat detail](docs/research/service-flow-threat-attributes.md), [cloud service catalogue](docs/research/cloud-service-catalogue.md), [layout and routing](docs/research/layout-routing.md).
 - The skill's own references, loaded on demand by [SKILL.md](skills/netblueprint-forge/SKILL.md): [interview](skills/netblueprint-forge/references/interview.md), [threats](skills/netblueprint-forge/references/threats.md), [risk scoring](skills/netblueprint-forge/references/risk-scoring.md), [what-if](skills/netblueprint-forge/references/what-if.md), [ingest](skills/netblueprint-forge/references/ingest.md), [revise and archive](skills/netblueprint-forge/references/revise-and-archive.md), [render](skills/netblueprint-forge/references/render.md), [layout hints](skills/netblueprint-forge/references/layout-hints.md), [icons](skills/netblueprint-forge/references/icons.md), [model reference](skills/netblueprint-forge/references/model-reference.md), [cloud cards](skills/netblueprint-forge/references/cloud/README.md).
@@ -385,20 +385,23 @@ netblueprint-forge/
 ├── .github/workflows/             checks.yml runs the nine checks on every push and pull request; release.yml publishes the zip from master; pull-requests.yml closes outside pull requests
 ├── CHANGELOG.md                   What each release holds
 ├── CONTRIBUTING.md                Bug reports and feature requests are welcome; pull requests are not accepted
-├── LICENSE                        PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms
+├── LICENSE                        NetBlueprint Forge Personal Use License 1.0: free for an individual's personal use, a written license for organizations
 ├── SECURITY.md                    How to report a vulnerability privately
 └── THIRD-PARTY-NOTICES.md         The vendors' terms for the icon library and the standards the crosswalk cites
 ```
 
-Skill 0.12.0, renderer 1.11.0: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
+Skill 0.13.0, renderer 1.11.1: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
 
 ## License and commercial licensing
 
-Copyright (c) 2025-2026 DigitalPrez, LLC. All rights reserved. NetBlueprint Forge is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE) with additional terms from DigitalPrez:
+Copyright (c) 2025-2026 DigitalPrez, LLC. All rights reserved. From release 0.13.0, NetBlueprint Forge is source-available under the [NetBlueprint Forge Personal Use License 1.0](LICENSE), DigitalPrez's own terms:
 
-- **Noncommercial use is free**: evaluate it, learn from it, use it for personal projects and non-profit work, modify it, as long as the notices stay.
-- **Commercial use needs a written license** from DigitalPrez, LLC, granted to specific organizations with or without a fee. The grant is a one-page document, provided on request, that can cover a company and its subsidiaries.
-- **Everything the skill produces is free to use**: the models you write and the diagrams rendered from them are yours, and the copy of the renderer inside each diagram carries an output exception so anyone may open and share them.
+- **Personal use by an individual is free**: study it, use it for your own research and hobby projects, document your own home network, modify it, as long as the notices stay and none of it is done by or for an organization. Work for an employer or a client, and work in your own business, is not personal use.
+- **Every organization needs a written license** from DigitalPrez, LLC, whatever kind it is and however it is funded: businesses, government institutions at every level, educational institutions, charities and other nonprofits, and research organizations alike. Licenses are granted to specific organizations, with or without a fee. The grant is a one-page document, provided on request, that can cover an organization and its affiliates.
+- **An organization may evaluate it for 30 days** before it needs that license: one evaluation period per organization, counted from the day it first uses the software.
+- **Everything the skill produces is free to use**: the models you write and the diagrams rendered from them are yours, and the copy of the renderer inside each diagram carries an output exception so anyone may open and share them. The exception covers the generated files, not the use of the skill to make them.
 - "NetBlueprint Forge" and "DigitalPrez" are trademarks of DigitalPrez, LLC.
+
+**Releases already published keep their terms.** Releases 0.6.1 through 0.12.0 were published under the PolyForm Noncommercial License 1.0.0 with DigitalPrez's additional terms, and they stay under those terms: whoever holds one of those releases may go on using it as the LICENSE file inside it allows. The Personal Use License applies to release 0.13.0 and every release after it; the summary above does not replace the [LICENSE](LICENSE), which is the text that governs.
 
 For a commercial licence, a bespoke integration or a support arrangement, write to subscriptions@digitalprez.com. NetBlueprint Forge is built and maintained by DigitalPrez, LLC, in business since 1998. A copy of the LICENSE sits inside the skill folder so an installed skill carries it.

@@ -1,6 +1,6 @@
 {
   "name": "netblueprint-forge",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "private": true,
   "description": "NetBlueprint Forge: interview-driven threat modelling that produces a validated context model, a self-contained interactive diagram and clause-level framework coverage. This file only names the checks and build steps; the scripts have no dependencies.",
   "license": "SEE LICENSE IN LICENSE",

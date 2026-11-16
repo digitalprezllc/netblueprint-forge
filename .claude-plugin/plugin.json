@@ -1,11 +1,11 @@
 {
   "name": "netblueprint-forge",
   "displayName": "NetBlueprint Forge",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Interview-driven network flow and threat model diagrams rendered as self-contained interactive HTML.",
   "author": { "name": "DigitalPrez, LLC", "email": "subscriptions@digitalprez.com" },
   "homepage": "https://github.com/digitalprezllc/netblueprint-forge",
   "repository": "https://github.com/digitalprezllc/netblueprint-forge",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "LicenseRef-NetBlueprint-Forge-Personal-Use-1.0",
   "keywords": ["network-diagram", "threat-model", "stride", "data-flow", "zero-trust", "architecture"]
 }

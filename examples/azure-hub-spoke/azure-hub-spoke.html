@@ -2,12 +2,13 @@
 <!--
   NetBlueprint Forge renderer. Copyright (c) 2025-2026 DigitalPrez, LLC. All rights reserved.
 
-  The renderer is licensed under the PolyForm Noncommercial License 1.0.0 with additional terms from DigitalPrez, LLC (see the LICENSE
-  file that accompanies the software; commercial licenses are available from DigitalPrez, LLC, subscriptions@digitalprez.com).
-  This generated document is covered by the licensor's output exception: it may be used, copied, displayed and distributed by anyone,
+  The renderer is licensed under the NetBlueprint Forge Personal Use License 1.0 (see the LICENSE file that accompanies the software):
+  personal use by an individual is free, and any use of the software by or for an organization needs a written license from
+  DigitalPrez, LLC, subscriptions@digitalprez.com.
+  This generated document is covered by the license's output exception: it may be used, copied, displayed and distributed by anyone,
   for any purpose. The model it renders and the diagram it shows belong to their author. "NetBlueprint Forge" and "DigitalPrez" are
   trademarks of DigitalPrez, LLC.
-  Required Notice: Copyright DigitalPrez, LLC. NetBlueprint Forge is licensed under the PolyForm Noncommercial License 1.0.0 with additional terms; commercial licenses: subscriptions@digitalprez.com
+  Required Notice: Copyright DigitalPrez, LLC. NetBlueprint Forge is licensed under the NetBlueprint Forge Personal Use License 1.0: personal use by an individual is free; any use by or for an organization needs a written license from DigitalPrez, LLC: subscriptions@digitalprez.com
 -->
 <!--
   Service icons in this page: Microsoft Azure architecture icons (with the Microsoft Entra architecture icons).
@@ -398,7 +399,7 @@ ol.hops{margin:0;padding:0;list-style:none}ol.hops li{margin:4px 0;line-height:1
 <script>
 (function(){
 'use strict';
-const RENDERER_VERSION='1.11.0';
+const RENDERER_VERSION='1.11.1';
 let MODEL=null;
 try{MODEL=JSON.parse(document.getElementById('nb-model').textContent.replace(/^\s*\/\*__MODEL_JSON__\*\//,''));}catch(e){MODEL=null;}
 if(!MODEL){document.body.innerHTML='<p style="padding:2rem;font-family:sans-serif">No model embedded. Run <code>node scripts/build.mjs model.json</code> to produce a diagram.</p>';return;}

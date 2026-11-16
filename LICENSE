@@ -1,158 +1,175 @@
 NetBlueprint Forge
 Copyright (c) 2025-2026 DigitalPrez, LLC. All rights reserved.
 
-Required Notice: Copyright DigitalPrez, LLC. NetBlueprint Forge is licensed under the PolyForm Noncommercial License 1.0.0 with additional terms; commercial licenses: subscriptions@digitalprez.com
+Required Notice: Copyright DigitalPrez, LLC. NetBlueprint Forge is licensed under the NetBlueprint Forge Personal Use License 1.0: personal use by an individual is free; any use by or for an organization needs a written license from DigitalPrez, LLC: subscriptions@digitalprez.com
 
-The software in this folder is licensed under the PolyForm Noncommercial License 1.0.0, reproduced below, with these additional
-terms from the licensor, DigitalPrez, LLC:
+----------------------------------------------------------------------------------------------------
 
-1. Output exception. Diagrams, documents and other files generated with the software, including the copy of the renderer embedded in
-   them, may be used, copied, displayed and distributed by anyone, for any purpose, without restriction under this license. The models and
-   diagrams you make with the software are yours.
-2. Commercial licenses. Use of the software for commercial purposes requires a written license from DigitalPrez, LLC, which grants them
-   to specific organizations, with or without a fee, at its discretion. Request one at subscriptions@digitalprez.com; DigitalPrez provides
-   the grant document on request.
-3. Trademarks. "NetBlueprint Forge" and "DigitalPrez" are trademarks of DigitalPrez, LLC. This license grants no trademark rights.
-4. Notices. Keep this file with every copy of the software; the renderer repeats a short form of this notice at the top of every document
-   it generates.
-5. Third-party icons. The icon library in assets/icons reproduces architecture icons published by Microsoft, Amazon Web Services and
-   Google for use in diagrams and documentation, and scripts/icons.mjs can fetch, at the user's request, product logos from the
-   Dashboard Icons collection into the user's own model folder. All of them remain the property of their owners, are used under
-   the terms reproduced in THIRD-PARTY-NOTICES.md, and this license grants no rights in them.
-
-Where these additional terms give more permission than the PolyForm Noncommercial License 1.0.0, the additional terms prevail; nothing in
-them takes away a permission that license gives.
-
-----------------------------------------------------------------------------------------------------------------------------------------
-
-# PolyForm Noncommercial License 1.0.0
-
-<https://polyformproject.org/licenses/noncommercial/1.0.0>
+# NetBlueprint Forge Personal Use License 1.0
 
 ## Acceptance
 
-In order to get any license under these terms, you must agree
-to them as both strict obligations and conditions to all
-your licenses.
+In order to get any license under these terms, you must agree to them as both strict obligations
+and conditions to all your licenses.
 
 ## Copyright License
 
-The licensor grants you a copyright license for the
-software to do everything you might do with the software
-that would otherwise infringe the licensor's copyright
-in it for any permitted purpose.  However, you may
-only distribute the software according to [Distribution
-License](#distribution-license) and make changes or new works
-based on the software according to [Changes and New Works
-License](#changes-and-new-works-license).
+The licensor grants you a copyright license for the software to do everything you might do with
+the software that would otherwise infringe the licensor's copyright in it for any permitted
+purpose. However, you may only distribute the software according to
+[Distribution License](#distribution-license) and make changes or new works based on the software
+according to [Changes and New Works License](#changes-and-new-works-license).
 
 ## Distribution License
 
-The licensor grants you an additional copyright license
-to distribute copies of the software.  Your license
-to distribute covers distributing the software with
-changes and new works permitted by [Changes and New Works
-License](#changes-and-new-works-license).
+The licensor grants you an additional copyright license to distribute copies of the software as
+part of your personal use. Your license to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works License](#changes-and-new-works-license).
 
 ## Notices
 
-You must ensure that anyone who gets a copy of any part of
-the software from you also gets a copy of these terms or the
-URL for them above, as well as copies of any plain-text lines
-beginning with `Required Notice:` that the licensor provided
-with the software.  For example:
-
-> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
+You must ensure that anyone who gets a copy of any part of the software from you also gets a copy
+of these terms, as well as copies of any plain-text lines beginning with `Required Notice:` that
+the licensor provided with the software. Keep this file with every copy of the software. The
+renderer repeats a short form of this notice at the top of every document it generates.
 
 ## Changes and New Works License
 
-The licensor grants you an additional copyright license to
-make changes and new works based on the software for any
-permitted purpose.
+The licensor grants you an additional copyright license to make changes and new works based on
+the software for any permitted purpose.
 
 ## Patent License
 
-The licensor grants you a patent license for the software that
-covers patent claims the licensor can license, or becomes able
-to license, that you would infringe by using the software.
+The licensor grants you a patent license for the software that covers patent claims the licensor
+can license, or becomes able to license, that you would infringe by using the software.
 
-## Noncommercial Purposes
+## Personal Use
 
-Any noncommercial purpose is a permitted purpose.
+Personal use is a permitted purpose.
 
-## Personal Uses
+Personal use is use by an individual, for that individual's own purposes, that is not use by, for
+or on behalf of any organization. Personal study, including a student's own learning, your own
+research and experiments, hobby projects, private entertainment, amateur pursuits and documenting
+your own home network are examples of personal use.
 
-Personal use for research, experiment, and testing for
-the benefit of public knowledge, personal study, private
-entertainment, hobby projects, amateur pursuits, or religious
-observance, without any anticipated commercial application,
-is use for a permitted purpose.
+Use is not personal use when it is part of your work for an employer or a client, when it is part
+of running a business, including your own business as a sole proprietor, freelancer or
+consultant, or when you use the software to produce models, diagrams or other work for an
+organization.
 
-## Noncommercial Organizations
+## Organizations
 
-Use by any charitable organization, educational institution,
-public research organization, public safety or health
-organization, environmental protection organization,
-or government institution is use for a permitted purpose
-regardless of the source of funding or obligations resulting
-from the funding.
+Any use of the software by, for or on behalf of an organization needs a written license from the
+licensor, whatever kind of organization it is, whether or not it seeks profit, and however it is
+funded. Businesses, government institutions at every level, educational institutions, charitable
+and other nonprofit organizations, and research organizations all need one. Without a written
+license, the only use an organization may make of the software is the evaluation described in
+[Evaluation](#evaluation).
+
+The licensor grants written licenses to specific organizations, with or without a fee, at its
+discretion. Request one at subscriptions@digitalprez.com; the licensor provides the license
+document on request.
+
+## Evaluation
+
+An organization may use the software to evaluate whether it suits the organization's needs for up
+to 30 consecutive calendar days, counted from the day the software is first used by, for or on
+behalf of that organization. Evaluation within that period is a permitted purpose.
+
+Each organization gets one evaluation period, shared by all of its people and covering every
+release of the software, not one period per person, team or release. Evaluation does not include
+distributing the software outside the organization. When the evaluation period ends, the
+organization must stop using the software unless it holds a written license from the licensor.
+
+## Tools and Service Providers
+
+Running the software with a tool or service that you have chosen, such as an AI assistant, a code
+editor or a hosting service, is your use of the software. The provider of that tool or service
+needs no license of its own to carry out your instructions. A provider that offers the software,
+or a product or service built on it, to others needs a written license from the licensor.
+
+## Output Exception
+
+Diagrams, documents and other files generated with the software, including the copy of the
+renderer embedded in them, may be used, copied, displayed and distributed by anyone, for any
+purpose, without restriction under these terms. The models and diagrams you make with the
+software are yours.
+
+This exception covers the generated files. It is not a license to use the software to generate
+them, and it does not allow the embedded renderer to be reused to generate other documents, which
+is use of the software.
+
+## Trademarks
+
+"NetBlueprint Forge" and "DigitalPrez" are trademarks of DigitalPrez, LLC. These terms grant no
+trademark rights.
+
+## Third-Party Icons
+
+The icon library in assets/icons reproduces architecture icons published by Microsoft, Amazon Web
+Services and Google for use in diagrams and documentation, and scripts/icons.mjs can fetch, at
+the user's request, product logos from the Dashboard Icons collection into the user's own model
+folder. All of them remain the property of their owners, are used under the terms reproduced in
+THIRD-PARTY-NOTICES.md, and these terms grant no rights in them.
+
+## Earlier Releases
+
+These terms apply to NetBlueprint Forge from release 0.13.0 onward. Each release published before
+it stays under the terms it was published with, and these terms do not change them.
 
 ## Fair Use
 
-You may have "fair use" rights for the software under the
-law. These terms do not limit them.
+You may have "fair use" rights for the software under the law. These terms do not limit them.
 
 ## No Other Rights
 
-These terms do not allow you to sublicense or transfer any of
-your licenses to anyone else, or prevent the licensor from
-granting licenses to anyone else.  These terms do not imply
-any other licenses.
+These terms do not allow you to sublicense or transfer any of your licenses to anyone else, or
+prevent the licensor from granting licenses to anyone else. These terms do not imply any other
+licenses.
 
 ## Patent Defense
 
-If you make any written claim that the software infringes or
-contributes to infringement of any patent, your patent license
-for the software granted under these terms ends immediately. If
-your company makes such a claim, your patent license ends
-immediately for work on behalf of your company.
+If you make any written claim that the software infringes or contributes to infringement of any
+patent, your patent license for the software granted under these terms ends immediately. If your
+organization makes such a claim, your patent license ends immediately for work on behalf of your
+organization.
 
 ## Violations
 
-The first time you are notified in writing that you have
-violated any of these terms, or done anything with the software
-not covered by your licenses, your licenses can nonetheless
-continue if you come into full compliance with these terms,
-and take practical steps to correct past violations, within
-32 days of receiving notice.  Otherwise, all your licenses
-end immediately.
+The first time you are notified in writing that you have violated any of these terms, or done
+anything with the software not covered by your licenses, your licenses can nonetheless continue
+if you come into full compliance with these terms, and take practical steps to correct past
+violations, within 30 days of receiving notice. Otherwise, all your licenses end immediately.
 
 ## No Liability
 
-***As far as the law allows, the software comes as is, without
-any warranty or condition, and the licensor will not be liable
-to you for any damages arising out of these terms or the use
-or nature of the software, under any kind of legal claim.***
+***As far as the law allows, the software comes as is, without any warranty or condition, and the
+licensor will not be liable to you for any damages arising out of these terms or the use or
+nature of the software, under any kind of legal claim.***
 
 ## Definitions
 
-The **licensor** is the individual or entity offering these
-terms, and the **software** is the software the licensor makes
+The **licensor** is DigitalPrez, LLC, and the **software** is the software the licensor makes
 available under these terms.
 
-**You** refers to the individual or entity agreeing to these
-terms.
+**You** refers to the individual or organization agreeing to these terms.
 
-**Your company** is any legal entity, sole proprietorship,
-or other kind of organization that you work for, plus all
-organizations that have control over, are under the control of,
-or are under common control with that organization.  **Control**
-means ownership of substantially all the assets of an entity,
-or the power to direct its management and policies by vote,
-contract, or otherwise.  Control can be direct or indirect.
+An **individual** is one natural person.
 
-**Your licenses** are all the licenses granted to you for the
-software under these terms.
+An **organization** is any legal entity, sole proprietorship, partnership, association, agency,
+institution or other body, whether or not it is incorporated. For counting the evaluation period,
+an organization includes every organization that has control over it, is under its control, or is
+under common control with it.
 
-**Use** means anything you do with the software requiring one
-of your licenses.
+**Your organization** is any organization that you work for or act on behalf of, plus all
+organizations that have control over, are under the control of, or are under common control with
+that organization. **Control** means ownership of substantially all the assets of an entity, or
+the power to direct its management and policies by vote, contract, or otherwise. Control can be
+direct or indirect.
+
+A **written license** is a license document that the licensor has issued in writing to a named
+organization and that covers the use in question.
+
+**Your licenses** are all the licenses granted to you for the software under these terms.
+
+**Use** means anything you do with the software requiring one of your licenses.

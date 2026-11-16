@@ -1,12 +1,12 @@
 ---
 name: netblueprint-forge
 description: Build, update and render network flow and threat model diagrams as self-contained interactive HTML. Interviews the user to capture zones, firewalls and boundary appliances, servers and the services on them, users, devices and bad actors, flows with their authentication strength, a guided step-by-step story, threats with STRIDE / adversary / risk metadata and controls, and Visio-style layers. Use when the user asks for a network diagram, data flow diagram, threat model, architecture walkthrough, zero-trust or privileged access flow, or wants to update an existing NetBlueprint model by name.
-license: PolyForm-Noncommercial-1.0.0 with additional terms from DigitalPrez, LLC; commercial licenses available. See LICENSE in this folder.
+license: NetBlueprint Forge Personal Use License 1.0. Personal use by an individual is free; any use by or for an organization needs a written license from DigitalPrez, LLC. See LICENSE in this folder.
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.12.0"
-  renderer-version: "1.11.0"
+  version: "0.13.0"
+  renderer-version: "1.11.1"
 ---
 
 # NetBlueprint Forge
@@ -103,7 +103,7 @@ Paths are relative to this skill's folder; use the absolute path of the skill wh
 
 ## Files in this skill
 
-- `LICENSE`: PolyForm Noncommercial 1.0.0 with DigitalPrez's additional terms: noncommercial use is free, commercial use needs a written license from DigitalPrez, LLC (subscriptions@digitalprez.com), and everything the skill generates is free for anyone to use and share. The renderer repeats a short notice at the top of every generated HTML.
+- `LICENSE`: the NetBlueprint Forge Personal Use License 1.0: personal use by an individual is free, any use by or for an organization (a business, a government institution, a school, a charity or other nonprofit, a research body) needs a written license from DigitalPrez, LLC (subscriptions@digitalprez.com) after a 30-day evaluation, and everything the skill generates is free for anyone to use and share. The renderer repeats a short notice at the top of every generated HTML.
 - `assets/schema/netblueprint.schema.json`: the model schema (draft 2020-12).
 - `assets/icons/azure.json`, `aws.json`, `gcp.json`: the vendor icon library, one index per provider with the icons' markup, titles, aliases and the vendor's terms; `THIRD-PARTY-NOTICES.md` beside this file reproduces those terms. `references/icons.md` explains the names.
 - `assets/template/template.html`: the renderer. Never edit a generated HTML by hand; change the model and rebuild.

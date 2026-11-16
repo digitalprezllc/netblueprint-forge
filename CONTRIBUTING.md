@@ -12,7 +12,7 @@ A question about using the skill is welcome the same way: as a bug report when s
 
 Pull requests are not accepted. A workflow closes any that is opened from outside the organization, with a note, and nothing from one is reviewed, merged or kept. Code pasted into an issue is treated the same way: the issue is read for the problem it describes, not for the patch.
 
-The reason is the licence. NetBlueprint Forge is source-available under the PolyForm Noncommercial License with DigitalPrez's additional terms, and organizations use it for business under a commercial licence from DigitalPrez, LLC. Every line being ours keeps that simple: there is no contributor agreement to sign, and nobody has to wonder who owns what. An issue that describes a problem well gets the same fix a pull request would have brought, written here.
+The reason is the licence. NetBlueprint Forge is source-available under the NetBlueprint Forge Personal Use License, which makes personal use by an individual free, and every organization uses it under a written commercial licence from DigitalPrez, LLC. Every line being ours keeps that simple: there is no contributor agreement to sign, and nobody has to wonder who owns what. An issue that describes a problem well gets the same fix a pull request would have brought, written here.
 
 ## Security problems
 
