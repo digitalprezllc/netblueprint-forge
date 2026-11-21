@@ -89,6 +89,17 @@ try {
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }
+// Every file the archive ships is text, and none holds a control byte other than tab, line feed or carriage return: a stray
+// byte inside a pattern (as in suggest.mjs until 0.13.1) is invisible in an editor and silently changes what the code matches.
+{
+  const stray = [];
+  for (const f of listFiles(skillDir)) {
+    const b = fs.readFileSync(f.abs);
+    const i = b.findIndex((c) => c < 9 || c === 11 || c === 12 || (c > 13 && c < 32) || c === 127);
+    if (i >= 0) stray.push(`${f.rel} at byte ${i} (0x${b[i].toString(16).padStart(2, '0')})`);
+  }
+  if (!stray.length) pass('no shipped file holds a control byte other than tab, line feed or carriage return'); else fail(`control bytes in ${stray.join('; ')}`);
+}
 // 4. one version, written in SKILL.md, repeated faithfully everywhere else (the renderer version likewise)
 {
   const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

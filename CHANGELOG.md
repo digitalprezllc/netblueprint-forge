@@ -2,6 +2,13 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
+## 0.13.1 (2026-11-21)
+
+Skill 0.13.1, renderer 1.11.2. Download: [netblueprint-forge-0.13.1.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.1.zip), sha256 `e4bb418e304b4a14b7d9a6d2f5346e1ea65ab2a4b8d5f3483514b5274bf7ea1b`.
+
+- **The NetBlueprint Forge logo.** The README opens with it, in a light and a dark version, and `docs/brand/netblueprint-forge/` holds the logo, the mark alone and a favicon set (the SVG, an ICO with 16, 32 and 48 pixel images, PNGs at 16, 32, 48, 180, 192 and 512). Renderer 1.11.2: every rendered page shows the NetBlueprint Forge favicon, the quartered shield, in the browser tab, in place of the DigitalPrez mark; nothing else on the page changes, and the five example pages are rebuilt. The DigitalPrez mark stays in `docs/brand/` for DigitalPrez's own sites.
+- **Fix: a node named like an edge service counts as one.** The pattern in `scripts/suggest.mjs` that recognises a WAF, gateway, load balancer, CDN or similar by its label held two backspace bytes where its word boundaries belonged, from 0.9.0 through 0.13.0, and so matched nothing: only a `public-endpoint` node or an appliance counted as an edge. Rules R004 (boundary crossed without a filtering appliance) and R023 (Internet requests without a WAF or API gateway) could therefore suggest a threat on a flow that already passes through an edge service named as one. No suggestion on the test fixture or the five examples changes. `tests/check_suggest.mjs` now checks a node described as an application gateway, and `tests/check_package.mjs` fails when any shipped file holds a control byte other than tab, line feed or carriage return.
+
 ## 0.13.0 (2026-11-16)
 
 Skill 0.13.0, renderer 1.11.1. Download: [netblueprint-forge-0.13.0.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.0.zip), sha256 `3c5288d5589dc41d361ef39f609b962c9e90d2347d31418821f0b2724cadad6f`.

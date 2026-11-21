@@ -66,5 +66,14 @@ const hub = read(path.join(root, 'examples', 'azure-hub-spoke', 'azure-hub-spoke
 const hr = suggestModel(hub);
 if (hr.some((x) => x.tab === 'whatif-redis' && x.scenario)) pass('the hub-spoke what-if tab is reported as skipped'); else fail('the what-if tab was not recognised as a scenario');
 
+// 6. A node named like an edge service counts as one: the fixture's web server, described as an application gateway, stops
+// R004 on the flow it sends and R023 on the flow it receives. Until 0.13.1 the pattern held two backspace bytes where its word
+// boundaries belonged, matched nothing, and only a public-endpoint type or an appliance counted as an edge.
+const gw = JSON.parse(JSON.stringify(fixture));
+gw.nodes.find((n) => n.name === 'web').sub = 'Application gateway';
+const gwHits = new Set(suggestModel(gw)[0].suggestions.map((s) => `${s.rule}:${s.target}`));
+const edgeLeft = ['R004:f-web-api', 'R023:f-customer-web'].filter((k) => gwHits.has(k));
+if (!edgeLeft.length) pass('a node described as an application gateway is an edge: R004 and R023 no longer fire on its flows'); else fail(`an edge-named node is not treated as an edge: ${edgeLeft.join(', ')} still fire`);
+
 console.log(fails ? `check_suggest: ${fails} failure(s)` : 'check_suggest: all checks passed');
 process.exit(fails ? 1 : 0);

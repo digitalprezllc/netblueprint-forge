@@ -5,8 +5,8 @@ license: NetBlueprint Forge Personal Use License 1.0. Personal use by an individ
 compatibility: Requires Node.js 18+ for the validate, build and archive scripts. No network access needed; web access is used only, when available, to research cloud services that have no catalogue card and, when asked, to fetch a product logo with scripts/icons.mjs.
 metadata:
   author: "DigitalPrez, LLC"
-  version: "0.13.0"
-  renderer-version: "1.11.1"
+  version: "0.13.1"
+  renderer-version: "1.11.2"
 ---
 
 # NetBlueprint Forge

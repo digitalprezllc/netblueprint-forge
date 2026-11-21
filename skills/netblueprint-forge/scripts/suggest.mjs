@@ -30,7 +30,7 @@ const BUILTIN_LABEL = { anonymous: 'anonymous', password: 'password', basic: 'Ba
 const ADMIN_PROTO = /\b(rdp|ssh|winrm|vnc|telnet)\b/i;
 const WEB_GUARDS = ['waf', 'api-gateway', 'reverse-proxy', 'zero-trust-broker'];
 const SENSITIVE = ['confidential', 'restricted'];
-const EDGE = /(waf|armor|front door|cloudfront|application gateway|app gateway|api gateway|api management|load balancer|gateway|reverse proxy|cdn)/i;
+const EDGE = /\b(waf|armor|front door|cloudfront|application gateway|app gateway|api gateway|api management|load balancer|gateway|reverse proxy|cdn)\b/i;
 const MANAGED_ZONE = ['cloud', 'provider', 'tenant'];
 
 /** Builds the view of one scope (the model, or one tab) that the rules read. */

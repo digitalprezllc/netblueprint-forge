@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/netblueprint-forge/logo-dark.svg">
+  <img src="docs/brand/netblueprint-forge/logo.svg" alt="NetBlueprint Forge: Secure, Design, Innovate, Manage, Defend" width="520">
+</picture>
+
 # NetBlueprint Forge
 
 Interview-driven threat modelling that produces a validated context model, a self-contained interactive diagram, and clause-level framework coverage an auditor can use.
@@ -376,7 +381,7 @@ netblueprint-forge/
 │   ├── assets/examples/           Copies of the example models
 │   └── agents/openai.yaml         Codex / ChatGPT display metadata
 ├── examples/                      The example models, their rendered pages and a README each
-├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README, the brand files (mark and favicon)
+├── docs/                          Requirements, decisions, platform matrix, research notes, the pictures in this README, the brand files (the NetBlueprint Forge logo and favicon, the DigitalPrez mark)
 ├── platforms/                     Install scripts for Windows (install.ps1) and macOS / Linux (install.sh); package.mjs builds the release zip
 ├── tests/                         Validator suite, schema check, layout check with its baseline, icon check, packaging check, rules check, reports check, coverage check, attribute display check, README pictures
 ├── blueprints/                    Working models produced with the skill in this repository
@@ -390,7 +395,7 @@ netblueprint-forge/
 └── THIRD-PARTY-NOTICES.md         The vendors' terms for the icon library and the standards the crosswalk cites
 ```
 
-Skill 0.13.0, renderer 1.11.1: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
+Skill 0.13.1, renderer 1.11.2: usable for real models; the five examples pass every check. The scope is in [docs/REQUIREMENTS.md](docs/REQUIREMENTS.md), the choices made along the way in [docs/DECISIONS.md](docs/DECISIONS.md), and what each release added in [CHANGELOG.md](CHANGELOG.md).
 
 ## License and commercial licensing
 
