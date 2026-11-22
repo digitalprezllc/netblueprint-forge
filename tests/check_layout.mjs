@@ -60,12 +60,39 @@ for (const ex of examples) {
       if (t.maxBends > base.maxBends) grew.push(`longest flow ${base.maxBends} → ${t.maxBends} bends`);
     } else if (!args.includes('--update')) grew.push('no baseline for this tab (run with --update once it looks right)');
     if (grew.length) v.failures.push(`${t.tab}: ${grew.join(', ')}`);
+    const silent = (t.walk || []).filter((s) => s.flows && !s.packets.length).map((s) => s.step);
+    if (!t.walk) v.failures.push(`${t.tab}: the report has no walk entry`); else if (silent.length) v.failures.push(`${t.tab}: steps with flows but no moving packet: ${silent.join(', ')}`);
   }
   const ok = v.failures.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${ex} (renderer ${report.renderer})`);
   v.lines.forEach((l) => console.log('      ' + l));
   v.failures.forEach((l) => console.log('      ✗ ' + l));
   if (!ok) failures++;
+}
+// A step that lists flows and names no packets still moves: the page sends one packet per flow, in the order of step.flows.
+// tests/fixtures/tabs-minimal.model.json has such a step on each of its two tabs.
+{
+  const fixture = path.join(root, 'tests', 'fixtures', 'tabs-minimal.model.json');
+  const model = JSON.parse(fs.readFileSync(fixture, 'utf8').replace(/^﻿/, ''));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'nb-walk-'));
+  const html = path.join(dir, 'tabs-minimal.html');
+  try {
+    execFileSync(process.execPath, [path.join(root, 'skills', 'netblueprint-forge', 'scripts', 'build.mjs'), fixture, '-o', html, ...(fontDir ? ['--template', path.join(fontDir, 'template.html')] : [])], { stdio: ['ignore', 'ignore', 'inherit'] });
+    const report = runReport(browser, html);
+    const wrong = [];
+    for (const tab of model.tabs) {
+      const t = report.tabs.find((x) => x.tab === tab.name);
+      for (const s of tab.steps || []) {
+        const w = t && (t.walk || []).find((x) => x.step === s.name);
+        const want = (s.packets && s.packets.length ? s.packets : (s.flows || []).map((f) => ({ flow: f }))).map((p) => p.flow);
+        if (!w || w.named !== !!(s.packets && s.packets.length) || JSON.stringify(w.packets) !== JSON.stringify(want)) wrong.push(`${tab.name}/${s.name}: ${w ? JSON.stringify(w.packets) : 'missing'} (expected ${JSON.stringify(want)})`);
+      }
+    }
+    const fallback = model.tabs.flatMap((tab) => (tab.steps || []).filter((s) => (s.flows || []).length && !(s.packets || []).length));
+    if (!wrong.length && fallback.length) console.log(`PASS  a step with flows and no packets sends one packet per flow (${fallback.length} such steps in tabs-minimal)`);
+    else { console.log(`FAIL  walkthrough packets: ${wrong.join('; ') || 'the fixture has no step without packets'}`); failures++; }
+  } catch (e) { console.log(`FAIL  walkthrough packets: ${e.message}`); failures++; code = code || 2; }
+  finally { fs.rmSync(dir, { recursive: true, force: true }); }
 }
 if (fontDir) fs.rmSync(fontDir, { recursive: true, force: true });
 if (args.includes('--update') && !fontDir) { fs.writeFileSync(baselinePath, JSON.stringify(next, null, 2) + '\n', { encoding: 'utf8' }); console.log(`baseline written: ${path.relative(root, baselinePath)}`); }

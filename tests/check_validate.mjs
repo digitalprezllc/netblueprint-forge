@@ -53,4 +53,13 @@ for (const [r, expected] of cases) {
   console.log(`${ok ? 'PASS' : 'FAIL'}  policy.model.json: valid on its own (${plain.errors.length} error(s)); --strict reports ${strict.policy.length} policy failure(s), ${hit.length} of ${expected.length} expected`);
   if (!ok) { strict.policy.forEach((p) => console.log('      - ' + p)); plain.errors.forEach((e) => console.log('      - error: ' + e)); failures++; }
 }
+// a step that lists flows and names no packets draws one warning; a step that names them draws none
+{
+  const read = (f) => JSON.parse(fs.readFileSync(path.join(root, 'tests', 'fixtures', f), 'utf8').replace(/^﻿/, ''));
+  const bare = validateModel(read('tabs-minimal.model.json')).warnings.filter((w) => w.includes('has flows but no packets'));
+  const named = validateModel(read('minimal.model.json')).warnings.filter((w) => w.includes('has flows but no packets'));
+  const ok = bare.length === 2 && bare.every((w) => w.includes('step "s1"') && w.includes('one packet per flow')) && named.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  steps without packets: ${bare.length} warning(s) on tabs-minimal (expected 2), ${named.length} on minimal (expected 0)`);
+  if (!ok) failures++;
+}
 process.exit(failures ? 1 : 0);

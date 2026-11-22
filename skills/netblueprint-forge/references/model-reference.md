@@ -1,6 +1,6 @@
 # Model reference
 
-Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-15. Do not edit by hand; change the schema and regenerate.
+Generated from `assets/schema/netblueprint.schema.json` by `scripts/model-reference.mjs` on 2026-11-22. Do not edit by hand; change the schema and regenerate.
 
 A network / application flow and threat model. The renderer computes layout from this; nothing here is a pixel coordinate. Names are stable ids that the user refers to in later edits; labels are what the diagram shows. Cross-references (zone parents, flow endpoints, step flows, threat targets, control ids, requirement ids, dependency providers, auth type ids, layer names) are checked by scripts/validate.mjs, not by this schema.
 
@@ -327,7 +327,7 @@ One step of the guided story.
 | `flows` | list of names (unique) |  | Flows this step is about. Used for the collapsed band (source → destination, direction, auth) and highlighted during the step. |
 | `highlight` | list of refs (unique) |  | Nodes, components or appliances to mark active. |
 | `pulse` | ref: `node` or `node/component` |  |  |
-| `packets` | array of [packet](#packet) |  |  |
+| `packets` | array of [packet](#packet) |  | The dots that travel while the step plays, in order. When absent or empty, the walkthrough sends one packet per flow in `flows`, forward, with the flow's own kind, and the validator warns; list them to set the order, a `reverse` response, a kind or the timing. |
 | `tunnel` | list of names (unique) |  | Flows drawn as an established tunnel once the step finishes. |
 | `badge` | ref: `node` or `node/component` |  | Node or component that gets a ✓ badge when the step finishes. |
 | `outcome` | text ≤200 |  | Shown as the step's outcome line when set. |

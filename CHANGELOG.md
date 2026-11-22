@@ -2,6 +2,13 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
+## 0.13.2 (2026-11-21)
+
+Skill 0.13.2, renderer 1.11.3. Download: [netblueprint-forge-0.13.2.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.2.zip), sha256 `2f883be48508bb1977b620aac701bd5f65484e1762441ed18cc2c22ddc9a3675`.
+
+- **A step with flows and no packets moves.** The interview guide has always said a step's packets default to one per flow, but the renderer animated only the packets a step named, so a model whose steps list `flows` and no `packets` played a walkthrough with no moving dot. Renderer 1.11.3: such a step sends one packet per flow in `flows`, in that order, forward from the flow's source to its destination, with the flow's own kind (a tunnel or trust flow drawn as data, as before), and loops like any other step; reduced motion is respected as before, and a step that names its packets is unchanged. The validator warns on each step that has flows and no packets, and says how to name them. The schema's description of `packets` says the same, and `references/model-reference.md` is regenerated from it.
+- The page's self-check report (`?nbcheck=1`) lists, per tab, each step's flows and the packets it sends (`walk`). `tests/check_layout.mjs` fails when a step with flows sends no packet in any example, and checks in a browser that `tests/fixtures/tabs-minimal.model.json`, whose steps name no packets, sends one per flow; `tests/check_validate.mjs` checks the warning. The five examples name their packets, so their walkthroughs do not change; their pages are rebuilt with the new renderer.
+
 ## 0.13.1 (2026-11-21)
 
 Skill 0.13.1, renderer 1.11.2. Download: [netblueprint-forge-0.13.1.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.1.zip), sha256 `e4bb418e304b4a14b7d9a6d2f5346e1ea65ab2a4b8d5f3483514b5274bf7ea1b`.

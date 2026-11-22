@@ -290,6 +290,7 @@ function lintScope(model, { fix = false } = {}) {
     (s.flows || []).forEach((n) => { if (!F.has(n)) err(`step "${s.name}": flow "${n}" does not exist`); });
     (s.tunnel || []).forEach((n) => { if (!F.has(n)) err(`step "${s.name}": tunnel flow "${n}" does not exist`); });
     (s.packets || []).forEach((p, i) => { if (!F.has(p.flow)) err(`step "${s.name}": packet ${i + 1} uses flow "${p.flow}" which does not exist`); });
+    if ((s.flows || []).length && !(s.packets || []).length) warn(`step "${s.name}": has flows but no packets, so the walkthrough sends one packet per flow, forward, with the flow's own kind; list them in packets[] ({ "flow": "<name>" }, with "direction": "reverse" for a response) to set their order, direction and timing`);
     (s.highlight || []).forEach((r) => { if (!refOk(r)) err(`step "${s.name}": highlight "${r}" is not a node, component or appliance`); });
     if (s.badge && !refOk(s.badge)) err(`step "${s.name}": badge "${s.badge}" is not a node, component or appliance`);
     if (s.pulse && !refOk(s.pulse)) err(`step "${s.name}": pulse "${s.pulse}" is not a node, component or appliance`);

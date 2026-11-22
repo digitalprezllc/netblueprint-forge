@@ -2319,6 +2319,7 @@
           "$ref": "#/$defs/ref"
         },
         "packets": {
+          "description": "The dots that travel while the step plays, in order. When absent or empty, the walkthrough sends one packet per flow in `flows`, forward, with the flow's own kind, and the validator warns; list them to set the order, a `reverse` response, a kind or the timing.",
           "type": "array",
           "items": {
             "$ref": "#/$defs/packet"
