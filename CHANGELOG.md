@@ -2,6 +2,12 @@
 
 Releases of NetBlueprint Forge, newest first. The release number is the skill's `metadata.version` in `skills/netblueprint-forge/SKILL.md`; the renderer carries its own version inside the template. Every merge to `master` that raises the skill version publishes `netblueprint-forge-<version>.zip` on the Releases page with that version's section below as its notes. `node platforms/package.mjs` builds the same archive locally, byte for byte: every entry is stamped with the date in the version's heading here, not with file times, so a version's archive has one sha256 wherever it is built (from the next release on; the two 0.7.0 archives differ only in file times).
 
+## 0.13.3 (2026-11-25)
+
+Skill 0.13.3, renderer 1.11.4. Download: [netblueprint-forge-0.13.3.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.3.zip), sha256 `f13820f2d212edf4bf7ae93fcd12199880aadc57f17d7ea61d8ca63f4f1cf977`.
+
+- **The favicon has a transparent background.** It drew the quartered shield on a navy sheet, which read as black in a browser tab and left the shield small inside it. The sheet and its slate lines are gone, and the shield and the hammer's handle fill the space instead, so the tab's own colour shows through, light or dark. Renderer 1.11.4 embeds the new favicon, so every rendered page shows it; nothing else on the page changes, and the five example pages are rebuilt. `docs/brand/netblueprint-forge/` has the new `favicon.svg`, `favicon.ico` and the 16, 32 and 48 pixel PNGs. The touch icon and the app icons keep the navy sheet, because a phone shows a transparent background as black.
+
 ## 0.13.2 (2026-11-21)
 
 Skill 0.13.2, renderer 1.11.3. Download: [netblueprint-forge-0.13.2.zip](https://bifrost.digitalprez.com/download/netblueprint-forge/releases/netblueprint-forge-0.13.2.zip), sha256 `2f883be48508bb1977b620aac701bd5f65484e1762441ed18cc2c22ddc9a3675`.
